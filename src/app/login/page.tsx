@@ -40,8 +40,10 @@ const LoginPage = () => {
       // Check if result is an object with success property
       if (result && typeof result === 'object' && 'success' in result) {
         // Redirect admin users to admin dashboard, regular users to home page
-        if (result.isAdmin) {
+        if ('isAdmin' in result && result.isAdmin) {
           router.push('/admin');
+        } else {
+          router.push('/'); // or wherever regular users should go
         }
       }
     } catch (err) {
