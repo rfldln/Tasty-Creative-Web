@@ -32,7 +32,8 @@ export async function initDb() {
     // Check if admin user exists, create default admin if not
     const adminCheck = await sql`SELECT * FROM users WHERE is_admin = TRUE LIMIT 1`;
     
-    if (adminCheck.rowCount === 0) {
+    // Use optional chaining to safely access rowCount
+    if (adminCheck?.rowCount === 0) {
       // Create default admin user (make sure to change the password in production!)
       const adminId = uuidv4();
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -61,7 +62,7 @@ export async function getUsers(): Promise<User[]> {
       ORDER BY created_at DESC
     `;
     
-    return result.rows;
+    return result.rows as User[];
   } catch (error) {
     console.error('Error fetching users:', error);
     throw new Error('Failed to fetch users');
@@ -77,7 +78,7 @@ export async function getUserByUsername(username: string): Promise<User | null> 
       WHERE username = ${username}
     `;
     
-    return result.rows[0] || null;
+    return result.rows[0] as User || null;
   } catch (error) {
     console.error('Error fetching user by username:', error);
     throw new Error('Failed to fetch user');
@@ -93,7 +94,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
       WHERE email = ${email}
     `;
     
-    return result.rows[0] || null;
+    return result.rows[0] as User || null;
   } catch (error) {
     console.error('Error fetching user by email:', error);
     throw new Error('Failed to fetch user');
@@ -133,7 +134,7 @@ export async function createUser(userData: {
       RETURNING id, username, email, is_admin as "isAdmin", created_at as "createdAt"
     `;
     
-    return result.rows[0];
+    return result.rows[0] as User;
   } catch (error: any) {
     console.error('Error creating user:', error);
     throw new Error(error.message || 'Failed to create user');
@@ -148,7 +149,7 @@ export async function deleteUser(userId: string): Promise<boolean> {
     const userToDelete = await sql`SELECT is_admin FROM users WHERE id = ${userId}`;
     
     if (
-      adminCheck.rows[0].count <= 1 && 
+      adminCheck.rows[0]?.count <= 1 && 
       userToDelete.rows[0] && 
       userToDelete.rows[0].is_admin
     ) {
@@ -161,7 +162,8 @@ export async function deleteUser(userId: string): Promise<boolean> {
       RETURNING id
     `;
     
-    return result.rowCount > 0;
+    // Use optional chaining to safely access rowCount
+    return result?.rowCount > 0;
   } catch (error: any) {
     console.error('Error deleting user:', error);
     throw new Error(error.message || 'Failed to delete user');
