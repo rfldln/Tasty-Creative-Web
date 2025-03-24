@@ -37,12 +37,11 @@ const LoginPage = () => {
     try {
       const result = await login(username, password);
       
-      if (result && result.success) {
+      // Check if result is an object with success property
+      if (result && typeof result === 'object' && 'success' in result) {
         // Redirect admin users to admin dashboard, regular users to home page
         if (result.isAdmin) {
           router.push('/admin');
-        } else {
-          router.push('/');
         }
       }
     } catch (err) {
