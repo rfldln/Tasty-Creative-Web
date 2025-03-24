@@ -5,30 +5,23 @@ import { authOptions } from '@/lib/auth';
 
 // DELETE handler - Delete a user by ID
 export async function DELETE(
-  request: Request,
-  context: { params: { userId: string } }
+  req: Request,
+  { params }: { params: { userId: string } }
 ) {
+  const userId = params.userId;
+  
   try {
-    // Verify admin authorization
+    // Check authentication
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user || !session.user.isAdmin) {
+    if (!session?.user?.isAdmin) {
       return NextResponse.json(
         { message: 'Unauthorized: Admin access required' }, 
         { status: 403 }
       );
     }
     
-    const { userId } = context.params;
-    
-    if (!userId) {
-      return NextResponse.json(
-        { message: 'User ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Delete user from database
+    // Delete user
     const success = await deleteUser(userId);
     
     if (!success) {
