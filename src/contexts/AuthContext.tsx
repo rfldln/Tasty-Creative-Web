@@ -4,12 +4,18 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+// Define a type for the login result
+interface LoginResult {
+  success: boolean;
+  isAdmin: boolean;
+}
+
 interface AuthContextType {
   user: string | null;
   isAdmin: boolean;
   loading: boolean;
   error: string | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<false | LoginResult>;
   logout: () => void;
 }
 
