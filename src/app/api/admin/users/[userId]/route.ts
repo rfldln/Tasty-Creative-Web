@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { deleteUser } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 // DELETE handler - Delete a user by ID
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { userId: string } }
+  request: Request,
+  context: { params: { userId: string } }
 ) {
   try {
     // Verify admin authorization
@@ -19,7 +19,7 @@ export async function DELETE(
       );
     }
     
-    const { userId } = params;
+    const { userId } = context.params;
     
     if (!userId) {
       return NextResponse.json(
