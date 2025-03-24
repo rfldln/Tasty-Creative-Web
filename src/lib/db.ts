@@ -162,8 +162,8 @@ export async function deleteUser(userId: string): Promise<boolean> {
       RETURNING id
     `;
     
-    // Use optional chaining to safely access rowCount
-    return result?.rowCount > 0;
+    // Use nullish coalescing to provide a default value if rowCount is null
+    return (result?.rowCount ?? 0) > 0;
   } catch (error: any) {
     console.error('Error deleting user:', error);
     throw new Error(error.message || 'Failed to delete user');
