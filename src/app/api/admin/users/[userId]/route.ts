@@ -3,15 +3,13 @@ import { deleteUser } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-// DELETE handler - Delete a user by ID
+// Option 1: Try this version first
 export async function DELETE(
-  req: Request,
+  _request: Request, // Underscore prefix indicates unused parameter
   { params }: { params: { userId: string } }
 ) {
-  const userId = params.userId;
-  
   try {
-    // Check authentication
+    // Verify admin authorization
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.isAdmin) {
@@ -21,8 +19,8 @@ export async function DELETE(
       );
     }
     
-    // Delete user
-    const success = await deleteUser(userId);
+    // Delete user from database
+    const success = await deleteUser(params.userId);
     
     if (!success) {
       return NextResponse.json(
