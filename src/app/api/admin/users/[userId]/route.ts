@@ -3,12 +3,21 @@ import { deleteUser } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-// Option 1: Try this version first
 export async function DELETE(
-  _request: Request, // Underscore prefix indicates unused parameter
-  { params }: { params: { userId: string } }
-) {
+  request: Request,
+): Promise<Response> {
   try {
+    // Extract userId from the URL
+    const url = new URL(request.url);
+    const userId = url.pathname.split('/').pop();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { message: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+    
     // Verify admin authorization
     const session = await getServerSession(authOptions);
     
@@ -20,7 +29,7 @@ export async function DELETE(
     }
     
     // Delete user from database
-    const success = await deleteUser(params.userId);
+    const success = await deleteUser(userId);
     
     if (!success) {
       return NextResponse.json(
