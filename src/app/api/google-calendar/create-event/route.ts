@@ -339,8 +339,9 @@ export async function POST(request: NextRequest) {
     const parentFolderId = "1C-IdzcmdSloULNTKdvI-Uwt4hG96wgoK";
 
     const ianaTimezone = timezoneMap[formData.timezone] || formData.timezone;
-    const parsedDate = new Date(formData.date);
     const [hours, minutes] = formData.time.split(":").map(Number);
+    const parsedDate = new Date(formData.date);
+
 
     const eventDateTime = new Date(
       parsedDate.getFullYear(),
@@ -559,8 +560,7 @@ export async function POST(request: NextRequest) {
           // Continue execution even if this fails - we'll try to use an existing row
         }
 
-        // Prepare the data to insert
-        const eventTime = new Date(`${formData.date}T${formData.time}Z`); // Assume UTC
+
         const pstTime = [
           "'" +
             new Intl.DateTimeFormat("en-US", {
@@ -568,7 +568,7 @@ export async function POST(request: NextRequest) {
               hour: "2-digit",
               minute: "2-digit",
               hour12: true,
-            }).format(eventTime),
+            }).format(eventDateTime),
         ];
 
         const imageFormula = `=HYPERLINK("${formData.webViewLink}", IMAGE("${formData.thumbnail}"))`;
