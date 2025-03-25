@@ -15,11 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "./ui/button";
-import { Calendar } from "./ui/calendar";
-import { CalendarIcon } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { format } from "date-fns";
 import { toast } from "sonner";
 
 interface FormData {
@@ -804,41 +799,18 @@ export default function LiveFlyer() {
                 disabled={isLoading || isFetchingImage}
               /> */}
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left cursor-pointer font-normal bg-black/60 border-0 hover:bg-black/60 hover:text-gray-600",
-                      !formData.date && "text-muted-foreground"
-                    )}
-                    disabled={isLoading || isFetchingImage}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
-                    {formData.date ? (
-                      format(new Date(formData.date), "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 dark">
-                  <Calendar
-                    mode="single"
-                    selected={
-                      formData.date ? new Date(formData.date) : undefined
-                    }
-                    onSelect={(date) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        date: date ? date.toISOString() : "",
-                      }))
-                    }
-                    initialFocus
-                    className="dark"
-                  />
-                </PopoverContent>
-              </Popover>
+              <input
+                type="date"
+                id="date"
+                name="date"
+                className="bg-black/60 text-gray-400 border-white/10 rounded-lg w-full p-2 
+                [&::-webkit-calendar-picker-indicator]:text-gray-400
+                [&::-webkit-calendar-picker-indicator]:opacity-60"
+                value={formData.date}
+                onChange={handleInputChange}
+                required
+                disabled={isLoading || isFetchingImage}
+              />
             </div>
           </div>
 
