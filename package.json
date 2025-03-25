@@ -3,9 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "install": "npm install --force",
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "npm install --force && next build",
     "start": "next start",
     "lint": "next lint"
   },
