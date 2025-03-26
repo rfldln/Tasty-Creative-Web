@@ -1028,45 +1028,45 @@ const TastyCreative = () => {
           <TabsList className="grid grid-cols-6 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="calendar"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
             >
-              <CalendarIcon size={16} className="mr-1" />
-              Calendar
+              <CalendarIcon size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">Calendar</span>
             </TabsTrigger>
             <TabsTrigger
               value="live"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <CalendarIcon size={16} className="mr-1" />
-              Live
+              <Video size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">Live</span>
             </TabsTrigger>
             <TabsTrigger
               value="vip"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <Star size={16} className="mr-1" />
-              VIP
+              <Star size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">VIP</span>
             </TabsTrigger>
             <TabsTrigger
               value="game"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <div className="mr-1">🎮</div>
-              Game
+              <div className="sm:mr-1">🎮</div>
+              <span className="hidden sm:inline">Game</span>
             </TabsTrigger>
             <TabsTrigger
               value="image"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <Image size={16} className="mr-1" />
-              AI Image
+              <Image size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">AI Image</span>
             </TabsTrigger>
             <TabsTrigger
               value="voice"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <Mic size={16} className="mr-1" />
-              AI Voice
+              <Mic size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">AI Voice</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1214,11 +1214,6 @@ const TastyCreative = () => {
                                       {event.summary}
                                     </button>
                                   ))}
-                                  {dayEvents.length > 2 && (
-                                    <div className="text-gray-400 text-center">
-                                      +{dayEvents.length - 2} more
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             );
@@ -1226,16 +1221,6 @@ const TastyCreative = () => {
 
                           return days;
                         })()}
-                      </div>
-
-                      {/* Add event button */}
-                      <div className="flex justify-end">
-                        <Button
-                          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white"
-                          onClick={() => setShowAddEvent(!showAddEvent)}
-                        >
-                          {showAddEvent ? 'Cancel' : 'Add Event'}
-                        </Button>
                       </div>
 
                       {/* Enhanced Add Event Form */}
