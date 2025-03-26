@@ -865,8 +865,7 @@ const TastyCreative = () => {
     if (historyAudio?.audioBlob) {
       downloadAudio(
         historyAudio.audioBlob,
-        `${historyItem.voice_name || "voice"}-${
-          historyItem.history_item_id
+        `${historyItem.voice_name || "voice"}-${historyItem.history_item_id
         }.mp3`
       );
     }
@@ -2507,11 +2506,11 @@ const TastyCreative = () => {
                                     {getVoiceParameters(
                                       item.history_item_id
                                     ) && (
-                                      <div className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-green-800/50 border border-green-400/30">
-                                        <Check size={8} className="mr-1" />{" "}
-                                        Parameters Available
-                                      </div>
-                                    )}
+                                        <div className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-green-800/50 border border-green-400/30">
+                                          <Check size={8} className="mr-1" />{" "}
+                                          Parameters Available
+                                        </div>
+                                      )}
 
                                     <div className="flex flex-wrap gap-1 mt-2">
                                       <Button
@@ -2524,11 +2523,11 @@ const TastyCreative = () => {
                                         disabled={
                                           isLoadingHistoryAudio &&
                                           selectedHistoryItem?.history_item_id ===
-                                            item.history_item_id
+                                          item.history_item_id
                                         }
                                       >
                                         {isLoadingHistoryAudio &&
-                                        selectedHistoryItem?.history_item_id ===
+                                          selectedHistoryItem?.history_item_id ===
                                           item.history_item_id ? (
                                           <>
                                             <Loader2
