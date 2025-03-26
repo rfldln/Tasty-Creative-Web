@@ -1084,7 +1084,7 @@ export default function LiveFlyer() {
             </div>
 
             {isFetchingImage ? (
-              <div className="w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded bg-black/40">
+              <div className="w-full lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded bg-black/40">
                 <div className="flex flex-col items-center justify-center">
                   <svg
                     className="animate-spin h-8 w-8 text-purple-500 mb-2"
