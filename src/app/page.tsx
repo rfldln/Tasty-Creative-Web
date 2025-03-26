@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,9 +52,9 @@ import {
   // New imports for parameter tracking
   storeVoiceParameters,
   getVoiceParameters,
-  initVoiceParametersCache
-} from './services/elevenlabs-implementation';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+  initVoiceParametersCache,
+} from "./services/elevenlabs-implementation";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Accordion,
   AccordionContent,
@@ -91,6 +91,7 @@ import {
   isUserSignedIn,
   getEventById
 } from './services/google-calendar-implementation';
+import LiveFlyer from '@/components/LiveFlyer';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -204,16 +205,18 @@ const TastyCreative = () => {
 
   const [activeTab, setActiveTab] = useState('calendar');
   const [isPaid, setIsPaid] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState('');
-  const [promptText, setPromptText] = useState('');
-  const [generationStatus, setGenerationStatus] = useState('');
-  const [outputFormat, setOutputFormat] = useState('png');
-  const [comfyModel, setComfyModel] = useState('realistic');
+  const [selectedTheme, setSelectedTheme] = useState("");
+  const [promptText, setPromptText] = useState("");
+  const [generationStatus, setGenerationStatus] = useState("");
+  const [outputFormat, setOutputFormat] = useState("png");
+  const [comfyModel, setComfyModel] = useState("realistic");
 
   // Voice tab states
-  const [voiceText, setVoiceText] = useState('');
-  const [selectedVoice, setSelectedVoice] = useState('');
-  const [selectedModelId, setSelectedModelId] = useState('eleven_multilingual_v2');
+  const [voiceText, setVoiceText] = useState("");
+  const [selectedVoice, setSelectedVoice] = useState("");
+  const [selectedModelId, setSelectedModelId] = useState(
+    "eleven_multilingual_v2"
+  );
   const [stability, setStability] = useState(0.5);
   const [clarity, setClarity] = useState(0.75);
   const [speed, setSpeed] = useState(1.0);
@@ -225,32 +228,38 @@ const TastyCreative = () => {
 
   // History states
   const [historyEntries, setHistoryEntries] = useState<HistoryItem[]>([]);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState<HistoryItem | null>(null);
+  const [selectedHistoryItem, setSelectedHistoryItem] =
+    useState<HistoryItem | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isLoadingHistoryAudio, setIsLoadingHistoryAudio] = useState(false);
   const [historyAudio, setHistoryAudio] = useState<HistoryAudio | null>(null);
-  const [historyError, setHistoryError] = useState('');
+  const [historyError, setHistoryError] = useState("");
   const [showHistory, setShowHistory] = useState(false); // Toggle state for history
 
   // API Key Profile state
-  const [selectedApiKeyProfile, setSelectedApiKeyProfile] = useState('account_1');
-  const [apiKeyBalance, setApiKeyBalance] = useState<ApiKeyBalance | null>(null);
+  const [selectedApiKeyProfile, setSelectedApiKeyProfile] =
+    useState("account_1");
+  const [apiKeyBalance, setApiKeyBalance] = useState<ApiKeyBalance | null>(
+    null
+  );
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
 
   // ComfyUI-related states
-  const [comfyUIStatus, setComfyUIStatus] = useState('disconnected');
-  const [negativePrompt, setNegativePrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
+  const [comfyUIStatus, setComfyUIStatus] = useState("disconnected");
+  const [negativePrompt, setNegativePrompt] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [availableSamplers, setAvailableSamplers] = useState<string[]>([]);
-  const [selectedSampler, setSelectedSampler] = useState('euler_ancestral');
+  const [selectedSampler, setSelectedSampler] = useState("euler_ancestral");
   const [imageWidth, setImageWidth] = useState(512);
   const [imageHeight, setImageHeight] = useState(512);
   const [steps, setSteps] = useState(20);
   const [cfgScale, setCfgScale] = useState(7.5);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState<GeneratedImage | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<GeneratedImage | null>(
+    null
+  );
   const [generationProgress, setGenerationProgress] = useState(0);
   const [imageError, setImageError] = useState('');
 
@@ -339,7 +348,7 @@ const TastyCreative = () => {
 
   // Initialize ComfyUI connection on mount or when activeTab changes to 'image'
   useEffect(() => {
-    if (activeTab === 'image') {
+    if (activeTab === "image") {
       const initComfyUI = async () => {
         try {
           // Check connection
@@ -358,9 +367,11 @@ const TastyCreative = () => {
             }
           }
         } catch (error) {
-          console.error('Error initializing ComfyUI:', error);
-          setImageError('Failed to connect to ComfyUI. Please check your RunPod instance.');
-          setComfyUIStatus('error');
+          console.error("Error initializing ComfyUI:", error);
+          setImageError(
+            "Failed to connect to ComfyUI. Please check your RunPod instance."
+          );
+          setComfyUIStatus("error");
         }
       };
 
@@ -369,7 +380,7 @@ const TastyCreative = () => {
 
     // Clean up WebSocket connection when unmounting or changing tabs
     return () => {
-      if (activeTab !== 'image') {
+      if (activeTab !== "image") {
         closeWebSocketConnection();
       }
     };
@@ -469,8 +480,8 @@ const TastyCreative = () => {
 
       setHistoryEntries(result.items || []);
     } catch (error: any) {
-      console.error('Error loading history:', error);
-      setHistoryError('Failed to load history from ElevenLabs');
+      console.error("Error loading history:", error);
+      setHistoryError("Failed to load history from ElevenLabs");
     } finally {
       setIsLoadingHistory(false);
     }
@@ -671,18 +682,18 @@ const TastyCreative = () => {
         setAvailableVoices(profileVoices);
 
         // Reset selected voice when changing profiles
-        setSelectedVoice(profileVoices[0]?.voiceId || '');
+        setSelectedVoice(profileVoices[0]?.voiceId || "");
       } catch (error: any) {
-        console.error('Error fetching API data:', error);
+        console.error("Error fetching API data:", error);
         setApiKeyBalance({
           character: {
             limit: 0,
             remaining: 0,
-            used: 0
+            used: 0,
           },
-          status: 'error'
+          status: "error",
         });
-        setVoiceError('There was an issue connecting to the API.');
+        setVoiceError("There was an issue connecting to the API.");
       } finally {
         setIsCheckingBalance(false);
       }
@@ -702,30 +713,30 @@ const TastyCreative = () => {
   // Updated handleGenerate function for voice generation with API key profiles
   const handleGenerateVoice = async () => {
     if (!selectedApiKeyProfile) {
-      setVoiceError('API key profile must be selected');
+      setVoiceError("API key profile must be selected");
       return;
     }
 
     if (!selectedVoice) {
-      setVoiceError('Please select a voice');
+      setVoiceError("Please select a voice");
       return;
     }
 
     if (!voiceText.trim()) {
-      setVoiceError('Please enter some text');
+      setVoiceError("Please enter some text");
       return;
     }
 
-    setVoiceError('');
+    setVoiceError("");
     setIsGeneratingVoice(true);
-    setGenerationStatus('Generating voice with ElevenLabs...');
+    setGenerationStatus("Generating voice with ElevenLabs...");
 
     try {
       // Get the selected voice
       const selectedVoiceDetails = availableVoices.find(voice => voice.voiceId === selectedVoice);
 
       if (!selectedVoiceDetails) {
-        throw new Error('Voice not found');
+        throw new Error("Voice not found");
       }
 
       const result = await generateVoice(
@@ -738,13 +749,13 @@ const TastyCreative = () => {
           clarity,
           speed,
           styleExaggeration,
-          speakerBoost
+          speakerBoost,
         }
       );
 
       setGeneratedAudio({
         ...result,
-        voiceName: selectedVoiceDetails.name
+        voiceName: selectedVoiceDetails.name,
       });
       setGenerationStatus('Voice generated successfully!');
 
@@ -755,9 +766,9 @@ const TastyCreative = () => {
       // Refresh history
       reloadHistoryWithDelay();
     } catch (error: any) {
-      console.error('Voice generation error:', error);
-      setVoiceError(error.message || 'Failed to generate voice');
-      setGenerationStatus('');
+      console.error("Voice generation error:", error);
+      setVoiceError(error.message || "Failed to generate voice");
+      setGenerationStatus("");
     } finally {
       setIsGeneratingVoice(false);
     }
@@ -766,7 +777,7 @@ const TastyCreative = () => {
   // Handle image generation with ComfyUI
   const handleGenerateImage = async () => {
     if (!promptText.trim()) {
-      setImageError('Please enter a prompt');
+      setImageError("Please enter a prompt");
       return;
     }
 
@@ -787,15 +798,17 @@ const TastyCreative = () => {
         onProgress: (progress: GenerationProgress) => {
           // Update progress based on step count
           if (progress.value && progress.max) {
-            setGenerationProgress(Math.floor((progress.value / progress.max) * 100));
+            setGenerationProgress(
+              Math.floor((progress.value / progress.max) * 100)
+            );
           }
-        }
+        },
       });
 
       setGeneratedImage(imageResult);
     } catch (error: any) {
-      console.error('Image generation error:', error);
-      setImageError(error.message || 'Failed to generate image');
+      console.error("Image generation error:", error);
+      setImageError(error.message || "Failed to generate image");
     } finally {
       setIsGenerating(false);
     }
@@ -805,9 +818,9 @@ const TastyCreative = () => {
   const handleDownloadImage = () => {
     if (generatedImage?.imageUrl) {
       // Create a temporary link and trigger download
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = generatedImage.imageUrl;
-      link.download = generatedImage.filename || 'generated-image.png';
+      link.download = generatedImage.filename || "generated-image.png";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -821,7 +834,10 @@ const TastyCreative = () => {
       setHistoryError('');
 
       // Get audio for this history item
-      const audio = await getHistoryAudio(selectedApiKeyProfile, historyItem.history_item_id);
+      const audio = await getHistoryAudio(
+        selectedApiKeyProfile,
+        historyItem.history_item_id
+      );
       setHistoryAudio(audio);
 
       // Play it
@@ -831,8 +847,8 @@ const TastyCreative = () => {
         }
       }, 100);
     } catch (error: any) {
-      console.error('Error playing history audio:', error);
-      setHistoryError('Failed to load audio from history');
+      console.error("Error playing history audio:", error);
+      setHistoryError("Failed to load audio from history");
     } finally {
       setIsLoadingHistoryAudio(false);
     }
@@ -847,13 +863,21 @@ const TastyCreative = () => {
 
   const handleDownloadHistoryAudio = (historyItem: HistoryItem) => {
     if (historyAudio?.audioBlob) {
-      downloadAudio(historyAudio.audioBlob, `${historyItem.voice_name || 'voice'}-${historyItem.history_item_id}.mp3`);
+      downloadAudio(
+        historyAudio.audioBlob,
+        `${historyItem.voice_name || "voice"}-${
+          historyItem.history_item_id
+        }.mp3`
+      );
     }
   };
 
   const handleDownloadAudio = () => {
     if (generatedAudio?.audioBlob) {
-      downloadAudio(generatedAudio.audioBlob, `${generatedAudio.voiceName}-voice.mp3`);
+      downloadAudio(
+        generatedAudio.audioBlob,
+        `${generatedAudio.voiceName}-voice.mp3`
+      );
     }
   };
 
@@ -880,7 +904,8 @@ const TastyCreative = () => {
 
     if (storedParams) {
       // Apply the stored parameters
-      if (storedParams.stability !== undefined) setStability(storedParams.stability);
+      if (storedParams.stability !== undefined)
+        setStability(storedParams.stability);
       if (storedParams.clarity !== undefined) setClarity(storedParams.clarity);
       if (storedParams.speed !== undefined) setSpeed(storedParams.speed);
       if (storedParams.styleExaggeration !== undefined) setStyleExaggeration(storedParams.styleExaggeration);
@@ -889,11 +914,11 @@ const TastyCreative = () => {
 
       // Show a success notification
       setGenerationStatus(`Voice parameters restored from history`);
-      setTimeout(() => setGenerationStatus(''), 3000);
+      setTimeout(() => setGenerationStatus(""), 3000);
     } else {
       // If no parameters found, let the user know
       setGenerationStatus(`No saved parameters found for this history item`);
-      setTimeout(() => setGenerationStatus(''), 3000);
+      setTimeout(() => setGenerationStatus(""), 3000);
     }
   };
 
@@ -959,8 +984,13 @@ const TastyCreative = () => {
           <h1 className="text-xl font-bold">Tasty Creative</h1>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-gray-300 text-sm">Welcome, {user || 'Admin'}</span>
-          <Button variant="outline" className="text-white border-white/20 bg-white/5 hover:bg-white/10 rounded-full">
+          <span className="text-gray-300 text-sm">
+            Welcome, {user || "Admin"}
+          </span>
+          <Button
+            variant="outline"
+            className="text-white border-white/20 bg-white/5 hover:bg-white/10 rounded-full"
+          >
             <Settings size={14} />
           </Button>
           <Button
@@ -1734,11 +1764,7 @@ const TastyCreative = () => {
 
           {/* Other tabs content remains the same */}
           <TabsContent value="live">
-            {/* Keep existing Live Flyer code */}
-            <div className="p-4 text-center bg-black/20 rounded-lg border border-white/10">
-              <h3 className="font-medium mb-2">Live Tab Content</h3>
-              <p>Switch to the Voice tab to access the enhanced ElevenLabs voice generation</p>
-            </div>
+            <LiveFlyer />
           </TabsContent>
 
           {/* New AI Image Tab with ComfyUI */}
@@ -1748,7 +1774,9 @@ const TastyCreative = () => {
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <CardTitle className="text-white">AI Image Generation</CardTitle>
+                    <CardTitle className="text-white">
+                      AI Image Generation
+                    </CardTitle>
                     <CardDescription className="text-gray-400">
                       Generate custom images using your RunPod ComfyUI
                     </CardDescription>
@@ -1771,7 +1799,12 @@ const TastyCreative = () => {
                 <CardContent className="space-y-5">
                   {/* Prompt input */}
                   <div>
-                    <Label htmlFor="prompt" className="text-gray-300 mb-1 block">Prompt</Label>
+                    <Label
+                      htmlFor="prompt"
+                      className="text-gray-300 mb-1 block"
+                    >
+                      Prompt
+                    </Label>
                     <Textarea
                       id="prompt"
                       placeholder="A detailed description of the image you want to generate"
@@ -1783,7 +1816,12 @@ const TastyCreative = () => {
 
                   {/* Negative prompt */}
                   <div>
-                    <Label htmlFor="negative-prompt" className="text-gray-300 mb-1 block">Negative Prompt</Label>
+                    <Label
+                      htmlFor="negative-prompt"
+                      className="text-gray-300 mb-1 block"
+                    >
+                      Negative Prompt
+                    </Label>
                     <Textarea
                       id="negative-prompt"
                       placeholder="Elements you want to exclude from the image"
@@ -1795,7 +1833,10 @@ const TastyCreative = () => {
 
                   {/* Model selection */}
                   <div>
-                    <Label htmlFor="model-selection" className="text-gray-300 mb-1 block">
+                    <Label
+                      htmlFor="model-selection"
+                      className="text-gray-300 mb-1 block"
+                    >
                       Select Model ({availableModels.length} available)
                     </Label>
                     <Select
@@ -1807,8 +1848,12 @@ const TastyCreative = () => {
                         <SelectValue placeholder="Select a model" />
                       </SelectTrigger>
                       <SelectContent className="bg-black/90 border-white/10 text-white max-h-72">
-                        {availableModels.map(model => (
-                          <SelectItem key={model} value={model} className="flex items-center justify-between py-2">
+                        {availableModels.map((model) => (
+                          <SelectItem
+                            key={model}
+                            value={model}
+                            className="flex items-center justify-between py-2"
+                          >
                             {model}
                           </SelectItem>
                         ))}
@@ -1828,7 +1873,7 @@ const TastyCreative = () => {
                         <SelectValue placeholder="Select a sampler" />
                       </SelectTrigger>
                       <SelectContent className="bg-black/90 border-white/10 text-white">
-                        {availableSamplers.map(sampler => (
+                        {availableSamplers.map((sampler) => (
                           <SelectItem key={sampler} value={sampler}>
                             {sampler}
                           </SelectItem>
@@ -1840,7 +1885,12 @@ const TastyCreative = () => {
                   {/* Image dimensions */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="width" className="text-gray-300 mb-1 block">Width: {imageWidth}px</Label>
+                      <Label
+                        htmlFor="width"
+                        className="text-gray-300 mb-1 block"
+                      >
+                        Width: {imageWidth}px
+                      </Label>
                       <Slider
                         id="width"
                         value={[imageWidth]}
@@ -1852,7 +1902,12 @@ const TastyCreative = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="height" className="text-gray-300 mb-1 block">Height: {imageHeight}px</Label>
+                      <Label
+                        htmlFor="height"
+                        className="text-gray-300 mb-1 block"
+                      >
+                        Height: {imageHeight}px
+                      </Label>
                       <Slider
                         id="height"
                         value={[imageHeight]}
@@ -1868,7 +1923,12 @@ const TastyCreative = () => {
                   {/* Generation parameters */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="steps" className="text-gray-300 mb-1 block">Steps: {steps}</Label>
+                      <Label
+                        htmlFor="steps"
+                        className="text-gray-300 mb-1 block"
+                      >
+                        Steps: {steps}
+                      </Label>
                       <Slider
                         id="steps"
                         value={[steps]}
@@ -1883,7 +1943,9 @@ const TastyCreative = () => {
                       </p>
                     </div>
                     <div>
-                      <Label htmlFor="cfg" className="text-gray-300 mb-1 block">CFG Scale: {cfgScale}</Label>
+                      <Label htmlFor="cfg" className="text-gray-300 mb-1 block">
+                        CFG Scale: {cfgScale}
+                      </Label>
                       <Slider
                         id="cfg"
                         value={[cfgScale]}
@@ -1901,7 +1963,10 @@ const TastyCreative = () => {
 
                   {/* Error display */}
                   {imageError && (
-                    <Alert variant="destructive" className="bg-red-900/20 border-red-500/30 text-red-200">
+                    <Alert
+                      variant="destructive"
+                      className="bg-red-900/20 border-red-500/30 text-red-200"
+                    >
                       <AlertTitle>Error</AlertTitle>
                       <AlertDescription>{imageError}</AlertDescription>
                     </Alert>
@@ -1912,9 +1977,15 @@ const TastyCreative = () => {
                   <Button
                     className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg"
                     onClick={handleGenerateImage}
-                    disabled={isGenerating || comfyUIStatus !== 'connected' || !selectedModel}
+                    disabled={
+                      isGenerating ||
+                      comfyUIStatus !== "connected" ||
+                      !selectedModel
+                    }
                   >
-                    {isGenerating ? `Generating... ${generationProgress}%` : 'Generate Image'}
+                    {isGenerating
+                      ? `Generating... ${generationProgress}%`
+                      : "Generate Image"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -1934,8 +2005,12 @@ const TastyCreative = () => {
                     {isGenerating ? (
                       <div className="text-center p-4">
                         <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-purple-400" />
-                        <p className="text-gray-300">Generating image... {generationProgress}%</p>
-                        <p className="text-xs text-gray-400 mt-2">This may take a minute or two</p>
+                        <p className="text-gray-300">
+                          Generating image... {generationProgress}%
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          This may take a minute or two
+                        </p>
                       </div>
                     ) : generatedImage ? (
                       <img
@@ -1946,7 +2021,9 @@ const TastyCreative = () => {
                     ) : (
                       <div className="text-center p-4">
                         <Image className="w-12 h-12 mx-auto mb-4 text-gray-500 opacity-50" />
-                        <p className="text-gray-300">Generated image will appear here</p>
+                        <p className="text-gray-300">
+                          Generated image will appear here
+                        </p>
                       </div>
                     )}
                   </div>
@@ -1972,24 +2049,36 @@ const TastyCreative = () => {
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <CardTitle className="text-white">Professional AI Voice Generation</CardTitle>
+                    <CardTitle className="text-white">
+                      Professional AI Voice Generation
+                    </CardTitle>
                     <CardDescription className="text-gray-400">
-                      Convert text to high-quality professional voices using ElevenLabs
+                      Convert text to high-quality professional voices using
+                      ElevenLabs
                     </CardDescription>
                   </div>
 
                   {/* API Profile Selection with status indicator */}
                   <div className="min-w-48">
-                    <Select value={selectedApiKeyProfile} onValueChange={setSelectedApiKeyProfile}>
+                    <Select
+                      value={selectedApiKeyProfile}
+                      onValueChange={setSelectedApiKeyProfile}
+                    >
                       <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg w-full">
                         <SelectValue placeholder="Select API profile" />
                       </SelectTrigger>
                       <SelectContent className="bg-black/90 border-white/10 text-white">
-                        {Object.entries(API_KEY_PROFILES).map(([key, profile]) => (
-                          <SelectItem key={key} value={key} className="flex items-center">
-                            {profile.name}
-                          </SelectItem>
-                        ))}
+                        {Object.entries(API_KEY_PROFILES).map(
+                          ([key, profile]) => (
+                            <SelectItem
+                              key={key}
+                              value={key}
+                              className="flex items-center"
+                            >
+                              {profile.name}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
 
@@ -2000,7 +2089,10 @@ const TastyCreative = () => {
                           Active
                         </div>
                         <span className="text-gray-300">
-                          {apiKeyBalance?.character?.remaining !== undefined ? apiKeyBalance.character.remaining.toLocaleString() : 'N/A'} characters left
+                          {apiKeyBalance?.character?.remaining !== undefined
+                            ? apiKeyBalance.character.remaining.toLocaleString()
+                            : "N/A"}{" "}
+                          characters left
                         </span>
                       </div>
                     )}
@@ -2010,7 +2102,10 @@ const TastyCreative = () => {
                 <CardContent className="space-y-5">
                   {/* Voice selection with available voices from the current profile */}
                   <div>
-                    <Label htmlFor="voice-selection" className="text-gray-300 mb-1 block">
+                    <Label
+                      htmlFor="voice-selection"
+                      className="text-gray-300 mb-1 block"
+                    >
                       Select Voice ({availableVoices.length} available)
                     </Label>
                     <Select
@@ -2022,8 +2117,12 @@ const TastyCreative = () => {
                         <SelectValue placeholder="Select a voice" />
                       </SelectTrigger>
                       <SelectContent className="bg-black/90 border-white/10 text-white max-h-72">
-                        {availableVoices.map(voice => (
-                          <SelectItem key={voice.voiceId} value={voice.voiceId} className="flex items-center justify-between py-2">
+                        {availableVoices.map((voice) => (
+                          <SelectItem
+                            key={voice.voiceId}
+                            value={voice.voiceId}
+                            className="flex items-center justify-between py-2"
+                          >
                             {voice.name}
                           </SelectItem>
                         ))}
@@ -2042,7 +2141,7 @@ const TastyCreative = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-black/90 border-white/10 text-white">
-                        {ELEVEN_LABS_MODELS.map(model => (
+                        {ELEVEN_LABS_MODELS.map((model) => (
                           <SelectItem key={model.id} value={model.id}>
                             {model.name}
                           </SelectItem>
@@ -2050,13 +2149,19 @@ const TastyCreative = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-gray-400 mt-1">
-                      {ELEVEN_LABS_MODELS.find(m => m.id === selectedModelId)?.description || ''}
+                      {ELEVEN_LABS_MODELS.find((m) => m.id === selectedModelId)
+                        ?.description || ""}
                     </p>
                   </div>
 
                   {/* Text input */}
                   <div>
-                    <Label htmlFor="voice-text" className="text-gray-300 mb-1 block">Voice Text</Label>
+                    <Label
+                      htmlFor="voice-text"
+                      className="text-gray-300 mb-1 block"
+                    >
+                      Voice Text
+                    </Label>
                     <Textarea
                       id="voice-text"
                       placeholder="Enter text to convert to speech"
@@ -2074,7 +2179,9 @@ const TastyCreative = () => {
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <Label className="text-gray-300">Stability: {stability.toFixed(2)}</Label>
+                        <Label className="text-gray-300">
+                          Stability: {stability.toFixed(2)}
+                        </Label>
                       </div>
                       <Slider
                         value={[stability]}
@@ -2085,13 +2192,16 @@ const TastyCreative = () => {
                         className="py-2"
                       />
                       <p className="text-xs text-gray-400 mt-1">
-                        Higher values make the voice more consistent between generations
+                        Higher values make the voice more consistent between
+                        generations
                       </p>
                     </div>
 
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <Label className="text-gray-300">Similarity: {clarity.toFixed(2)}</Label>
+                        <Label className="text-gray-300">
+                          Similarity: {clarity.toFixed(2)}
+                        </Label>
                       </div>
                       <Slider
                         value={[clarity]}
@@ -2102,13 +2212,16 @@ const TastyCreative = () => {
                         className="py-2"
                       />
                       <p className="text-xs text-gray-400 mt-1">
-                        Higher values make the voice more similar to the original voice
+                        Higher values make the voice more similar to the
+                        original voice
                       </p>
                     </div>
 
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <Label className="text-gray-300">Speed: {speed.toFixed(2)}x</Label>
+                        <Label className="text-gray-300">
+                          Speed: {speed.toFixed(2)}x
+                        </Label>
                       </div>
                       <Slider
                         value={[speed]}
@@ -2125,14 +2238,18 @@ const TastyCreative = () => {
 
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <Label className="text-gray-300">Style Exaggeration: {styleExaggeration.toFixed(2)}</Label>
+                        <Label className="text-gray-300">
+                          Style Exaggeration: {styleExaggeration.toFixed(2)}
+                        </Label>
                       </div>
                       <Slider
                         value={[styleExaggeration]}
                         min={0}
                         max={1}
                         step={0.01}
-                        onValueChange={(value) => setStyleExaggeration(value[0])}
+                        onValueChange={(value) =>
+                          setStyleExaggeration(value[0])
+                        }
                         className="py-2"
                       />
                       <p className="text-xs text-gray-400 mt-1">
@@ -2142,7 +2259,10 @@ const TastyCreative = () => {
                   </div>
 
                   {voiceError && (
-                    <Alert variant="destructive" className="bg-red-900/20 border-red-500/30 text-red-200">
+                    <Alert
+                      variant="destructive"
+                      className="bg-red-900/20 border-red-500/30 text-red-200"
+                    >
                       <AlertTitle>Error</AlertTitle>
                       <AlertDescription>{voiceError}</AlertDescription>
                     </Alert>
@@ -2152,9 +2272,16 @@ const TastyCreative = () => {
                   <Button
                     className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg"
                     onClick={handleGenerateVoice}
-                    disabled={isGeneratingVoice || !selectedApiKeyProfile || !selectedVoice || !voiceText.trim()}
+                    disabled={
+                      isGeneratingVoice ||
+                      !selectedApiKeyProfile ||
+                      !selectedVoice ||
+                      !voiceText.trim()
+                    }
                   >
-                    {isGeneratingVoice ? 'Generating...' : 'Generate Professional Voice'}
+                    {isGeneratingVoice
+                      ? "Generating..."
+                      : "Generate Professional Voice"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -2174,7 +2301,7 @@ const TastyCreative = () => {
                             onClick={() => setShowHistory(!showHistory)}
                           >
                             <Clock size={12} className="mr-1" />
-                            {showHistory ? 'Hide History' : 'Show History'}
+                            {showHistory ? "Hide History" : "Show History"}
                           </Button>
 
                           {showHistory && (
@@ -2186,7 +2313,10 @@ const TastyCreative = () => {
                               disabled={isLoadingHistory}
                             >
                               {isLoadingHistory ? (
-                                <Loader2 size={12} className="mr-1 animate-spin" />
+                                <Loader2
+                                  size={12}
+                                  className="mr-1 animate-spin"
+                                />
                               ) : (
                                 <RefreshCw size={12} className="mr-1" />
                               )}
@@ -2210,9 +2340,13 @@ const TastyCreative = () => {
                         <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center mb-3">
                           <Volume2 size={32} className="text-white" />
                         </div>
-                        <p className="text-white mb-1 font-medium">{generatedAudio.voiceName}</p>
+                        <p className="text-white mb-1 font-medium">
+                          {generatedAudio.voiceName}
+                        </p>
                         <p className="text-sm text-gray-400 line-clamp-2">
-                          {voiceText.length > 60 ? voiceText.substring(0, 60) + '...' : voiceText}
+                          {voiceText.length > 60
+                            ? voiceText.substring(0, 60) + "..."
+                            : voiceText}
                         </p>
                         {generatedAudio.profile && (
                           <div className="mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-purple-800/50 border border-purple-400/30">
@@ -2255,7 +2389,7 @@ const TastyCreative = () => {
                           <Volume2 size={32} className="text-white" />
                         </div>
                         <p className="text-white mb-1 font-medium">
-                          {selectedHistoryItem.voice_name || 'Voice'}
+                          {selectedHistoryItem.voice_name || "Voice"}
                         </p>
                         <p className="text-sm text-gray-400 line-clamp-2">
                           {selectedHistoryItem.text && selectedHistoryItem.text.length > 60
@@ -2272,7 +2406,10 @@ const TastyCreative = () => {
                           variant="outline"
                           size="sm"
                           className="bg-white/5 border-white/10 hover:bg-white/10"
-                          onClick={() => historyAudioRef.current && historyAudioRef.current.play()}
+                          onClick={() =>
+                            historyAudioRef.current &&
+                            historyAudioRef.current.play()
+                          }
                         >
                           <Play size={14} className="mr-1" /> Play
                         </Button>
@@ -2288,7 +2425,9 @@ const TastyCreative = () => {
                           variant="outline"
                           size="sm"
                           className="bg-white/5 border-white/10 hover:bg-white/10"
-                          onClick={() => handleDownloadHistoryAudio(selectedHistoryItem)}
+                          onClick={() =>
+                            handleDownloadHistoryAudio(selectedHistoryItem)
+                          }
                         >
                           <Download size={14} className="mr-1" /> Download
                         </Button>
@@ -2298,7 +2437,9 @@ const TastyCreative = () => {
                     <div className="text-center text-gray-400 p-8">
                       <Mic size={48} className="mx-auto mb-3 opacity-50" />
                       <p>Generated voice will appear here</p>
-                      <p className="text-xs text-gray-500 mt-2">Select a voice first</p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Select a voice first
+                      </p>
                     </div>
                   ) : null}
 
@@ -2318,7 +2459,10 @@ const TastyCreative = () => {
                       </div>
 
                       {historyError && (
-                        <Alert variant="destructive" className="mb-3 bg-red-900/20 border-red-500/30 text-red-200">
+                        <Alert
+                          variant="destructive"
+                          className="mb-3 bg-red-900/20 border-red-500/30 text-red-200"
+                        >
                           <AlertDescription>{historyError}</AlertDescription>
                         </Alert>
                       )}
@@ -2327,10 +2471,17 @@ const TastyCreative = () => {
                       <div className="overflow-y-auto max-h-56 border border-white/10 rounded-lg bg-black/40 p-2">
                         {isLoadingHistory && historyEntries.length === 0 ? (
                           <div className="flex justify-center items-center p-8">
-                            <Loader2 size={24} className="animate-spin text-purple-400" />
+                            <Loader2
+                              size={24}
+                              className="animate-spin text-purple-400"
+                            />
                           </div>
                         ) : historyEntries.length > 0 ? (
-                          <Accordion type="single" collapsible className="w-full">
+                          <Accordion
+                            type="single"
+                            collapsible
+                            className="w-full"
+                          >
                             {historyEntries.map((item, index) => (
                               <AccordionItem
                                 key={item.history_item_id}
@@ -2339,7 +2490,9 @@ const TastyCreative = () => {
                               >
                                 <AccordionTrigger className="text-sm hover:no-underline py-2">
                                   <div className="flex items-center text-left w-full">
-                                    <span className="truncate max-w-[150px] text-xs text-gray-300">{truncateText(item.text)}</span>
+                                    <span className="truncate max-w-[150px] text-xs text-gray-300">
+                                      {truncateText(item.text)}
+                                    </span>
                                     <span className="ml-auto text-xs text-gray-500">
                                       {formatDate(item.date_unix * 1000)}
                                     </span>
@@ -2351,9 +2504,12 @@ const TastyCreative = () => {
                                     <p className="text-gray-400">Generated: {formatDate(item.date_unix * 1000)}</p>
 
                                     {/* Add indicator for available parameters */}
-                                    {getVoiceParameters(item.history_item_id) && (
+                                    {getVoiceParameters(
+                                      item.history_item_id
+                                    ) && (
                                       <div className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-green-800/50 border border-green-400/30">
-                                        <Check size={8} className="mr-1" /> Parameters Available
+                                        <Check size={8} className="mr-1" />{" "}
+                                        Parameters Available
                                       </div>
                                     )}
 
@@ -2362,16 +2518,29 @@ const TastyCreative = () => {
                                         size="sm"
                                         variant="outline"
                                         className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                        onClick={() => handlePlayHistoryAudio(item)}
-                                        disabled={isLoadingHistoryAudio && selectedHistoryItem?.history_item_id === item.history_item_id}
+                                        onClick={() =>
+                                          handlePlayHistoryAudio(item)
+                                        }
+                                        disabled={
+                                          isLoadingHistoryAudio &&
+                                          selectedHistoryItem?.history_item_id ===
+                                            item.history_item_id
+                                        }
                                       >
-                                        {isLoadingHistoryAudio && selectedHistoryItem?.history_item_id === item.history_item_id ? (
+                                        {isLoadingHistoryAudio &&
+                                        selectedHistoryItem?.history_item_id ===
+                                          item.history_item_id ? (
                                           <>
-                                            <Loader2 size={10} className="mr-1 animate-spin" /> Load
+                                            <Loader2
+                                              size={10}
+                                              className="mr-1 animate-spin"
+                                            />{" "}
+                                            Load
                                           </>
                                         ) : (
                                           <>
-                                            <Play size={10} className="mr-1" /> Play
+                                            <Play size={10} className="mr-1" />{" "}
+                                            Play
                                           </>
                                         )}
                                       </Button>
@@ -2380,30 +2549,42 @@ const TastyCreative = () => {
                                         size="sm"
                                         variant="outline"
                                         className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                        onClick={() => handleUseHistoryText(item)}
+                                        onClick={() =>
+                                          handleUseHistoryText(item)
+                                        }
                                       >
-                                        <RefreshCw size={10} className="mr-1" /> Use
+                                        <RefreshCw size={10} className="mr-1" />{" "}
+                                        Use
                                       </Button>
-                                      {selectedHistoryItem?.history_item_id === item.history_item_id && historyAudio && (
-                                        <>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                            onClick={handleStopHistoryAudio}
-                                          >
-                                            <X size={10} className="mr-1" /> Stop
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                            onClick={() => handleDownloadHistoryAudio(item)}
-                                          >
-                                            <Download size={10} className="mr-1" /> DL
-                                          </Button>
-                                        </>
-                                      )}
+                                      {selectedHistoryItem?.history_item_id ===
+                                        item.history_item_id &&
+                                        historyAudio && (
+                                          <>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
+                                              onClick={handleStopHistoryAudio}
+                                            >
+                                              <X size={10} className="mr-1" />{" "}
+                                              Stop
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
+                                              onClick={() =>
+                                                handleDownloadHistoryAudio(item)
+                                              }
+                                            >
+                                              <Download
+                                                size={10}
+                                                className="mr-1"
+                                              />{" "}
+                                              DL
+                                            </Button>
+                                          </>
+                                        )}
                                     </div>
                                   </div>
                                 </AccordionContent>
@@ -2413,7 +2594,9 @@ const TastyCreative = () => {
                         ) : (
                           <div className="text-center py-6 text-gray-400">
                             <p>No history found for this voice.</p>
-                            <p className="text-xs mt-2">Generate some audio to see it in your history.</p>
+                            <p className="text-xs mt-2">
+                              Generate some audio to see it in your history.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -2425,7 +2608,9 @@ const TastyCreative = () => {
 
             {generationStatus && !voiceError && (
               <div className="mt-4 p-4 bg-black/40 backdrop-blur-md rounded-md border border-white/10">
-                <h3 className="font-medium mb-2">ElevenLabs Generation Status</h3>
+                <h3 className="font-medium mb-2">
+                  ElevenLabs Generation Status
+                </h3>
                 <p>{generationStatus}</p>
               </div>
             )}
@@ -2435,7 +2620,10 @@ const TastyCreative = () => {
             {/* Keep existing VIP code */}
             <div className="p-4 text-center bg-black/20 rounded-lg border border-white/10">
               <h3 className="font-medium mb-2">VIP Tab Content</h3>
-              <p>Switch to the Voice tab to access the enhanced ElevenLabs voice generation</p>
+              <p>
+                Switch to the Voice tab to access the enhanced ElevenLabs voice
+                generation
+              </p>
             </div>
           </TabsContent>
 
@@ -2443,7 +2631,10 @@ const TastyCreative = () => {
             {/* Keep existing Game code */}
             <div className="p-4 text-center bg-black/20 rounded-lg border border-white/10">
               <h3 className="font-medium mb-2">Game Tab Content</h3>
-              <p>Switch to the Voice tab to access the enhanced ElevenLabs voice generation</p>
+              <p>
+                Switch to the Voice tab to access the enhanced ElevenLabs voice
+                generation
+              </p>
             </div>
           </TabsContent>
         </Tabs>
@@ -2460,7 +2651,7 @@ const TastyCreative = () => {
                 RunPod ComfyUI {comfyUIStatus === 'connected' ? '(Connected)' : '(Disconnected)'}
               </span>
             )}
-            {activeTab === 'voice' && (
+            {activeTab === "voice" && (
               <span className="text-green-400 ml-1">
                 ElevenLabs
                 {apiKeyBalance && <span className="ml-1">({apiKeyBalance?.character?.remaining !== undefined ? apiKeyBalance.character.remaining.toLocaleString() : 'N/A'} chars)</span>}
