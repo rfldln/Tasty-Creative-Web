@@ -202,7 +202,7 @@ const TastyCreative = () => {
   // Get authentication context
   const { user, logout } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('voice'); // Set voice as default tab
+  const [activeTab, setActiveTab] = useState('calendar');
   const [isPaid, setIsPaid] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState('');
   const [promptText, setPromptText] = useState('');
@@ -313,8 +313,11 @@ const TastyCreative = () => {
           setIsCalendarLoading(false);
 
           // If initialization fails, show detailed error
-          if (error?.details || error?.message) {
-            console.error('Error details:', error.details || error.message);
+          if (error && typeof error === 'object') {
+            const errorObj = error as Record<string, any>;
+            if (errorObj.details || errorObj.message) {
+              console.error('Error details:', errorObj.details || errorObj.message);
+            }
           }
         }
       };
@@ -516,8 +519,11 @@ const TastyCreative = () => {
       setCalendarError('Failed to load events from Google Calendar.');
 
       // If it's an authentication error, update the sign-in status
-      if (error?.status === 401 || error?.message?.includes('auth')) {
-        setIsCalendarSignedIn(false);
+      if (error && typeof error === 'object') {
+        const errorObj = error as Record<string, any>;
+        if (errorObj.status === 401 || (errorObj.message && typeof errorObj.message === 'string' && errorObj.message.includes('auth'))) {
+          setIsCalendarSignedIn(false);
+        }
       }
     } finally {
       setIsCalendarLoading(false);
@@ -559,13 +565,20 @@ const TastyCreative = () => {
           }
         }, 1000);
       } catch (signInError) {
+        // Properly type the signInError
+        const error = signInError as Record<string, any>;
+
         // Check for specific error types from our enhanced signInWithGoogle function
-        if (signInError && signInError.type === 'POPUP_BLOCKED') {
-          setCalendarError(
-            'Your browser blocked the sign-in popup. Please allow popups for this site in your browser settings and try again.'
-          );
-        } else if (signInError && signInError.error) {
-          setCalendarError(`Google sign-in error: ${signInError.error}`);
+        if (error && typeof error === 'object') {
+          if (error.type === 'POPUP_BLOCKED') {
+            setCalendarError(
+              'Your browser blocked the sign-in popup. Please allow popups for this site in your browser settings and try again.'
+            );
+          } else if (error.error) {
+            setCalendarError(`Google sign-in error: ${error.error}`);
+          } else {
+            setCalendarError('Failed to start Google sign-in process. Please try again.');
+          }
         } else {
           setCalendarError('Failed to start Google sign-in process. Please try again.');
         }
@@ -905,7 +918,7 @@ const TastyCreative = () => {
       : (text || '');
   };
 
-  const extractLinksFromDescription = (description) => {
+  const extractLinksFromDescription = (description: string | null | undefined): { thumbnailUrl: string | null, driveUrl: string | null } => {
     if (!description) return { thumbnailUrl: null, driveUrl: null };
 
     // Extract thumbnail URL
@@ -963,7 +976,7 @@ const TastyCreative = () => {
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
-        <Tabs defaultValue={activeTab} className="w-full" onValueChange={setActiveTab}>
+        <Tabs defaultValue="calendar" className="w-full" onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-6 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="calendar"
@@ -1124,7 +1137,11 @@ const TastyCreative = () => {
                           for (let i = 1; i <= lastDay; i++) {
                             const currentDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), i);
                             const dayEvents = calendarEvents.filter(event => {
-                              const eventDate = new Date(event.start.dateTime || event.start.date);
+                              // Handle the case when both dateTime and date could be undefined
+                              const eventDateString = event.start.dateTime || event.start.date;
+                              if (!eventDateString) return false; // Skip events with no valid date
+
+                              const eventDate = new Date(eventDateString);
                               return eventDate.getDate() === i &&
                                 eventDate.getMonth() === currentDate.getMonth() &&
                                 eventDate.getFullYear() === currentDate.getFullYear();
@@ -1143,7 +1160,8 @@ const TastyCreative = () => {
                                       key={idx}
                                       className="w-full text-left truncate bg-blue-800/40 hover:bg-blue-700/40 rounded px-1 py-0.5 mb-0.5 transition-colors"
                                       title={event.summary}
-                                      onClick={() => handleViewEventDetails(event.id)}
+                                      onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
+                                      disabled={!event.id}
                                     >
                                       {event.summary}
                                     </button>
@@ -1301,12 +1319,24 @@ const TastyCreative = () => {
                         <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                           {calendarEvents
                             .sort((a, b) => {
-                              const dateA = new Date(a.start.dateTime || a.start.date);
-                              const dateB = new Date(b.start.dateTime || b.start.date);
-                              return dateA - dateB;
+                              const dateAStr = a.start.dateTime || a.start.date;
+                              const dateBStr = b.start.dateTime || b.start.date;
+
+                              // Handle undefined dates for sorting
+                              if (!dateAStr && !dateBStr) return 0;
+                              if (!dateAStr) return 1;  // Put items with no date at the end
+                              if (!dateBStr) return -1; // Put items with no date at the end
+
+                              const dateA = new Date(dateAStr);
+                              const dateB = new Date(dateBStr);
+                              return dateA.getTime() - dateB.getTime();
                             })
                             .map((event, index) => {
-                              const eventDate = new Date(event.start.dateTime || event.start.date);
+                              // Safely handle dates
+                              const eventDateStr = event.start.dateTime || event.start.date;
+                              if (!eventDateStr) return null; // Skip events with no date
+
+                              const eventDate = new Date(eventDateStr);
                               const isAllDay = !!event.start.date;
                               const isPast = eventDate < new Date();
 
@@ -1322,7 +1352,8 @@ const TastyCreative = () => {
                                     ? "border-gray-700/30 bg-black/40 opacity-60"
                                     : "border-white/10 bg-black/40 hover:bg-black/60"
                                     }`}
-                                  onClick={() => handleViewEventDetails(event.id)}
+                                  onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
+                                  disabled={!event.id}
                                 >
                                   <div className="flex items-start">
                                     {/* Date box */}
@@ -1378,7 +1409,9 @@ const TastyCreative = () => {
                                   </div>
                                 </button>
                               );
-                            })}
+                            })
+                            // Filter out null values from map function
+                            .filter(item => item !== null)}
                         </div>
                       ) : (
                         <div className="text-center py-8 border border-white/10 rounded-lg bg-black/20">
