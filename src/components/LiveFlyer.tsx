@@ -763,7 +763,10 @@ export default function LiveFlyer() {
             <label
               className={cn(
                 "relative inline-flex items-center cursor-pointer",
-                { "cursor-not-allowed": isLoading || isFetchingImage }
+                {
+                  "cursor-not-allowed":
+                    isLoading || isFetchingImage || webhookData,
+                }
               )}
             >
               <input
@@ -772,7 +775,7 @@ export default function LiveFlyer() {
                 name="paid"
                 onChange={handleInputChange}
                 checked={formData.paid}
-                disabled={isLoading || isFetchingImage}
+                disabled={isLoading || isFetchingImage || webhookData}
               />
               <div className="w-11 h-6 bg-black/60 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500  rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
             </label>
@@ -809,7 +812,7 @@ export default function LiveFlyer() {
                 value={formData.date}
                 onChange={handleInputChange}
                 required
-                disabled={isLoading || isFetchingImage}
+                disabled={isLoading || isFetchingImage || webhookData}
               />
             </div>
           </div>
@@ -828,7 +831,7 @@ export default function LiveFlyer() {
                   value={formData.time}
                   onChange={handleInputChange}
                   required
-                  disabled={isLoading || isFetchingImage}
+                  disabled={isLoading || isFetchingImage || webhookData}
                 />
               </div>
             </div>
@@ -1177,10 +1180,10 @@ export default function LiveFlyer() {
             <button
               type="button"
               onClick={handleCreateEventSubmit}
-              className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
+              className={`rounded-md px-5 w-full  bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
                 isEventCreating || isFetchingImage || eventCreated?.success
                   ? "opacity-60 cursor-not-allowed"
-                  : "opacity-100"
+                  : "opacity-100 cursor-pointer"
               }`}
               disabled={
                 isEventCreating || isFetchingImage || eventCreated?.success
