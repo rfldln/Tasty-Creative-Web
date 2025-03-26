@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 import { useState, FormEvent, ChangeEvent, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { liveFlyerValidation } from "../../schema/zodValidationSchema";
 import { MODELS, TIMEZONES } from "@/lib/lib";
 
@@ -54,6 +54,8 @@ interface FolderInfo {
 export default function LiveFlyer() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const searchParams = useSearchParams();
+  const tabValue = searchParams.get("tab") || 'live';
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -62,11 +64,24 @@ export default function LiveFlyer() {
         const data = await res.json();
 
         if (!data.authenticated) {
-          // Redirect to Google login page
-          const authRes = await fetch("/api/google/auth");
+          // Get the current tab from URL or default to 'live'
+          const currentTab = tabValue || "live";
+
+          // Include the current tab in the auth request
+          const authRes = await fetch(
+            `/api/google/auth?tab=${encodeURIComponent(currentTab)}`
+          );
           const authData = await authRes.json();
+
           if (authData.authUrl) {
-            window.location.href = authData.authUrl;
+            // Append the tab parameter to the auth URL
+            const authUrlWithTab = new URL(authData.authUrl);
+            authUrlWithTab.searchParams.set(
+              "state",
+              JSON.stringify({ tab: currentTab })
+            );
+
+            window.location.href = authUrlWithTab.toString();
           }
         } else {
           setIsLoading(false);

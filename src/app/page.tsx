@@ -92,6 +92,7 @@ import {
   getEventById
 } from './services/google-calendar-implementation';
 import LiveFlyer from '@/components/LiveFlyer';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -203,7 +204,11 @@ const TastyCreative = () => {
   // Get authentication context
   const { user, logout } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('calendar');
+  const searchParams = useSearchParams();
+  const tabValue = searchParams.get('tab') || "calendar";
+  const router = useRouter();
+
+  const [activeTab, setActiveTab] = useState(tabValue || 'calendar');
   const [isPaid, setIsPaid] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState("");
   const [promptText, setPromptText] = useState("");
@@ -956,6 +961,20 @@ const TastyCreative = () => {
     return { thumbnailUrl, driveUrl };
   };
 
+  const handleTabChange = (value: string) => {
+    // Create a new URLSearchParams object based on current params
+    const params = new URLSearchParams(searchParams.toString());
+    
+    // Set or update the 'tab' parameter
+    params.set('tab', value);
+    
+    // Push the new URL with the tab parameter
+    router.push(`?${params.toString()}`, { scroll: false });
+    
+    // Update the local state
+    setActiveTab(value);
+  };
+
   return (
     <div className="relative flex flex-col w-full min-h-screen text-white">
       {/* Space background */}
@@ -1005,7 +1024,7 @@ const TastyCreative = () => {
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
-        <Tabs defaultValue="calendar" className="w-full" onValueChange={setActiveTab}>
+        <Tabs defaultValue={tabValue|| "calendar"} className="w-full" onValueChange={handleTabChange}>
           <TabsList className="grid grid-cols-6 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="calendar"
