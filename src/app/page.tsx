@@ -91,6 +91,7 @@ import {
   isUserSignedIn,
   getEventById
 } from './services/google-calendar-implementation';
+import LiveFlyer from '@/components/LiveFlyer';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -281,17 +282,6 @@ const TastyCreative = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const historyAudioRef = useRef<HTMLAudioElement | null>(null);
   const characterLimit = 1000;
-
-  const [liveFormData, setLiveFormData] = useState<FormData>({
-    model: "",
-    date: "",
-    time: "",
-    timezone: "",
-    paid: false,
-    customImage: false,
-    imageId: "",
-    noOfTemplate: 1,
-  });
 
   // Initialize the voice parameters cache
   useEffect(() => {
