@@ -205,7 +205,7 @@ const TastyCreative = () => {
   const { user, logout } = useAuth();
 
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get('tab');
+  const tabValue = searchParams.get('tab') || "calendar";
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState(tabValue || 'calendar');

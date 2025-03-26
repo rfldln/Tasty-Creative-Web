@@ -55,7 +55,7 @@ export default function LiveFlyer() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get("tab");
+  const tabValue = searchParams.get("tab") || 'live';
 
   useEffect(() => {
     const checkAuth = async () => {
