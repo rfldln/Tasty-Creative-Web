@@ -497,8 +497,8 @@ export default function LiveFlyer() {
   console.log(formData);
 
   return (
-    <div className="flex gap-5">
-      <div className="flex flex-col gap-4 shadow-md max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
+    <div className="flex flex-col lg:flex-row gap-5">
+      <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
         <h1 className="text-2xl font-bold text-center">
           Live Flyer Generation
         </h1>
@@ -1047,9 +1047,9 @@ export default function LiveFlyer() {
           {/* <h3 className="text-sm font-medium mb-2 text-center">
               Generating Flyer:
             </h3> */}
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 w-full">
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
             {selectedImage && selectedImage.thumbnailLink ? (
-              <div className="flex items-center justify-center h-[250px] w-[250px] border bg-black/40 rounded-md border-black">
+              <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] border bg-black/40 rounded-md border-black">
                 <Image
                   src={selectedImage.thumbnailLink}
                   alt={selectedImage.name}
@@ -1066,7 +1066,7 @@ export default function LiveFlyer() {
               </div>
             )}
 
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center rotate-90 lg:rotate-0">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -1112,7 +1112,7 @@ export default function LiveFlyer() {
             ) : webhookData &&
               webhookData.thumbnail &&
               webhookData.webViewLink ? (
-              <div className="flex items-center justify-center h-[250px] w-[250px] rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
+              <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
                 <Link
                   href={webhookData.webViewLink}
                   target="_blank"
@@ -1144,7 +1144,7 @@ export default function LiveFlyer() {
                   {" "}
                   History: {history.length}
                 </span>
-                <div className="grid grid-cols-4 gap-2 overflow-y-auto ">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 overflow-y-auto ">
                   {history.map((item, index) => (
                     <div
                       key={index}
