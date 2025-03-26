@@ -1446,7 +1446,11 @@ const TastyCreative = () => {
 
             {/* Event Detail Dialog - Completely Fixed Version */}
             <Dialog open={isEventDetailOpen} onOpenChange={setIsEventDetailOpen}>
-              <DialogContent className="bg-black/90 backdrop-blur-xl border border-purple-500/20 text-white max-w-2xl rounded-xl shadow-xl overflow-hidden">
+              <DialogContent
+                className="bg-black/90 backdrop-blur-xl border border-purple-500/20 text-white 
+               w-[90%] sm:w-[80%] md:w-[70%] lg:w-[60%] max-w-2xl 
+               rounded-xl shadow-xl overflow-hidden"
+              >
                 {isLoadingEventDetail ? (
                   <div className="flex justify-center items-center py-16">
                     <Loader2 size={36} className="animate-spin text-purple-400" />
@@ -1461,17 +1465,29 @@ const TastyCreative = () => {
                             className="w-4 h-4 rounded-full mt-2 flex-shrink-0"
                             style={{
                               backgroundColor:
-                                selectedEvent.colorId === "1" ? "#7986cb" :
-                                  selectedEvent.colorId === "2" ? "#33b679" :
-                                    selectedEvent.colorId === "3" ? "#8e24aa" :
-                                      selectedEvent.colorId === "4" ? "#e67c73" :
-                                        selectedEvent.colorId === "5" ? "#f6c026" :
-                                          selectedEvent.colorId === "6" ? "#f5511d" :
-                                            selectedEvent.colorId === "7" ? "#039be5" :
-                                              selectedEvent.colorId === "8" ? "#616161" :
-                                                selectedEvent.colorId === "9" ? "#3f51b5" :
-                                                  selectedEvent.colorId === "10" ? "#0b8043" :
-                                                    selectedEvent.colorId === "11" ? "#d50000" : "#4285f4"
+                                selectedEvent.colorId === "1"
+                                  ? "#7986cb"
+                                  : selectedEvent.colorId === "2"
+                                    ? "#33b679"
+                                    : selectedEvent.colorId === "3"
+                                      ? "#8e24aa"
+                                      : selectedEvent.colorId === "4"
+                                        ? "#e67c73"
+                                        : selectedEvent.colorId === "5"
+                                          ? "#f6c026"
+                                          : selectedEvent.colorId === "6"
+                                            ? "#f5511d"
+                                            : selectedEvent.colorId === "7"
+                                              ? "#039be5"
+                                              : selectedEvent.colorId === "8"
+                                                ? "#616161"
+                                                : selectedEvent.colorId === "9"
+                                                  ? "#3f51b5"
+                                                  : selectedEvent.colorId === "10"
+                                                    ? "#0b8043"
+                                                    : selectedEvent.colorId === "11"
+                                                      ? "#d50000"
+                                                      : "#4285f4",
                             }}
                           />
                         )}
@@ -1494,7 +1510,7 @@ const TastyCreative = () => {
                       </div>
                     </DialogHeader>
 
-                    <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                    <div className="py-4 space-y-6 max-h-[50vh] md:max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                       {/* Date and Time */}
                       <div>
                         <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1511,10 +1527,13 @@ const TastyCreative = () => {
                                 // All-day event
                                 <p className="text-white text-lg">
                                   {formatDateTime(selectedEvent.start.date, true)}
-                                  {selectedEvent.end && selectedEvent.end.date && new Date(selectedEvent.start.date).toDateString() !== new Date(selectedEvent.end.date).toDateString() && (
-                                    <> to {formatDateTime(selectedEvent.end.date, true)}</>
-                                  )}
-                                  <span className="ml-2 text-xs bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">All day</span>
+                                  {selectedEvent.end && selectedEvent.end.date &&
+                                    new Date(selectedEvent.start.date).toDateString() !== new Date(selectedEvent.end.date).toDateString() && (
+                                      <> to {formatDateTime(selectedEvent.end.date, true)}</>
+                                    )}
+                                  <span className="ml-2 text-xs bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">
+                                    All day
+                                  </span>
                                 </p>
                               ) : (
                                 // Timed event
@@ -1530,9 +1549,8 @@ const TastyCreative = () => {
                         </div>
                       </div>
 
-                      {/* Google Drive Link - Better handling */}
+                      {/* Google Drive Link */}
                       {selectedEvent.description && (() => {
-                        // Extract the Drive file ID from the WebView Link
                         const driveMatch = selectedEvent.description.match(/WebView Link:\s*https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/[^\s]+/i);
                         const fileId = driveMatch && driveMatch[1];
 
@@ -1549,7 +1567,6 @@ const TastyCreative = () => {
                             </h3>
                             <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20">
                               <div className="w-full">
-                                {/* Embedded Google Drive Preview - more reliable than direct thumbnail */}
                                 <div className="relative w-full pb-[56.25%] overflow-hidden rounded-lg bg-black/60 border border-purple-500/20 mb-3">
                                   <iframe
                                     src={embedUrl}
@@ -1575,7 +1592,7 @@ const TastyCreative = () => {
                         );
                       })()}
 
-                      {/* Description if available - with cleaned up formatting */}
+                      {/* Description */}
                       {selectedEvent.description && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1584,26 +1601,25 @@ const TastyCreative = () => {
                           </h3>
                           <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20 max-h-60 overflow-y-auto">
                             <div className="prose prose-sm prose-invert max-w-none">
-                              <div dangerouslySetInnerHTML={{
-                                __html: selectedEvent.description
-                                  // Remove the thumbnail and webview link lines
-                                  .replace(/Thumbnail:\s*https:\/\/[^\n]+\n?/gi, '')
-                                  .replace(/WebView Link:\s*https:\/\/[^\n]+\n?/gi, '')
-                                  .replace(/Model:\s*[^\n]+\n?/gi, '')
-                                  // Make remaining URLs clickable
-                                  .replace(
-                                    /(https?:\/\/[^\s]+)/g,
-                                    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 break-all">$1</a>'
-                                  )
-                                  // Convert newlines to <br> tags
-                                  .replace(/\n/g, '<br />')
-                              }} />
+                              <div
+                                dangerouslySetInnerHTML={{
+                                  __html: selectedEvent.description
+                                    .replace(/Thumbnail:\s*https:\/\/[^\n]+\n?/gi, '')
+                                    .replace(/WebView Link:\s*https:\/\/[^\n]+\n?/gi, '')
+                                    .replace(/Model:\s*[^\n]+\n?/gi, '')
+                                    .replace(
+                                      /(https?:\/\/[^\s]+)/g,
+                                      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 break-all">$1</a>'
+                                    )
+                                    .replace(/\n/g, '<br />'),
+                                }}
+                              />
                             </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Location if available */}
+                      {/* Location */}
                       {selectedEvent.location && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1621,7 +1637,7 @@ const TastyCreative = () => {
                         </div>
                       )}
 
-                      {/* Conference data for virtual meetings */}
+                      {/* Conference Data */}
                       {selectedEvent.conferenceData && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1644,7 +1660,7 @@ const TastyCreative = () => {
                         </div>
                       )}
 
-                      {/* Attendees if available */}
+                      {/* Attendees */}
                       {selectedEvent.attendees && selectedEvent.attendees.length > 0 && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1657,7 +1673,11 @@ const TastyCreative = () => {
                                 <li key={index} className="flex items-center justify-between bg-black/30 p-2 rounded-lg border border-white/5">
                                   <div className="flex items-center">
                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mr-3">
-                                      <span className="text-xs font-bold text-white">{attendee.displayName ? attendee.displayName[0].toUpperCase() : attendee.email[0].toUpperCase()}</span>
+                                      <span className="text-xs font-bold text-white">
+                                        {attendee.displayName
+                                          ? attendee.displayName[0].toUpperCase()
+                                          : attendee.email[0].toUpperCase()}
+                                      </span>
                                     </div>
                                     <div>
                                       <span className="text-white text-sm font-medium">
@@ -1677,15 +1697,23 @@ const TastyCreative = () => {
                                       </div>
                                     </div>
                                   </div>
-                                  <span className={`text-xs px-2 py-1 rounded-full ${attendee.responseStatus === 'accepted' ? 'bg-green-900/30 text-green-300 border border-green-500/30' :
-                                    attendee.responseStatus === 'declined' ? 'bg-red-900/30 text-red-300 border border-red-500/30' :
-                                      attendee.responseStatus === 'tentative' ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30' :
-                                        'bg-gray-900/30 text-gray-300 border border-gray-500/30'
-                                    }`}>
-                                    {attendee.responseStatus === 'accepted' ? 'Accepted' :
-                                      attendee.responseStatus === 'declined' ? 'Declined' :
-                                        attendee.responseStatus === 'tentative' ? 'Maybe' :
-                                          'Pending'}
+                                  <span
+                                    className={`text-xs px-2 py-1 rounded-full ${attendee.responseStatus === 'accepted'
+                                        ? 'bg-green-900/30 text-green-300 border border-green-500/30'
+                                        : attendee.responseStatus === 'declined'
+                                          ? 'bg-red-900/30 text-red-300 border border-red-500/30'
+                                          : attendee.responseStatus === 'tentative'
+                                            ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30'
+                                            : 'bg-gray-900/30 text-gray-300 border border-gray-500/30'
+                                      }`}
+                                  >
+                                    {attendee.responseStatus === 'accepted'
+                                      ? 'Accepted'
+                                      : attendee.responseStatus === 'declined'
+                                        ? 'Declined'
+                                        : attendee.responseStatus === 'tentative'
+                                          ? 'Maybe'
+                                          : 'Pending'}
                                   </span>
                                 </li>
                               ))}
@@ -1694,7 +1722,7 @@ const TastyCreative = () => {
                         </div>
                       )}
 
-                      {/* Creator/Organizer information */}
+                      {/* Creator/Organizer */}
                       {(selectedEvent.creator || selectedEvent.organizer) && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1707,8 +1735,11 @@ const TastyCreative = () => {
                                 <User size={20} className="text-purple-300" />
                               </div>
                               <p className="text-white">
-                                {selectedEvent.creator?.displayName || selectedEvent.creator?.email ||
-                                  selectedEvent.organizer?.displayName || selectedEvent.organizer?.email || 'Unknown'}
+                                {selectedEvent.creator?.displayName ||
+                                  selectedEvent.creator?.email ||
+                                  selectedEvent.organizer?.displayName ||
+                                  selectedEvent.organizer?.email ||
+                                  'Unknown'}
                               </p>
                             </div>
                           </div>
@@ -1727,14 +1758,12 @@ const TastyCreative = () => {
                           <ExternalLink size={14} className="mr-2" /> View in Google Calendar
                         </a>
                       )}
-                      {/* NO CLOSE BUTTON HERE - we already have one at the top */}
                     </div>
                   </>
                 ) : (
                   <div className="py-12 text-center">
                     <CalendarIcon size={48} className="mx-auto text-gray-500 opacity-50 mb-4" />
                     <p className="text-gray-400 text-lg">Event details not available</p>
-                    {/* ONLY ONE close button across the entire component */}
                     <DialogClose asChild>
                       <Button className="mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0">
                         Close
@@ -1744,6 +1773,7 @@ const TastyCreative = () => {
                 )}
               </DialogContent>
             </Dialog>
+
           </TabsContent>
 
           {/* Other tabs content remains the same */}
