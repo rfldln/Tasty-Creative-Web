@@ -106,7 +106,7 @@ export default function LiveFlyer() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [googleFiles, setGoogleFiles] = useState<GoogleDriveFile[]>([]);
   const [currentFolder, setCurrentFolder] = useState<FolderInfo | null>(null);
-  // const [parentFolder, setParentFolder] = useState<FolderInfo | null>(null);
+  const [parentFolder, setParentFolder] = useState<FolderInfo | null>(null);
   const [showFilePicker, setShowFilePicker] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -217,7 +217,7 @@ export default function LiveFlyer() {
         if (data.files) {
           setGoogleFiles(data.files);
           setCurrentFolder(data.currentFolder || null);
-          // setParentFolder(data.parentFolder || null);
+          setParentFolder(data.parentFolder || null);
         }
       } else {
         setIsAuthenticated(false);
@@ -420,7 +420,7 @@ export default function LiveFlyer() {
       if (data.files) {
         setGoogleFiles(data.files);
         setCurrentFolder(data.currentFolder || null);
-        // setParentFolder(data.parentFolder || null);
+        setParentFolder(data.parentFolder || null);
         setShowFilePicker(true);
       } else {
         alert("No images found in the selected folder");
@@ -447,7 +447,7 @@ export default function LiveFlyer() {
       const data = await response.json();
       setGoogleFiles(data.files);
       setCurrentFolder(data.currentFolder || null);
-      // setParentFolder(data.parentFolder || null);
+      setParentFolder(data.parentFolder || null);
     } catch (error) {
       console.error("Error opening folder:", error);
       alert("Failed to open folder");
@@ -456,30 +456,30 @@ export default function LiveFlyer() {
     }
   };
 
-  // const handleNavigateUp = async () => {
-  //   if (parentFolder) {
-  //     try {
-  //       setIsGooglePickerLoading(true);
-  //       const response = await fetch(
-  //         `/api/google-drive/list?folderId=${parentFolder.id}`
-  //       );
+  const handleNavigateUp = async () => {
+    if (parentFolder) {
+      try {
+        setIsGooglePickerLoading(true);
+        const response = await fetch(
+          `/api/google-drive/list?folderId=${parentFolder.id}`
+        );
 
-  //       if (!response.ok) {
-  //         throw new Error("Failed to navigate up");
-  //       }
+        if (!response.ok) {
+          throw new Error("Failed to navigate up");
+        }
 
-  //       const data = await response.json();
-  //       setGoogleFiles(data.files);
-  //       setCurrentFolder(data.currentFolder || null);
-  //       setParentFolder(data.parentFolder || null);
-  //     } catch (error) {
-  //       console.error("Error navigating up:", error);
-  //       alert("Failed to navigate up");
-  //     } finally {
-  //       setIsGooglePickerLoading(false);
-  //     }
-  //   }
-  // };
+        const data = await response.json();
+        setGoogleFiles(data.files);
+        setCurrentFolder(data.currentFolder || null);
+        setParentFolder(data.parentFolder || null);
+      } catch (error) {
+        console.error("Error navigating up:", error);
+        alert("Failed to navigate up");
+      } finally {
+        setIsGooglePickerLoading(false);
+      }
+    }
+  };
 
   const handleFileSelected = (file: GoogleDriveFile) => {
     if (file.isFolder) {
@@ -998,7 +998,7 @@ export default function LiveFlyer() {
               </div>
 
               {/* Folder navigation */}
-              {/* {parentFolder && (
+              {parentFolder && (
                 <div className="mb-4">
                   <button
                     onClick={handleNavigateUp}
@@ -1021,7 +1021,7 @@ export default function LiveFlyer() {
                     Back to {parentFolder.name}
                   </button>
                 </div>
-              )} */}
+              )}
 
               {isGooglePickerLoading ? (
                 <div className="flex justify-center items-center py-8">
