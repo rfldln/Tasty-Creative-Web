@@ -33,7 +33,7 @@ const timezoneMap: Record<string, string> = {
  * @param drive Google Drive API instance
  * @param folderId Parent folder ID to search in
  * @param modelName Model name to search for
- * @param isPaid Whether to search for "Paid" or "Free" in file names
+ * @param isPaid Whether to search for "Paid Schedule" or "Free Schedule" in file names
  * @returns Found spreadsheet ID and sheet name, or null if not found
  */
 async function findSpreadsheet(
@@ -44,7 +44,7 @@ async function findSpreadsheet(
   isPaid: boolean
 ): Promise<{ spreadsheetId: string; sheetName: string } | null> {
   const sheetMimeType = "application/vnd.google-apps.spreadsheet";
-  const paidTerm = isPaid ? "Paid" : "Free";
+  const paidTerm = isPaid ? "Paid Schedule" : "Free Schedule";
 
   try {
     // Search for all spreadsheets in the parent folder and its subfolders
@@ -146,7 +146,7 @@ async function searchInFolder(
   isPaid: boolean
 ): Promise<{ spreadsheetId: string; sheetName: string } | null> {
   const sheetMimeType = "application/vnd.google-apps.spreadsheet";
-  const paidTerm = isPaid ? "Paid" : "Free";
+  const paidTerm = isPaid ? "Paid Schedule" : "Free Schedule";
 
   try {
     // Get all spreadsheets in this folder
@@ -336,12 +336,11 @@ export async function POST(request: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
     // The parent folder ID from your URL
-    const parentFolderId = "1C-IdzcmdSloULNTKdvI-Uwt4hG96wgoK";
+    const parentFolderId = process.env.GOOGLE_DRIVE_SHEET_FOLDER_ID!;
 
     const ianaTimezone = timezoneMap[formData.timezone] || formData.timezone;
     const [hours, minutes] = formData.time.split(":").map(Number);
     const parsedDate = new Date(formData.date);
-
 
     const eventDateTime = new Date(
       parsedDate.getFullYear(),
@@ -409,7 +408,7 @@ export async function POST(request: NextRequest) {
           {
             message: `Calendar Event created but could not find appropriate spreadsheet for model ${
               formData.model
-            } (${formData.paid ? "Paid" : "Free"})`,
+            } (${formData.paid ? "Paid Schedule" : "Free Schedule"})`,
           },
           { status: 404 }
         );
@@ -420,7 +419,7 @@ export async function POST(request: NextRequest) {
           {
             message: `Could not find appropriate spreadsheet for model ${
               formData.model
-            } (${formData.paid ? "Paid" : "Free"})`,
+            } (${formData.paid ? "Paid Schedule" : "Free Schedule"})`,
           },
           { status: 404 }
         );
@@ -560,7 +559,6 @@ export async function POST(request: NextRequest) {
           // Continue execution even if this fails - we'll try to use an existing row
         }
 
-
         const pstTime = [
           "'" +
             new Intl.DateTimeFormat("en-US", {
@@ -591,7 +589,7 @@ export async function POST(request: NextRequest) {
 
         // Set Post Schedule to "LIVE"
         if (scheduleIndex !== -1) {
-          rowValues[scheduleIndex] = "LIVE";
+          rowValues[scheduleIndex] = "TEST - LIVE";
         }
 
         // The row where we'll add our new data - right before the Used Post section
