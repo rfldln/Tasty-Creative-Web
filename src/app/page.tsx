@@ -93,7 +93,6 @@ import {
 } from './services/google-calendar-implementation';
 import LiveFlyer from '@/components/LiveFlyer';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useRouter, useSearchParams } from 'next/navigation';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -290,14 +289,14 @@ const TastyCreative = () => {
   const characterLimit = 1000;
 
   const handleTabChange = (value: string) => {
-  
+    setActiveTab(value);
 
     const params = new URLSearchParams(searchParams.toString());
     
     params.set('tab', value);
     
     router.replace(`?${params.toString()}`, { scroll: false });
-    setActiveTab(value);
+
    
   };
 
@@ -973,20 +972,6 @@ const TastyCreative = () => {
     const driveUrl = driveMatch ? driveMatch[0] : null;
 
     return { thumbnailUrl, driveUrl };
-  };
-
-  const handleTabChange = (value: string) => {
-    // Create a new URLSearchParams object based on current params
-    const params = new URLSearchParams(searchParams.toString());
-    
-    // Set or update the 'tab' parameter
-    params.set('tab', value);
-    
-    // Push the new URL with the tab parameter
-    router.push(`?${params.toString()}`, { scroll: false });
-    
-    // Update the local state
-    setActiveTab(value);
   };
 
   return (
