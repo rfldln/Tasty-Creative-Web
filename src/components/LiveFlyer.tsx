@@ -29,6 +29,7 @@ interface FormData {
   customImage: boolean;
   imageId: string;
   noOfTemplate: number;
+  customRequest: boolean;
 }
 
 interface WebhookResponse {
@@ -53,9 +54,11 @@ interface FolderInfo {
 
 export default function LiveFlyer() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get("tab") || 'live';
+  const tabValue = searchParams.get("tab") || "live";
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -132,6 +135,7 @@ export default function LiveFlyer() {
     customImage: false,
     imageId: "",
     noOfTemplate: 1,
+    customRequest: false,
   });
 
   // Check authentication status when component mounts
@@ -271,6 +275,7 @@ export default function LiveFlyer() {
       formDataToSend.append("timestamp", new Date().toISOString());
       formDataToSend.append("imageName", formData.imageName || "");
       formDataToSend.append("noOfTemplate", String(formData.noOfTemplate));
+      formDataToSend.append("isCustomRequest", String(formData.customRequest));
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
@@ -294,7 +299,19 @@ export default function LiveFlyer() {
         setResponse({ error: "Invalid JSON response from webhook" });
       }
 
-      startChecking(requestId); // Start checking using requestId
+      if (formData.customRequest != true) {
+        startChecking(requestId); // Start checking using requestId
+      }
+      if (formData.customRequest == true) {
+        setIsFetchingImage(false);
+        setIsLoading(false);
+      }
+
+      if (textData.includes("404")) {
+        setResponse({ error: "Failed to call webhook" });
+        setError(textData);
+        setIsLoading(false);
+      }
       console.log("Webhook response:", textData);
     } catch (error) {
       console.error("Error calling webhook:", error);
@@ -879,7 +896,7 @@ export default function LiveFlyer() {
             </div>
           </div>
 
-          <div className="col-span-2">
+          <div className="col-span-2 flex w-full justify-between items-center h-full">
             <div className="flex flex-col">
               <label
                 htmlFor="noOfTemplate"
@@ -902,6 +919,30 @@ export default function LiveFlyer() {
                 />
               </div>
             </div>
+            <div className=" flex gap-2 items-center relative">
+              <label
+                className={cn(
+                  "relative inline-flex items-center cursor-pointer",
+                  {
+                    "cursor-not-allowed":
+                      isLoading || isFetchingImage || webhookData,
+                  }
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  name="customRequest"
+                  onChange={handleInputChange}
+                  checked={formData.customRequest}
+                  disabled={isLoading || isFetchingImage || webhookData}
+                />
+                <div className="w-11 h-6 bg-black/60 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500  rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+              </label>
+              <h1 className="text-sm text-gray-300 font-medium mb-0">
+                Custom Flyer
+              </h1>
+            </div>
           </div>
 
           <div className="mt-2 col-span-2">
@@ -912,11 +953,21 @@ export default function LiveFlyer() {
                   ? "opacity-60 cursor-not-allowed"
                   : "opacity-100"
               }`}
-              disabled={isLoading || isFetchingImage}
+              // disabled={isLoading || isFetchingImage}
             >
-              {isLoading || isFetchingImage
-                ? "Generating..."
-                : "Generate Live Flyer"}
+              {formData.customRequest ? (
+                <span>
+                  {isLoading || isFetchingImage
+                    ? "Sending..."
+                    : "Send Custom Request"}
+                </span>
+              ) : (
+                <span>
+                  {isLoading || isFetchingImage
+                    ? "Generating..."
+                    : "Generate Live Flyer"}
+                </span>
+              )}
             </button>
           </div>
         </form>
@@ -1062,151 +1113,187 @@ export default function LiveFlyer() {
           {/* <h3 className="text-sm font-medium mb-2 text-center">
               Generating Flyer:
             </h3> */}
-          <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
-            {selectedImage && selectedImage.thumbnailLink ? (
-              <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] border bg-black/40 rounded-md border-black">
-                <Image
-                  src={selectedImage.thumbnailLink}
-                  alt={selectedImage.name}
-                  width={400}
-                  height={400}
-                  className="object-contain max-h-full max-w-full"
-                />
-              </div>
-            ) : (
-              <div className="w-48 h-48 flex items-center justify-center border border-gray-300 rounded">
-                <span className="text-sm text-gray-500 text-center px-2">
-                  {selectedImage?.name || "No image selected"}
-                </span>
-              </div>
-            )}
 
-            <div className="flex items-center justify-center rotate-90 lg:rotate-0">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          {formData.customRequest === true ? (
+            <div className="flex items-center h-full justify-center w-full p-4">
+              <div
+                className={cn(
+                  " bg-opacity-50   border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
+                  { hidden: error }
+                )}
               >
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
+                <div className="text-2xl mb-2">
+                  🎉 Successfully submitted request to Discord! 🚀
+                </div>
+                <p className="text-opacity-80">
+                  Your message has been sent successfully! 📨✨
+                </p>
+              </div>
+              <div
+                className={cn(
+                  "bg-red-100 bg-opacity overflow-hidden relative-50 border text-wrap h-full border-red-300 border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
+                  { hidden: !error }
+                )}
+              >
+                <div className="text-2xl mb-2">
+                  ⚠️ Webhook Communication Failed! 🚫
+                </div>
+                <p className="text-red-800 text-opacity-80">
+                  Unable to send message to Discord. Please check your webhook
+                  configuration. 🔧❌
+                </p>
+                <p className="h-full text-wrap">Details: {error}</p>
+              </div>
             </div>
-
-            {isFetchingImage ? (
-              <div className="w-full lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded bg-black/40">
-                <div className="flex flex-col items-center justify-center">
-                  <svg
-                    className="animate-spin h-8 w-8 text-purple-500 mb-2"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <span className="text-sm text-gray-500">Generating...</span>
-                </div>
-              </div>
-            ) : webhookData &&
-              webhookData.thumbnail &&
-              webhookData.webViewLink ? (
-              <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
-                <Link
-                  href={webhookData.webViewLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-full w-full flex items-center justify-center"
-                >
-                  <Image
-                    src={webhookData.thumbnail}
-                    alt="Generated Flyer"
-                    width={400}
-                    height={400}
-                    className="object-contain max-h-full max-w-full rounded-md"
-                  />
-                </Link>
-              </div>
-            ) : (
-              <div className="w-48 h-48 flex items-center justify-center border border-gray-300 rounded">
-                <span className="text-sm text-gray-500 text-center px-2">
-                  Flyer not yet generated
-                </span>
-              </div>
-            )}
-          </div>
-          {webhookData && (
+          ) : (
             <>
-              <div className="h-full flex flex-col gap-2">
-                <hr className="border-purple-400" />
-                <span className="text-gray-300">
-                  {" "}
-                  History: {history.length}
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 overflow-y-auto ">
-                  {history.map((item, index) => (
-                    <div
-                      key={index}
-                      className="border p-2 border-gradient-to-r border-purple-400 rounded-md flex flex-col items-center justify-center hover:bg-black/40"
-                    >
-                      <div className="w-24 h-24 rounded-md overflow-hidden ">
-                        <Image
-                          src={item.thumbnail}
-                          alt="Generated Flyer"
-                          width={200}
-                          height={200}
-                          className={cn(
-                            "object-contain max-h-full rounded-md max-w-full cursor-pointer",
-                            {
-                              "cursor-not-allowed":
-                                isFetchingImage || isLoading,
-                            }
-                          )}
-                          onClick={() => {
-                            if (!isFetchingImage || !isLoading) {
-                              setWebhookData(item);
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+              <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
+                {selectedImage && selectedImage.thumbnailLink ? (
+                  <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] border bg-black/40 rounded-md border-black">
+                    <Image
+                      src={selectedImage.thumbnailLink}
+                      alt={selectedImage.name}
+                      width={400}
+                      height={400}
+                      className="object-contain max-h-full max-w-full"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-48 h-48 flex items-center justify-center border border-gray-300 rounded">
+                    <span className="text-sm text-gray-500 text-center px-2">
+                      {selectedImage?.name || "No image selected"}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-center rotate-90 lg:rotate-0">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
                 </div>
+
+                {isFetchingImage ? (
+                  <div className="w-full lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded bg-black/40">
+                    <div className="flex flex-col items-center justify-center">
+                      <svg
+                        className="animate-spin h-8 w-8 text-purple-500 mb-2"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span className="text-sm text-gray-500">
+                        Generating...
+                      </span>
+                    </div>
+                  </div>
+                ) : webhookData &&
+                  webhookData.thumbnail &&
+                  webhookData.webViewLink ? (
+                  <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
+                    <Link
+                      href={webhookData.webViewLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-full w-full flex items-center justify-center"
+                    >
+                      <Image
+                        src={webhookData.thumbnail}
+                        alt="Generated Flyer"
+                        width={400}
+                        height={400}
+                        className="object-contain max-h-full max-w-full rounded-md"
+                      />
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="w-48 h-48 flex items-center justify-center border border-gray-300 rounded">
+                    <span className="text-sm text-gray-500 text-center px-2">
+                      Flyer not yet generated
+                    </span>
+                  </div>
+                )}
               </div>
-            </>
-          )}
-          <div className="mt-2 col-span-2">
-            <button
-              type="button"
-              onClick={handleCreateEventSubmit}
-              className={`rounded-md px-5 w-full  bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
-                isEventCreating || isFetchingImage || eventCreated?.success
-                  ? "opacity-60 cursor-not-allowed"
-                  : "opacity-100 cursor-pointer"
-              }`}
-              disabled={
-                isEventCreating || isFetchingImage || eventCreated?.success
-              }
-            >
-              {isEventCreating ? "Creating Event..." : "Create Event"}
-            </button>
-            {/* {eventCreated && eventCreated.message && (
+              {webhookData && (
+                <>
+                  <div className="h-full flex flex-col gap-2">
+                    <hr className="border-purple-400" />
+                    <span className="text-gray-300">
+                      {" "}
+                      History: {history.length}
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 overflow-y-auto ">
+                      {history.map((item, index) => (
+                        <div
+                          key={index}
+                          className="border p-2 border-gradient-to-r border-purple-400 rounded-md flex flex-col items-center justify-center hover:bg-black/40"
+                        >
+                          <div className="w-24 h-24 rounded-md overflow-hidden ">
+                            <Image
+                              src={item.thumbnail}
+                              alt="Generated Flyer"
+                              width={200}
+                              height={200}
+                              className={cn(
+                                "object-contain max-h-full rounded-md max-w-full cursor-pointer",
+                                {
+                                  "cursor-not-allowed":
+                                    isFetchingImage || isLoading,
+                                }
+                              )}
+                              onClick={() => {
+                                if (!isFetchingImage || !isLoading) {
+                                  setWebhookData(item);
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              <div className="mt-2 col-span-2">
+                <button
+                  type="button"
+                  onClick={handleCreateEventSubmit}
+                  className={`rounded-md px-5 w-full  bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
+                    isEventCreating || isFetchingImage || eventCreated?.success
+                      ? "opacity-60 cursor-not-allowed"
+                      : "opacity-100 cursor-pointer"
+                  }`}
+                  disabled={
+                    isEventCreating || isFetchingImage || eventCreated?.success
+                  }
+                >
+                  {isEventCreating ? "Creating Event..." : "Create Event"}
+                </button>
+                {/* {eventCreated && eventCreated.message && (
               <div
                 className={`mt-4 p-3 rounded ${
                   eventCreated.success ? "bg-green-100" : "bg-red-100"
@@ -1225,7 +1312,9 @@ export default function LiveFlyer() {
                 )}
               </div>
             )} */}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

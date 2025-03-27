@@ -1,17 +1,23 @@
 import { NextResponse } from "next/server";
 
 const webhookUrl = process.env.WEBHOOK_URL!;
+const discordWebhookUrl = process.env.DISCORD_BOT_WEBHOOK_URL!;
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
+
+    // Get isCustomRequest from form data
+    const isCustomRequest = formData.get("isCustomRequest") === "true";
+
+    console.log("isCustomRequest", isCustomRequest);
 
     // Prepare FormData for forwarding
     const forwardData = new FormData();
 
     // Forward only non-file fields
     formData.forEach((value, key) => {
-      if (key !== "imageFile") {
+      if (key !== "imageFile" && key !== "isCustomRequest") {
         forwardData.append(key, value);
       }
     });
@@ -22,8 +28,11 @@ export async function POST(request: Request) {
       forwardData.append("data", imageFile, imageFile.name);
     }
 
+    // Determine which URL to use based on isCustomRequest
+    const targetUrl = isCustomRequest ? discordWebhookUrl : webhookUrl;
+    console.log("targetUrl", targetUrl);
     // Forward the request
-    const response = await fetch(webhookUrl, {
+    const response = await fetch(targetUrl, {
       method: "POST",
       body: forwardData, // Forward as FormData
     });

@@ -93,6 +93,7 @@ import {
 } from './services/google-calendar-implementation';
 import LiveFlyer from '@/components/LiveFlyer';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -287,6 +288,18 @@ const TastyCreative = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const historyAudioRef = useRef<HTMLAudioElement | null>(null);
   const characterLimit = 1000;
+
+  const handleTabChange = (value: string) => {
+  
+
+    const params = new URLSearchParams(searchParams.toString());
+    
+    params.set('tab', value);
+    
+    router.replace(`?${params.toString()}`, { scroll: false });
+    setActiveTab(value);
+   
+  };
 
   // Initialize the voice parameters cache
   useEffect(() => {
