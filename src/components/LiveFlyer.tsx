@@ -160,7 +160,6 @@ export default function LiveFlyer() {
       }
 
       if (result.timestamp > lastCheckTimestamp.current) {
-        console.log("New data received, stopping checks");
         setWebhookData(result.data);
         setFormData((prev) => ({
           ...prev,
@@ -183,7 +182,6 @@ export default function LiveFlyer() {
       checkInterval.current = null;
     }
 
-    console.log("Starting to check for updates");
     checkInterval.current = setInterval(() => {
       fetchWebhookData(requestId);
     }, 2000);
@@ -192,7 +190,6 @@ export default function LiveFlyer() {
   // Effect to stop checking when webhookData is updated
   useEffect(() => {
     const totalTemplates = Number(formData.noOfTemplate);
-    console.log(itemReceived, totalTemplates);
     if (itemReceived === totalTemplates) {
       // setIsProcessing(false);
 
@@ -204,7 +201,6 @@ export default function LiveFlyer() {
   // Check for initial data on mount
 
   const stopChecking = () => {
-    console.log("Stopping check interval");
     if (checkInterval.current) {
       clearInterval(checkInterval.current);
       checkInterval.current = null;
@@ -312,7 +308,6 @@ export default function LiveFlyer() {
         setError(textData);
         setIsLoading(false);
       }
-      console.log("Webhook response:", textData);
     } catch (error) {
       console.error("Error calling webhook:", error);
       setResponse({ error: "Failed to call webhook" });
@@ -526,7 +521,6 @@ export default function LiveFlyer() {
 
   //   const [date, setDate] = useState<Date>();
 
-  console.log(formData);
 
   return (
     <div className="flex flex-col lg:flex-row gap-5">
