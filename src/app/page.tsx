@@ -202,7 +202,7 @@ interface CalendarEvent {
 const TastyCreative = () => {
   // Get authentication context
   const { user, logout } = useAuth();
-
+  const [displayName, setDisplayName] = useState("Admin");
   const [activeTab, setActiveTab] = useState('calendar');
   const [isPaid, setIsPaid] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState("");
@@ -288,6 +288,13 @@ const TastyCreative = () => {
     initVoiceParametersCache();
   }, []);
 
+  // Update the display name when user changes
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user);
+    }
+  }, [user]);
+
   // Update the effect that initializes Google Calendar
   useEffect(() => {
     if (activeTab === 'calendar') {
@@ -335,16 +342,23 @@ const TastyCreative = () => {
     }
   }, [activeTab]);
 
-  // Add this useEffect after your other useEffect hooks
   useEffect(() => {
     const loadCalendarEventsForMonth = async () => {
       if (activeTab === 'calendar' && isCalendarSignedIn) {
-        await loadCalendarEvents();
+        console.log(`Month changed to ${selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}, loading events...`);
+
+        // Clear events first to avoid stale data being displayed
+        setCalendarEvents([]);
+
+        // Add a small delay to ensure state updates properly
+        setTimeout(() => {
+          loadCalendarEvents();
+        }, 100);
       }
     };
 
     loadCalendarEventsForMonth();
-  }, [selectedDate, activeTab, isCalendarSignedIn]); // Dependencies that trigger the effect
+  }, [selectedDate, activeTab, isCalendarSignedIn]);
 
   // Initialize ComfyUI connection on mount or when activeTab changes to 'image'
   useEffect(() => {
@@ -493,7 +507,8 @@ const TastyCreative = () => {
       setIsCalendarLoading(true);
       setCalendarError('');
 
-      console.log(`Loading calendar events for ${selectedDate.toLocaleDateString()} (month view)`);
+      // Add this for clearer debugging
+      console.log(`Loading calendar events for month: ${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`);
 
       const startDate = new Date(selectedDate);
       startDate.setDate(1); // First day of month
@@ -984,7 +999,7 @@ const TastyCreative = () => {
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-gray-300 text-sm">
-            Welcome, {user || "Admin"}
+            Welcome, {displayName}
           </span>
           <Button
             variant="outline"
@@ -1117,8 +1132,6 @@ const TastyCreative = () => {
                             const newDate = new Date(selectedDate);
                             newDate.setMonth(newDate.getMonth() - 1);
                             setSelectedDate(newDate);
-                            // Use setTimeout to ensure state update completes before loading events
-                            setTimeout(() => loadCalendarEvents(), 50);
                           }}
                         >
                           <ChevronLeft size={16} />
@@ -1136,8 +1149,6 @@ const TastyCreative = () => {
                             const newDate = new Date(selectedDate);
                             newDate.setMonth(newDate.getMonth() + 1);
                             setSelectedDate(newDate);
-                            // Use setTimeout to ensure state update completes before loading events
-                            setTimeout(() => loadCalendarEvents(), 50);
                           }}
                         >
                           <ChevronRight size={16} />
@@ -1699,12 +1710,12 @@ const TastyCreative = () => {
                                   </div>
                                   <span
                                     className={`text-xs px-2 py-1 rounded-full ${attendee.responseStatus === 'accepted'
-                                        ? 'bg-green-900/30 text-green-300 border border-green-500/30'
-                                        : attendee.responseStatus === 'declined'
-                                          ? 'bg-red-900/30 text-red-300 border border-red-500/30'
-                                          : attendee.responseStatus === 'tentative'
-                                            ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30'
-                                            : 'bg-gray-900/30 text-gray-300 border border-gray-500/30'
+                                      ? 'bg-green-900/30 text-green-300 border border-green-500/30'
+                                      : attendee.responseStatus === 'declined'
+                                        ? 'bg-red-900/30 text-red-300 border border-red-500/30'
+                                        : attendee.responseStatus === 'tentative'
+                                          ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30'
+                                          : 'bg-gray-900/30 text-gray-300 border border-gray-500/30'
                                       }`}
                                   >
                                     {attendee.responseStatus === 'accepted'
