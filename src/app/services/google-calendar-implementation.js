@@ -1,81 +1,78 @@
 // services/google-calendar-implementation.js
 
-// Your credentials from Google Cloud Console
-const API_KEY = 'AIzaSyDjBT4KGbMGJnW5Yd-q9SyPnoDW8VQatG0'; // Replace with your API key
-const CLIENT_ID = '960387706945-aqp91ft792nu9rpi5s6db6j5dh585itg.apps.googleusercontent.com'; // Replace with your Client ID
+// Load credentials from environment variables
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+// Validate required environment variables
+if (!API_KEY || !CLIENT_ID) {
+    console.error('Missing required environment variables for Google Calendar:');
+    if (!API_KEY) console.error('- NEXT_PUBLIC_GOOGLE_API_KEY is not defined');
+    if (!CLIENT_ID) console.error('- NEXT_PUBLIC_GOOGLE_CLIENT_ID is not defined');
+}
+
+// Calendar ID can also be moved to env variables for better security
+const CALENDAR_ID = process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_ID ||
+    '2880d48fb939dfb37658d442fdc62ba6ecb31a4fc42c6d90340ccb0b1b7462ae@group.calendar.google.com';
 
 // Discovery docs and scopes
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"];
 const SCOPES = "https://www.googleapis.com/auth/calendar";
 
+// Constants for localStorage
+const TOKEN_STORAGE_KEY = 'tasty_calendar_token';
+const TOKEN_EXPIRY_KEY = 'tasty_calendar_token_expiry';
+
 // References to Google API client
 let gapi = null;
 let tokenClient = null;
 let accessToken = null;
+let isGapiInitialized = false;
+let isGisLoaded = false;
 
 /**
- * Initialize the Google API client with the new Identity Services library
+ * Load token from localStorage if available
  */
-export const initGoogleCalendarAuth = async () => {
+const loadStoredToken = () => {
     try {
-        console.log("Starting Google Calendar initialization");
+        const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+        const tokenExpiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
 
-        // Load the GAPI script if not already loaded
-        if (!window.gapi) {
-            console.log("Loading GAPI script");
-            await loadGapiScript();
-            console.log("GAPI script loaded successfully");
+        if (storedToken) {
+            // Check if token is not expired
+            if (tokenExpiry && new Date().getTime() < parseInt(tokenExpiry, 10)) {
+                console.log("Using stored token from localStorage");
+                accessToken = storedToken;
+                return true;
+            } else {
+                // Token expired, clear it
+                console.log("Stored token expired, clearing");
+                localStorage.removeItem(TOKEN_STORAGE_KEY);
+                localStorage.removeItem(TOKEN_EXPIRY_KEY);
+            }
         }
-
-        gapi = window.gapi;
-
-        // Load the client library
-        console.log("Loading client library");
-        await new Promise((resolve, reject) => {
-            gapi.load('client', {
-                callback: resolve,
-                onerror: (error) => {
-                    console.error("Error loading client library", error);
-                    reject(error);
-                },
-                timeout: 10000, // 10 seconds
-                ontimeout: () => {
-                    console.error("Timeout loading client library");
-                    reject(new Error("Timeout loading client library"));
-                }
-            });
-        });
-
-        // Initialize the client with API key
-        console.log("Initializing GAPI client with API key");
-        await gapi.client.init({
-            apiKey: API_KEY,
-            discoveryDocs: DISCOVERY_DOCS,
-        });
-
-        // Load the Identity Services script
-        console.log("Loading Identity Services script");
-        await loadGisScript();
-
-        // Initialize the token client
-        console.log("Initializing token client");
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: (tokenResponse) => {
-                console.log("Token received");
-                if (tokenResponse && tokenResponse.access_token) {
-                    accessToken = tokenResponse.access_token;
-                }
-            },
-        });
-
-        console.log("Google Calendar initialized successfully");
-        return { success: true };
     } catch (error) {
-        console.error('Error initializing Google Calendar API:', error);
-        console.error('Error details:', error?.details || error?.message || 'Unknown error');
-        throw error;
+        console.error("Error loading token from localStorage:", error);
+    }
+    return false;
+};
+
+/**
+ * Save token to localStorage with expiry
+ * @param {string} token - The access token to store
+ * @param {number} expiresIn - Seconds until token expires (3600 is typical)
+ */
+const saveTokenToStorage = (token, expiresIn = 3600) => {
+    try {
+        if (token) {
+            localStorage.setItem(TOKEN_STORAGE_KEY, token);
+            // Set expiry time (current time + expiry period in ms)
+            const expiryTime = new Date().getTime() + (expiresIn * 1000);
+            localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+            console.log("Token saved to localStorage, expires in", expiresIn, "seconds");
+        }
+    } catch (error) {
+        console.error("Error saving token to localStorage:", error);
     }
 };
 
@@ -115,6 +112,7 @@ const loadGisScript = async () => {
 
         script.onload = () => {
             console.log("GIS script loaded");
+            isGisLoaded = true;
             resolve();
         };
 
@@ -128,10 +126,177 @@ const loadGisScript = async () => {
 };
 
 /**
+ * Initialize the GAPI client library
+ */
+const initializeGapiClient = async () => {
+    if (isGapiInitialized) {
+        return true;
+    }
+
+    // Check if API key is available
+    if (!API_KEY) {
+        console.error("Cannot initialize GAPI client: API key is missing");
+        return false;
+    }
+
+    try {
+        // Load the client library
+        await new Promise((resolve, reject) => {
+            gapi.load('client', {
+                callback: resolve,
+                onerror: (error) => {
+                    console.error("Error loading client library", error);
+                    reject(error);
+                },
+                timeout: 10000, // 10 seconds
+                ontimeout: () => {
+                    console.error("Timeout loading client library");
+                    reject(new Error("Timeout loading client library"));
+                }
+            });
+        });
+
+        // Initialize the client with API key
+        await gapi.client.init({
+            apiKey: API_KEY,
+            discoveryDocs: DISCOVERY_DOCS,
+        });
+
+        isGapiInitialized = true;
+        return true;
+    } catch (error) {
+        console.error("Error initializing GAPI client:", error);
+        return false;
+    }
+};
+
+/**
+ * Set the access token for GAPI client
+ */
+const setupGapiWithToken = async () => {
+    if (!gapi || !gapi.client) {
+        console.error("GAPI client not available for token setup");
+        return false;
+    }
+
+    try {
+        if (accessToken) {
+            // Set the token for this GAPI client session
+            gapi.client.setToken({ access_token: accessToken });
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error("Error setting up GAPI with token:", error);
+        return false;
+    }
+};
+
+/**
+ * Initialize the Google API client with the new Identity Services library
+ */
+export const initGoogleCalendarAuth = async () => {
+    try {
+        console.log("Starting Google Calendar initialization");
+
+        // Check if required environment variables are set
+        if (!API_KEY || !CLIENT_ID) {
+            throw new Error("Missing required environment variables for Google Calendar. Check your .env.local file.");
+        }
+
+        // Try to load token from storage first
+        const hasStoredToken = loadStoredToken();
+
+        // Load the GAPI script if not already loaded
+        if (!window.gapi) {
+            console.log("Loading GAPI script");
+            await loadGapiScript();
+            console.log("GAPI script loaded successfully");
+        }
+
+        gapi = window.gapi;
+
+        // Initialize GAPI client
+        const clientInitialized = await initializeGapiClient();
+        if (!clientInitialized) {
+            throw new Error("Failed to initialize GAPI client");
+        }
+
+        // If we have a stored token, try to set it up
+        if (hasStoredToken) {
+            await setupGapiWithToken();
+        }
+
+        // Load the Identity Services script if not already loaded
+        if (!isGisLoaded && !window.google?.accounts?.oauth2) {
+            console.log("Loading Identity Services script");
+            await loadGisScript();
+        }
+
+        // Initialize the token client
+        if (window.google?.accounts?.oauth2) {
+            console.log("Initializing token client");
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: (tokenResponse) => {
+                    console.log("Token received", tokenResponse);
+                    if (tokenResponse && tokenResponse.access_token) {
+                        accessToken = tokenResponse.access_token;
+
+                        // Save token to localStorage with expiry
+                        saveTokenToStorage(accessToken, tokenResponse.expires_in || 3600);
+
+                        // Set up GAPI with this token
+                        setupGapiWithToken();
+                    }
+                },
+                error_callback: (error) => {
+                    console.error("Error getting token:", error);
+                }
+            });
+        } else {
+            console.warn("Google Identity Services not available, sign in might not work");
+        }
+
+        console.log("Google Calendar initialized successfully");
+        return { success: true };
+    } catch (error) {
+        console.error('Error initializing Google Calendar API:', error);
+        console.error('Error details:', error?.details || error?.message || 'Unknown error');
+        throw error;
+    }
+};
+
+/**
  * Check if the user is currently signed in
  */
 export const isUserSignedIn = async () => {
-    // With the new library, we can just check if we have an accessToken
+    // First check localStorage for a valid token
+    const hasStoredToken = loadStoredToken();
+
+    if (hasStoredToken) {
+        // Verify the token works by trying to set it up with GAPI
+        if (gapi && gapi.client) {
+            const success = await setupGapiWithToken();
+            if (success) {
+                // Test if the token is actually valid by making a simple API call
+                try {
+                    await gapi.client.calendar.calendarList.get({ 'calendarId': CALENDAR_ID });
+                    console.log("Verified token is working with API");
+                    return true;
+                } catch (error) {
+                    console.warn("Stored token doesn't work with API, clearing:", error);
+                    localStorage.removeItem(TOKEN_STORAGE_KEY);
+                    localStorage.removeItem(TOKEN_EXPIRY_KEY);
+                    accessToken = null;
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Otherwise check the current accessToken
     return !!accessToken;
 };
 
@@ -139,8 +304,19 @@ export const isUserSignedIn = async () => {
  * Sign in with Google
  */
 export const signInWithGoogle = async () => {
+    // Check if CLIENT_ID is available
+    if (!CLIENT_ID) {
+        console.error("Cannot sign in: CLIENT_ID is missing");
+        throw new Error("Google Client ID not configured. Please contact the administrator.");
+    }
+
     if (!tokenClient) {
-        throw new Error('Google Auth not initialized');
+        // Try to reinitialize if tokenClient is not available
+        await initGoogleCalendarAuth();
+
+        if (!tokenClient) {
+            throw new Error('Google Auth not initialized properly');
+        }
     }
 
     try {
@@ -164,16 +340,26 @@ export const signInWithGoogle = async () => {
                 window.addEventListener('error', popupBlockedHandler);
 
                 // Modify the token client to use redirect if needed
+                const originalCallback = tokenClient.callback;
                 tokenClient.callback = (response) => {
                     // Remove the error listener
                     window.removeEventListener('error', popupBlockedHandler);
 
                     if (response && response.access_token) {
                         accessToken = response.access_token;
-                        resolve({ success: true });
+
+                        // Save token to localStorage with expiry
+                        saveTokenToStorage(accessToken, response.expires_in || 3600);
+
+                        // Set up GAPI with this token
+                        setupGapiWithToken().then(() => {
+                            resolve({ success: true });
+                        });
                     } else if (response && response.error) {
                         reject(response);
                     } else {
+                        // If we got here without an error or a token, still call the original callback
+                        if (originalCallback) originalCallback(response);
                         resolve({ success: true }); // Still consider it success as the callback might be called later
                     }
                 };
@@ -208,18 +394,32 @@ export const signInWithGoogle = async () => {
  * Sign out from Google
  */
 export const signOutFromGoogle = async () => {
-    if (!google?.accounts?.oauth2) {
-        throw new Error('Google Auth not initialized');
-    }
-
     try {
-        // Revoke the token
-        if (accessToken) {
-            google.accounts.oauth2.revoke(accessToken, () => {
-                console.log('Token revoked');
-            });
-            accessToken = null;
+        // Revoke the token if google oauth is available
+        if (window.google?.accounts?.oauth2 && accessToken) {
+            try {
+                google.accounts.oauth2.revoke(accessToken, () => {
+                    console.log('Token revoked');
+                });
+            } catch (revokeError) {
+                console.warn('Error revoking token:', revokeError);
+                // Continue with signout even if revoke fails
+            }
         }
+
+        // Clear token from GAPI client
+        if (gapi && gapi.client) {
+            try {
+                gapi.client.setToken(null);
+            } catch (setTokenError) {
+                console.warn('Error clearing GAPI token:', setTokenError);
+            }
+        }
+
+        // Clear memory and localStorage
+        accessToken = null;
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(TOKEN_EXPIRY_KEY);
 
         return { success: true };
     } catch (error) {
@@ -229,57 +429,86 @@ export const signOutFromGoogle = async () => {
 };
 
 /**
+ * Ensure the GAPI client is initialized and authenticated
+ */
+const ensureAuthenticatedGapiClient = async () => {
+    // Make sure GAPI is initialized
+    if (!isGapiInitialized && gapi) {
+        await initializeGapiClient();
+    }
+
+    // If we have a token, try to use it
+    if (accessToken) {
+        await setupGapiWithToken();
+        return true;
+    }
+
+    // Try to load from localStorage
+    if (loadStoredToken()) {
+        await setupGapiWithToken();
+        return true;
+    }
+
+    return false;
+};
+
+/**
  * Get calendar events within a date range with complete details
  */
 export const getCalendarEvents = async (startDate, endDate) => {
-    if (!gapi?.client?.calendar) {
-        throw new Error('Google Calendar API not initialized');
-    }
+    try {
+        // First ensure GAPI client is initialized and authenticated
+        if (!await ensureAuthenticatedGapiClient()) {
+            // If we couldn't authenticate with stored token, initiate sign-in
+            await signInWithGoogle();
 
-    // If no access token, we need to get one
-    if (!accessToken) {
-        await signInWithGoogle();
+            // Wait for the token callback to complete with proper promise handling
+            return new Promise((resolve, reject) => {
+                let waitTime = 0;
+                const tokenCheckInterval = 100; // Check every 100ms
+                const maxWaitTime = 10000; // Wait max 10 seconds
 
-        // Wait for the token callback to complete with proper promise handling
-        return new Promise((resolve, reject) => {
-            let waitTime = 0;
-            const tokenCheckInterval = 100; // Check every 100ms
-            const maxWaitTime = 10000; // Wait max 10 seconds
+                const checkToken = setInterval(() => {
+                    waitTime += tokenCheckInterval;
 
-            const checkToken = setInterval(() => {
-                waitTime += tokenCheckInterval;
+                    if (accessToken) {
+                        clearInterval(checkToken);
+                        // Setup GAPI with token and fetch events
+                        setupGapiWithToken().then(() => {
+                            fetchEvents()
+                                .then(resolve)
+                                .catch(reject);
+                        });
+                    } else if (waitTime >= maxWaitTime) {
+                        clearInterval(checkToken);
+                        console.error('Timed out waiting for access token');
+                        resolve([]); // Resolve with empty array on timeout
+                    }
+                }, tokenCheckInterval);
+            });
+        }
 
-                if (accessToken) {
-                    clearInterval(checkToken);
-                    // Actually call and return fetchEvents when token is available
-                    fetchEvents()
-                        .then(resolve)
-                        .catch(reject);
-                } else if (waitTime >= maxWaitTime) {
-                    clearInterval(checkToken);
-                    console.error('Timed out waiting for access token');
-                    resolve([]); // Resolve with empty array on timeout
-                }
-            }, tokenCheckInterval);
-        });
-    } else {
         return fetchEvents();
+    } catch (error) {
+        console.error('Error in getCalendarEvents:', error);
+        throw error;
     }
 
     async function fetchEvents() {
         try {
+            if (!gapi?.client?.calendar) {
+                throw new Error('Google Calendar API client not initialized');
+            }
+
             // Format dates for API request
             const timeMin = startDate.toISOString();
             const timeMax = endDate.toISOString();
 
             console.log(`Fetching events from ${timeMin} to ${timeMax}`);
 
-            // Use your Tasty Calendar ID instead of 'primary'
-            const calendarId = '2880d48fb939dfb37658d442fdc62ba6ecb31a4fc42c6d90340ccb0b1b7462ae@group.calendar.google.com';
-
             // Make API request to get events with all details
             const response = await gapi.client.calendar.events.list({
-                'calendarId': calendarId,
+                'calendarId': CALENDAR_ID,
                 'timeMin': timeMin,
                 'timeMax': timeMax,
                 'showDeleted': false,
@@ -295,6 +524,12 @@ export const getCalendarEvents = async (startDate, endDate) => {
             return events;
         } catch (error) {
             console.error('Error fetching events:', error);
+
+            // Enhanced error logging
+            if (error.result) {
+                console.error('API error details:', error.result);
+            }
+
             throw error;
         }
     }
@@ -304,51 +539,63 @@ export const getCalendarEvents = async (startDate, endDate) => {
  * Get a single event by ID with full details
  */
 export const getEventById = async (eventId) => {
-    if (!gapi?.client?.calendar) {
-        throw new Error('Google Calendar API not initialized');
-    }
+    try {
+        // First ensure GAPI client is initialized and authenticated
+        if (!await ensureAuthenticatedGapiClient()) {
+            // If we couldn't authenticate with stored token, initiate sign-in
+            await signInWithGoogle();
 
-    // If no access token, we need to get one
-    if (!accessToken) {
-        await signInWithGoogle();
-        // Wait for the token callback to complete
-        return new Promise((resolve, reject) => {
-            let waitTime = 0;
-            const tokenCheckInterval = 100;
-            const maxWaitTime = 10000;
+            // Wait for the token callback to complete
+            return new Promise((resolve, reject) => {
+                let waitTime = 0;
+                const tokenCheckInterval = 100;
+                const maxWaitTime = 10000;
 
-            const checkToken = setInterval(() => {
-                waitTime += tokenCheckInterval;
+                const checkToken = setInterval(() => {
+                    waitTime += tokenCheckInterval;
 
-                if (accessToken) {
-                    clearInterval(checkToken);
-                    fetchEvent()
-                        .then(resolve)
-                        .catch(reject);
-                } else if (waitTime >= maxWaitTime) {
-                    clearInterval(checkToken);
-                    console.error('Timed out waiting for access token');
-                    reject(new Error('Timed out waiting for access token'));
-                }
-            }, tokenCheckInterval);
-        });
-    } else {
+                    if (accessToken) {
+                        clearInterval(checkToken);
+                        setupGapiWithToken().then(() => {
+                            fetchEvent()
+                                .then(resolve)
+                                .catch(reject);
+                        });
+                    } else if (waitTime >= maxWaitTime) {
+                        clearInterval(checkToken);
+                        console.error('Timed out waiting for access token');
+                        reject(new Error('Timed out waiting for access token'));
+                    }
+                }, tokenCheckInterval);
+            });
+        }
+
         return fetchEvent();
+    } catch (error) {
+        console.error('Error in getEventById:', error);
+        throw error;
     }
 
     async function fetchEvent() {
         try {
-            // Use your Tasty Calendar ID instead of 'primary'
-            const calendarId = '2880d48fb939dfb37658d442fdc62ba6ecb31a4fc42c6d90340ccb0b1b7462ae@group.calendar.google.com';
+            if (!gapi?.client?.calendar) {
+                throw new Error('Google Calendar API client not initialized');
+            }
 
             const response = await gapi.client.calendar.events.get({
-                'calendarId': calendarId,
+                'calendarId': CALENDAR_ID,
                 'eventId': eventId
             });
 
             return response.result;
         } catch (error) {
             console.error('Error fetching event details:', error);
+
+            // Enhanced error logging
+            if (error.result) {
+                console.error('API error details:', error.result);
+            }
+
             throw error;
         }
     }
@@ -358,34 +605,49 @@ export const getEventById = async (eventId) => {
  * Add a new event to the calendar
  */
 export const addCalendarEvent = async (eventDetails) => {
-    if (!gapi?.client?.calendar) {
-        throw new Error('Google Calendar API not initialized');
-    }
+    try {
+        // First ensure GAPI client is initialized and authenticated
+        if (!await ensureAuthenticatedGapiClient()) {
+            // If we couldn't authenticate with stored token, initiate sign-in
+            await signInWithGoogle();
 
-    // If no access token, we need to get one
-    if (!accessToken) {
-        await signInWithGoogle();
-        // Wait for the token callback to complete
-        return new Promise((resolve) => {
-            const checkToken = setInterval(() => {
-                if (accessToken) {
-                    clearInterval(checkToken);
-                    addEvent();
-                }
-            }, 100);
+            // Wait for the token callback to complete
+            return new Promise((resolve, reject) => {
+                let waitTime = 0;
+                const tokenCheckInterval = 100;
+                const maxWaitTime = 10000;
 
-            // Timeout after 10 seconds
-            setTimeout(() => {
-                clearInterval(checkToken);
-                resolve(null);
-            }, 10000);
-        });
-    } else {
+                const checkToken = setInterval(() => {
+                    waitTime += tokenCheckInterval;
+
+                    if (accessToken) {
+                        clearInterval(checkToken);
+                        setupGapiWithToken().then(() => {
+                            addEvent()
+                                .then(resolve)
+                                .catch(reject);
+                        });
+                    } else if (waitTime >= maxWaitTime) {
+                        clearInterval(checkToken);
+                        console.error('Timed out waiting for access token');
+                        reject(new Error('Timed out waiting for access token'));
+                    }
+                }, tokenCheckInterval);
+            });
+        }
+
         return addEvent();
+    } catch (error) {
+        console.error('Error in addCalendarEvent:', error);
+        throw error;
     }
 
     async function addEvent() {
         try {
+            if (!gapi?.client?.calendar) {
+                throw new Error('Google Calendar API client not initialized');
+            }
+
             // Format event for API
             const event = {
                 'summary': eventDetails.summary,
@@ -401,12 +663,9 @@ export const addCalendarEvent = async (eventDetails) => {
 
             console.log("Adding new event:", event);
 
-            // Use your Tasty Calendar ID instead of 'primary'
-            const calendarId = '2880d48fb939dfb37658d442fdc62ba6ecb31a4fc42c6d90340ccb0b1b7462ae@group.calendar.google.com';
-
             // Make API request to create event
             const response = await gapi.client.calendar.events.insert({
-                'calendarId': calendarId,
+                'calendarId': CALENDAR_ID,
                 'resource': event
             });
 
@@ -414,7 +673,38 @@ export const addCalendarEvent = async (eventDetails) => {
             return response.result;
         } catch (error) {
             console.error('Error adding calendar event:', error);
+
+            // Enhanced error logging
+            if (error.result) {
+                console.error('API error details:', error.result);
+            }
+
             throw error;
         }
+    }
+};
+
+export const getPublicCalendarEvents = async (startDate, endDate) => {
+    try {
+        // Format dates for API request
+        const timeMin = encodeURIComponent(startDate.toISOString());
+        const timeMax = encodeURIComponent(endDate.toISOString());
+
+        // Construct the public calendar URL using your API key
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=100`;
+
+        // Make the fetch request
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`Error fetching public calendar: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Fetched public calendar events:', data.items);
+        return data.items || [];
+    } catch (error) {
+        console.error('Error fetching public calendar:', error);
+        return [];
     }
 };

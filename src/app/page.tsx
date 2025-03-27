@@ -89,10 +89,10 @@ import {
   signInWithGoogle,
   signOutFromGoogle,
   isUserSignedIn,
-  getEventById
+  getEventById,
+  getPublicCalendarEvents
 } from './services/google-calendar-implementation';
 import LiveFlyer from '@/components/LiveFlyer';
-import { useRouter, useSearchParams } from 'next/navigation';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -203,12 +203,8 @@ interface CalendarEvent {
 const TastyCreative = () => {
   // Get authentication context
   const { user, logout } = useAuth();
-
-  const searchParams = useSearchParams();
-  const tabValue = searchParams.get('tab') || "calendar";
-  const router = useRouter();
-
-  const [activeTab, setActiveTab] = useState(tabValue || 'calendar');
+  const [displayName, setDisplayName] = useState("Admin");
+  const [activeTab, setActiveTab] = useState('calendar');
   const [isPaid, setIsPaid] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState("");
   const [promptText, setPromptText] = useState("");
@@ -305,63 +301,113 @@ const TastyCreative = () => {
     initVoiceParametersCache();
   }, []);
 
+  // Update the display name when user changes
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user);
+    }
+  }, [user]);
+
   // Update the effect that initializes Google Calendar
   useEffect(() => {
-    if (activeTab === 'calendar') {
-      const initCalendar = async () => {
-        try {
-          console.log("Starting Google Calendar initialization...");
-          setCalendarError('');
-          setIsCalendarLoading(true);
-
-          await initGoogleCalendarAuth();
-          console.log("Google Calendar initialized successfully");
-
-          // Check sign-in status after a short delay to allow token processing
-          setTimeout(async () => {
-            try {
-              const signedIn = await isUserSignedIn();
-              console.log("User signed in:", signedIn);
-              setIsCalendarSignedIn(signedIn);
-
-              if (signedIn) {
-                await loadCalendarEvents();
-              }
-            } catch (error) {
-              console.error("Error checking sign-in status:", error);
-            } finally {
-              setIsCalendarLoading(false);
-            }
-          }, 500);
-        } catch (error) {
-          console.error('Error initializing Google Calendar:', error);
-          setCalendarError('Failed to initialize Google Calendar.');
-          setIsCalendarLoading(false);
-
-          // If initialization fails, show detailed error
-          if (error && typeof error === 'object') {
-            const errorObj = error as Record<string, any>;
-            if (errorObj.details || errorObj.message) {
-              console.error('Error details:', errorObj.details || errorObj.message);
-            }
-          }
-        }
-      };
-
-      initCalendar();
-    }
-  }, [activeTab]);
-
-  // Add this useEffect after your other useEffect hooks
-  useEffect(() => {
     const loadCalendarEventsForMonth = async () => {
-      if (activeTab === 'calendar' && isCalendarSignedIn) {
-        await loadCalendarEvents();
+      if (activeTab === 'calendar') {
+        console.log(`Month changed to ${selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}, loading events...`);
+
+        // Clear events first to avoid stale data being displayed
+        setCalendarEvents([]);
+        setIsCalendarLoading(true);
+        setCalendarError('');
+
+        const startDate = new Date(selectedDate);
+        startDate.setDate(1); // First day of month
+        startDate.setHours(0, 0, 0, 0); // Start of day
+
+        const endDate = new Date(selectedDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(0); // Last day of month
+        endDate.setHours(23, 59, 59, 999); // End of day
+
+        console.log(`Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+
+        try {
+          // Always use the public calendar API without checking authentication
+          const events = await getPublicCalendarEvents(startDate, endDate);
+          console.log(`Received ${events.length} events from public API`);
+
+          // Update state with events
+          setCalendarEvents(events);
+        } catch (error) {
+          console.error('Error loading calendar events:', error);
+          setCalendarError('Failed to load events from calendar.');
+        } finally {
+          setIsCalendarLoading(false);
+        }
       }
     };
 
     loadCalendarEventsForMonth();
-  }, [selectedDate, activeTab, isCalendarSignedIn]); // Dependencies that trigger the effect
+  }, [selectedDate, activeTab]);
+
+  useEffect(() => {
+    const loadCalendarEventsForMonth = async () => {
+      if (activeTab === 'calendar') {
+        console.log(`Month changed to ${selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}, loading events...`);
+
+        // Clear events first to avoid stale data being displayed
+        setCalendarEvents([]);
+        setIsCalendarLoading(true);
+        setCalendarError('');
+
+        const startDate = new Date(selectedDate);
+        startDate.setDate(1); // First day of month
+        startDate.setHours(0, 0, 0, 0); // Start of day
+
+        const endDate = new Date(selectedDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(0); // Last day of month
+        endDate.setHours(23, 59, 59, 999); // End of day
+
+        console.log(`Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+
+        try {
+          let events = [];
+
+          // Check if user is signed in
+          const isSignedIn = await isUserSignedIn();
+          setIsCalendarSignedIn(isSignedIn);
+
+          if (isSignedIn) {
+            // If signed in, fetch events using the authenticated API
+            events = await getCalendarEvents(startDate, endDate);
+            console.log(`Received ${events.length} events from authenticated API`);
+          } else {
+            // If not signed in, use the public calendar API
+            events = await getPublicCalendarEvents(startDate, endDate);
+            console.log(`Received ${events.length} events from public API`);
+          }
+
+          // Update state with events
+          setCalendarEvents(events);
+        } catch (error) {
+          console.error('Error loading calendar events:', error);
+          setCalendarError('Failed to load events from calendar.');
+
+          // If it's an authentication error, update the sign-in status
+          if (error && typeof error === 'object') {
+            const errorObj = error as Record<string, any>;
+            if (errorObj.status === 401 || (errorObj.message && typeof errorObj.message === 'string' && errorObj.message.includes('auth'))) {
+              setIsCalendarSignedIn(false);
+            }
+          }
+        } finally {
+          setIsCalendarLoading(false);
+        }
+      }
+    };
+
+    loadCalendarEventsForMonth();
+  }, [selectedDate, activeTab]);
 
   // Initialize ComfyUI connection on mount or when activeTab changes to 'image'
   useEffect(() => {
@@ -458,20 +504,17 @@ const TastyCreative = () => {
     try {
       setIsLoadingEventDetail(true);
 
-      // Find the event in the current events array first
+      // Find the event in the current events array
       const existingEvent = calendarEvents.find(event => event.id === eventId);
 
       if (existingEvent) {
         setSelectedEvent(existingEvent);
+        setIsEventDetailOpen(true);
       } else {
-        // If we don't have the full details, fetch them
-        const eventDetails = await getEventById(eventId);
-        setSelectedEvent(eventDetails);
+        setCalendarError('Event not found');
       }
-
-      setIsEventDetailOpen(true);
     } catch (error) {
-      console.error('Error fetching event details:', error);
+      console.error('Error viewing event details:', error);
       setCalendarError('Failed to load event details');
     } finally {
       setIsLoadingEventDetail(false);
@@ -510,7 +553,8 @@ const TastyCreative = () => {
       setIsCalendarLoading(true);
       setCalendarError('');
 
-      console.log(`Loading calendar events for ${selectedDate.toLocaleDateString()} (month view)`);
+      // Add this for clearer debugging
+      console.log(`Loading calendar events for month: ${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`);
 
       const startDate = new Date(selectedDate);
       startDate.setDate(1); // First day of month
@@ -882,8 +926,7 @@ const TastyCreative = () => {
     if (historyAudio?.audioBlob) {
       downloadAudio(
         historyAudio.audioBlob,
-        `${historyItem.voice_name || "voice"}-${
-          historyItem.history_item_id
+        `${historyItem.voice_name || "voice"}-${historyItem.history_item_id
         }.mp3`
       );
     }
@@ -1002,7 +1045,7 @@ const TastyCreative = () => {
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-gray-300 text-sm">
-            Welcome, {user || "Admin"}
+            Welcome, {displayName}
           </span>
           <Button
             variant="outline"
@@ -1023,49 +1066,49 @@ const TastyCreative = () => {
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
-        <Tabs defaultValue={tabValue|| "calendar"} className="w-full" onValueChange={handleTabChange}>
+        <Tabs defaultValue="calendar" className="w-full" onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-6 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="calendar"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
             >
-              <CalendarIcon size={16} className="mr-1" />
-              Calendar
+              <CalendarIcon size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">Calendar</span>
             </TabsTrigger>
             <TabsTrigger
               value="live"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <CalendarIcon size={16} className="mr-1" />
-              Live
+              <Video size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">Live</span>
             </TabsTrigger>
             <TabsTrigger
               value="vip"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <Star size={16} className="mr-1" />
-              VIP
+              <Star size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">VIP</span>
             </TabsTrigger>
             <TabsTrigger
               value="game"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <div className="mr-1">🎮</div>
-              Game
+              <div className="sm:mr-1">🎮</div>
+              <span className="hidden sm:inline">Game</span>
             </TabsTrigger>
             <TabsTrigger
               value="image"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <Image size={16} className="mr-1" />
-              AI Image
+              <Image size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">AI Image</span>
             </TabsTrigger>
             <TabsTrigger
               value="voice"
-              className="text-sm rounded-full text-white data-[state=active]:text-black"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <Mic size={16} className="mr-1" />
-              AI Voice
+              <Mic size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">AI Voice</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1074,412 +1117,254 @@ const TastyCreative = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Calendar Controls */}
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-                {/* Calendar Header - Update this section */}
+                {/* Calendar Header */}
                 <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <CardTitle className="text-white">Calendar Integration</CardTitle>
+                    <CardTitle className="text-white">Calendar</CardTitle>
                     <CardDescription className="text-gray-400">
-                      Sync and manage your Google Calendar events
+                      View public calendar events
                     </CardDescription>
-                  </div>
-
-                  {/* Google Calendar Authentication - Update this section */}
-                  <div className="flex justify-end w-full sm:w-auto">
-                    {isCalendarSignedIn ? (
-                      <Button
-                        variant="outline"
-                        className="bg-black/60 border-white/10 text-white hover:bg-black/80"
-                        onClick={handleCalendarSignOut}
-                      >
-                        <LogOut size={14} className="mr-2" /> Sign Out
-                      </Button>
-                    ) : (
-                      <Button
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 text-white"
-                        onClick={handleCalendarSignIn}
-                      >
-                        Connect Google Calendar
-                      </Button>
-                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {calendarError && (
-                    <Alert variant="destructive" className="bg-red-900/20 border-red-500/30 text-red-200">
-                      <AlertTitle>Error</AlertTitle>
-                      <AlertDescription>
-                        {calendarError}
-                        {calendarError.includes('popup') && (
-                          <div className="mt-3 text-sm">
-                            <p className="font-medium">How to enable popups:</p>
-                            <ul className="list-disc pl-5 mt-1 space-y-1">
-                              <li>Look for the popup blocked icon in your browser's address bar</li>
-                              <li>Click on it and select "Always allow popups from this site"</li>
-                              <li>Then try signing in again</li>
-                            </ul>
-                          </div>
-                        )}
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  {/* Month selector */}
+                  <div className="flex items-center justify-between mb-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-black/60 border-white/10 text-white"
+                      onClick={() => {
+                        const newDate = new Date(selectedDate);
+                        newDate.setMonth(newDate.getMonth() - 1);
+                        setSelectedDate(newDate);
+                      }}
+                    >
+                      <ChevronLeft size={16} />
+                    </Button>
 
-                  {isCalendarSignedIn ? (
-                    <>
-                      {/* Month selector */}
-                      <div className="flex items-center justify-between mb-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-black/60 border-white/10 text-white"
-                          onClick={() => {
-                            const newDate = new Date(selectedDate);
-                            newDate.setMonth(newDate.getMonth() - 1);
-                            setSelectedDate(newDate);
-                            // Use setTimeout to ensure state update completes before loading events
-                            setTimeout(() => loadCalendarEvents(), 50);
-                          }}
-                        >
-                          <ChevronLeft size={16} />
-                        </Button>
+                    <h3 className="text-white text-lg font-semibold">
+                      {selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                    </h3>
 
-                        <h3 className="text-white text-lg font-semibold">
-                          {selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                        </h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-black/60 border-white/10 text-white"
+                      onClick={() => {
+                        const newDate = new Date(selectedDate);
+                        newDate.setMonth(newDate.getMonth() + 1);
+                        setSelectedDate(newDate);
+                      }}
+                    >
+                      <ChevronRight size={16} />
+                    </Button>
+                  </div>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-black/60 border-white/10 text-white"
-                          onClick={() => {
-                            const newDate = new Date(selectedDate);
-                            newDate.setMonth(newDate.getMonth() + 1);
-                            setSelectedDate(newDate);
-                            // Use setTimeout to ensure state update completes before loading events
-                            setTimeout(() => loadCalendarEvents(), 50);
-                          }}
-                        >
-                          <ChevronRight size={16} />
-                        </Button>
-                      </div>
+                  {/* Calendar grid */}
+                  <div className="grid grid-cols-7 gap-1 text-center mb-4">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                      <div key={day} className="text-gray-400 text-sm py-2">{day}</div>
+                    ))}
 
-                      {/* Updated Calendar grid with clickable events */}
-                      <div className="grid grid-cols-7 gap-1 text-center mb-4">
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                          <div key={day} className="text-gray-400 text-sm py-2">{day}</div>
-                        ))}
+                    {(() => {
+                      const days = [];
+                      const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+                      const lastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
 
-                        {(() => {
-                          const days = [];
-                          const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-                          const lastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
+                      // Add empty cells for days before the first day of the month
+                      for (let i = 0; i < date.getDay(); i++) {
+                        days.push(
+                          <div key={`empty-${i}`} className="h-16 bg-black/20 rounded-md"></div>
+                        );
+                      }
 
-                          // Add empty cells for days before the first day of the month
-                          for (let i = 0; i < date.getDay(); i++) {
-                            days.push(
-                              <div key={`empty-${i}`} className="h-16 bg-black/20 rounded-md"></div>
-                            );
-                          }
+                      // Add cells for each day of the month
+                      for (let i = 1; i <= lastDay; i++) {
+                        const currentDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), i);
+                        // Get events for this day
+                        const dayEvents = calendarEvents.filter(event => {
+                          const eventDateString = event.start.dateTime || event.start.date;
+                          if (!eventDateString) return false;
 
-                          // Add cells for each day of the month
-                          for (let i = 1; i <= lastDay; i++) {
-                            const currentDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), i);
-                            const dayEvents = calendarEvents.filter(event => {
-                              // Handle the case when both dateTime and date could be undefined
-                              const eventDateString = event.start.dateTime || event.start.date;
-                              if (!eventDateString) return false; // Skip events with no valid date
+                          const eventDate = new Date(eventDateString);
+                          return eventDate.getDate() === i &&
+                            eventDate.getMonth() === currentDate.getMonth() &&
+                            eventDate.getFullYear() === currentDate.getFullYear();
+                        });
 
-                              const eventDate = new Date(eventDateString);
-                              return eventDate.getDate() === i &&
-                                eventDate.getMonth() === currentDate.getMonth() &&
-                                eventDate.getFullYear() === currentDate.getFullYear();
-                            });
-
-                            days.push(
-                              <div
-                                key={i}
-                                className={`h-16 p-1 rounded-md text-white relative overflow-hidden ${dayEvents.length > 0 ? 'bg-purple-900/30 border border-purple-500/30' : 'bg-black/20'
-                                  }`}
-                              >
-                                <div className="text-right text-sm mb-1">{i}</div>
-                                <div className="overflow-y-auto text-xs h-10">
-                                  {dayEvents.map((event, idx) => (
-                                    <button
-                                      key={idx}
-                                      className="w-full text-left truncate bg-blue-800/40 hover:bg-blue-700/40 rounded px-1 py-0.5 mb-0.5 transition-colors"
-                                      title={event.summary}
-                                      onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
-                                      disabled={!event.id}
-                                    >
-                                      {event.summary}
-                                    </button>
-                                  ))}
-                                  {dayEvents.length > 2 && (
-                                    <div className="text-gray-400 text-center">
-                                      +{dayEvents.length - 2} more
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          return days;
-                        })()}
-                      </div>
-
-                      {/* Add event button */}
-                      <div className="flex justify-end">
-                        <Button
-                          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white"
-                          onClick={() => setShowAddEvent(!showAddEvent)}
-                        >
-                          {showAddEvent ? 'Cancel' : 'Add Event'}
-                        </Button>
-                      </div>
-
-                      {/* Enhanced Add Event Form */}
-                      {showAddEvent && (
-                        <div className="mt-4 border border-white/10 rounded-md p-4 bg-black/20">
-                          <h3 className="text-white text-lg font-semibold mb-4">Add New Event</h3>
-
-                          <div className="space-y-4">
-                            <div>
-                              <Label htmlFor="event-title" className="text-gray-300 mb-1 block">
-                                Event Title *
-                              </Label>
-                              <input
-                                id="event-title"
-                                value={newEventTitle}
-                                onChange={(e) => setNewEventTitle(e.target.value)}
-                                className="w-full bg-black/60 border border-white/10 text-white rounded-lg p-2"
-                                placeholder="Meeting with team"
-                                required
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label htmlFor="event-date" className="text-gray-300 mb-1 block">
-                                  Date *
-                                </Label>
-                                <input
-                                  id="event-date"
-                                  type="date"
-                                  value={newEventDate}
-                                  onChange={(e) => setNewEventDate(e.target.value)}
-                                  className="w-full bg-black/60 border border-white/10 text-white rounded-lg p-2"
-                                  required
-                                />
-                              </div>
-
-                              <div>
-                                <Label htmlFor="event-time" className="text-gray-300 mb-1 block">
-                                  Time *
-                                </Label>
-                                <input
-                                  id="event-time"
-                                  type="time"
-                                  value={newEventTime}
-                                  onChange={(e) => setNewEventTime(e.target.value)}
-                                  className="w-full bg-black/60 border border-white/10 text-white rounded-lg p-2"
-                                  required
-                                />
-                              </div>
-                            </div>
-
-                            <div>
-                              <Label htmlFor="event-location" className="text-gray-300 mb-1 block">
-                                Location
-                              </Label>
-                              <input
-                                id="event-location"
-                                value={newEventLocation}
-                                onChange={(e) => setNewEventLocation(e.target.value)}
-                                className="w-full bg-black/60 border border-white/10 text-white rounded-lg p-2"
-                                placeholder="Office Room 101 or Google Meet"
-                              />
-                            </div>
-
-                            <div>
-                              <Label htmlFor="event-description" className="text-gray-300 mb-1 block">
-                                Description
-                              </Label>
-                              <Textarea
-                                id="event-description"
-                                value={newEventDescription}
-                                onChange={(e) => setNewEventDescription(e.target.value)}
-                                className="w-full bg-black/60 border border-white/10 text-white rounded-lg p-2 min-h-20"
-                                placeholder="Event agenda or additional details"
-                              />
-                            </div>
-
-                            <div className="flex space-x-3">
-                              <Button
-                                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white"
-                                onClick={handleAddEventWithDetails}
-                                disabled={isCalendarLoading}
-                              >
-                                {isCalendarLoading ? 'Adding...' : 'Add to Calendar'}
-                              </Button>
-
-                              <Button
-                                variant="outline"
-                                className="bg-black/60 border-white/10 text-white"
-                                onClick={() => setShowAddEvent(false)}
-                              >
-                                Cancel
-                              </Button>
+                        days.push(
+                          <div
+                            key={i}
+                            className={`h-16 p-1 rounded-md text-white relative overflow-hidden ${dayEvents.length > 0 ? 'bg-purple-900/30 border border-purple-500/30' : 'bg-black/20'}`}
+                          >
+                            <div className="text-right text-sm mb-1">{i}</div>
+                            <div className="overflow-y-auto text-xs h-10">
+                              {dayEvents.map((event, idx) => (
+                                <button
+                                  key={idx}
+                                  className="w-full text-left truncate bg-blue-800/40 hover:bg-blue-700/40 rounded px-1 py-0.5 mb-0.5 transition-colors"
+                                  title={event.summary}
+                                  onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
+                                  disabled={!event.id}
+                                >
+                                  {event.summary}
+                                </button>
+                              ))}
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center py-10">
-                      <CalendarIcon size={48} className="mx-auto mb-4 text-gray-500 opacity-50" />
-                      <h3 className="text-white text-lg font-semibold mb-2">Connect Your Google Calendar</h3>
-                      <p className="text-gray-400 mb-6">
-                        Sign in with your Google account to sync and manage your calendar events.
-                      </p>
-                    </div>
-                  )}
+                        );
+                      }
+
+                      return days;
+                    })()}
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Updated Upcoming Events Panel */}
+              {/* Right Panel - Events Panel */}
               <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 <CardHeader>
-                  <CardTitle className="text-white">Upcoming Events</CardTitle>
+                  <CardTitle className="text-white">Events Panel</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Your scheduled events for this month
+                    Public calendar events
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent>
-                  {isCalendarSignedIn ? (
-                    <>
-                      {isCalendarLoading ? (
-                        <div className="flex justify-center items-center p-8">
-                          <Loader2 size={24} className="animate-spin text-purple-400" />
-                        </div>
-                      ) : calendarEvents.length > 0 ? (
-                        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                          {calendarEvents
-                            .sort((a, b) => {
-                              const dateAStr = a.start.dateTime || a.start.date;
-                              const dateBStr = b.start.dateTime || b.start.date;
+                  {isCalendarLoading ? (
+                    <div className="flex justify-center items-center p-8">
+                      <Loader2 size={24} className="animate-spin text-purple-400" />
+                    </div>
+                  ) : calendarEvents.length > 0 ? (
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                      {calendarEvents
+                        .sort((a, b) => {
+                          const dateAStr = a.start.dateTime || a.start.date;
+                          const dateBStr = b.start.dateTime || b.start.date;
 
-                              // Handle undefined dates for sorting
-                              if (!dateAStr && !dateBStr) return 0;
-                              if (!dateAStr) return 1;  // Put items with no date at the end
-                              if (!dateBStr) return -1; // Put items with no date at the end
+                          // Handle undefined dates for sorting
+                          if (!dateAStr && !dateBStr) return 0;
+                          if (!dateAStr) return 1;  // Put items with no date at the end
+                          if (!dateBStr) return -1; // Put items with no date at the end
 
-                              const dateA = new Date(dateAStr);
-                              const dateB = new Date(dateBStr);
-                              return dateA.getTime() - dateB.getTime();
-                            })
-                            .map((event, index) => {
-                              // Safely handle dates
-                              const eventDateStr = event.start.dateTime || event.start.date;
-                              if (!eventDateStr) return null; // Skip events with no date
+                          const dateA = new Date(dateAStr);
+                          const dateB = new Date(dateBStr);
+                          return dateA.getTime() - dateB.getTime();
+                        })
+                        .map((event, index) => {
+                          // Safely handle dates
+                          const eventDateStr = event.start.dateTime || event.start.date;
+                          if (!eventDateStr) return null; // Skip events with no date
 
-                              const eventDate = new Date(eventDateStr);
-                              const isAllDay = !!event.start.date;
-                              const isPast = eventDate < new Date();
+                          const eventDate = new Date(eventDateStr);
+                          const isAllDay = !!event.start.date;
+                          const isPast = eventDate < new Date();
 
-                              // Get time of day or "All day"
-                              const timeStr = isAllDay
-                                ? "All day"
-                                : eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                          // Get time of day or "All day"
+                          const timeStr = isAllDay
+                            ? "All day"
+                            : eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-                              return (
-                                <button
-                                  key={index}
-                                  className={`w-full p-3 border rounded-lg text-left transition-colors ${isPast
-                                    ? "border-gray-700/30 bg-black/40 opacity-60"
-                                    : "border-white/10 bg-black/40 hover:bg-black/60"
-                                    }`}
-                                  onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
-                                  disabled={!event.id}
-                                >
-                                  <div className="flex items-start">
-                                    {/* Date box */}
-                                    <div className="min-w-14 w-14 bg-black/40 rounded text-center p-1 mr-3">
-                                      <div className="text-xs text-gray-400">
-                                        {eventDate.toLocaleDateString('en-US', { month: 'short' })}
+                          return (
+                            <button
+                              key={index}
+                              className={`w-full p-3 border rounded-lg text-left transition-colors ${isPast
+                                ? "border-gray-700/30 bg-black/40 opacity-60"
+                                : "border-white/10 bg-black/40 hover:bg-black/60"
+                                }`}
+                              onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
+                              disabled={!event.id}
+                            >
+                              <div className="flex items-start">
+                                {/* Date box */}
+                                <div className="min-w-14 w-14 bg-black/40 rounded text-center p-1 mr-3">
+                                  <div className="text-xs text-gray-400">
+                                    {eventDate.toLocaleDateString('en-US', { month: 'short' })}
+                                  </div>
+                                  <div className="text-xl font-bold text-white">
+                                    {eventDate.getDate()}
+                                  </div>
+                                </div>
+
+                                {/* Event details */}
+                                <div className="flex-1">
+                                  <div className="font-medium text-white mb-1 line-clamp-1">{event.summary}</div>
+                                  <div className="text-xs text-gray-400 flex items-center mb-1">
+                                    <Clock size={10} className="mr-1" />
+                                    {timeStr}
+                                  </div>
+
+                                  {/* Show additional details */}
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {event.location && (
+                                      <div className="text-xs text-gray-400 flex items-center max-w-full">
+                                        <MapPin size={10} className="mr-1 flex-shrink-0" />
+                                        <span className="truncate">{event.location}</span>
                                       </div>
-                                      <div className="text-xl font-bold text-white">
-                                        {eventDate.getDate()}
+                                    )}
+
+                                    {event.attendees && event.attendees.length > 0 && (
+                                      <div className="text-xs text-gray-400 flex items-center">
+                                        <Users size={10} className="mr-1" />
+                                        {event.attendees.length} attendee{event.attendees.length !== 1 ? 's' : ''}
                                       </div>
-                                    </div>
+                                    )}
 
-                                    {/* Event details */}
-                                    <div className="flex-1">
-                                      <div className="font-medium text-white mb-1 line-clamp-1">{event.summary}</div>
-                                      <div className="text-xs text-gray-400 flex items-center mb-1">
-                                        <Clock size={10} className="mr-1" />
-                                        {timeStr}
+                                    {event.conferenceData && (
+                                      <div className="text-xs text-purple-400 flex items-center">
+                                        <Video size={10} className="mr-1" />
+                                        Virtual meeting
                                       </div>
-
-                                      {/* Show additional details */}
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        {event.location && (
-                                          <div className="text-xs text-gray-400 flex items-center max-w-full">
-                                            <MapPin size={10} className="mr-1 flex-shrink-0" />
-                                            <span className="truncate">{event.location}</span>
-                                          </div>
-                                        )}
-
-                                        {event.attendees && event.attendees.length > 0 && (
-                                          <div className="text-xs text-gray-400 flex items-center">
-                                            <Users size={10} className="mr-1" />
-                                            {event.attendees.length} attendee{event.attendees.length !== 1 ? 's' : ''}
-                                          </div>
-                                        )}
-
-                                        {event.conferenceData && (
-                                          <div className="text-xs text-purple-400 flex items-center">
-                                            <Video size={10} className="mr-1" />
-                                            Virtual meeting
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {/* Status indicator */}
-                                    {event.status && (
-                                      <div className={`ml-2 h-2 w-2 rounded-full flex-shrink-0 ${event.status === 'confirmed' ? 'bg-green-500' :
-                                        event.status === 'cancelled' ? 'bg-red-500' :
-                                          'bg-yellow-500'
-                                        }`} />
                                     )}
                                   </div>
-                                </button>
-                              );
-                            })
-                            // Filter out null values from map function
-                            .filter(item => item !== null)}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 border border-white/10 rounded-lg bg-black/20">
-                          <p className="text-gray-400">No events found for this month</p>
-                        </div>
-                      )}
-                    </>
+                                </div>
+
+                                {/* Status indicator */}
+                                {event.status && (
+                                  <div className={`ml-2 h-2 w-2 rounded-full flex-shrink-0 ${event.status === 'confirmed' ? 'bg-green-500' :
+                                    event.status === 'cancelled' ? 'bg-red-500' :
+                                      'bg-yellow-500'
+                                    }`} />
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })
+                        // Filter out null values from map function
+                        .filter(item => item !== null)}
+                    </div>
                   ) : (
                     <div className="text-center py-8 border border-white/10 rounded-lg bg-black/20">
-                      <p className="text-gray-400">
-                        Sign in to view your upcoming events
+                      <CalendarIcon size={32} className="mx-auto mb-3 text-gray-500 opacity-50" />
+                      <p className="text-gray-400 mb-1">
+                        No events found for this month
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Try changing the month to see other events
                       </p>
                     </div>
+                  )}
+
+                  {/* Error display */}
+                  {calendarError && (
+                    <Alert variant="destructive" className="mt-4 bg-red-900/20 border-red-500/30 text-red-200">
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>
+                        {calendarError}
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* Event Detail Dialog - Completely Fixed Version */}
+            {/* Event Detail Dialog - Remains the same except for auth-related parts */}
             <Dialog open={isEventDetailOpen} onOpenChange={setIsEventDetailOpen}>
-              <DialogContent className="bg-black/90 backdrop-blur-xl border border-purple-500/20 text-white max-w-2xl rounded-xl shadow-xl overflow-hidden">
+              <DialogContent
+                className="bg-black/90 backdrop-blur-xl border border-purple-500/20 text-white 
+      w-[90%] sm:w-[80%] md:w-[70%] lg:w-[60%] max-w-2xl 
+      rounded-xl shadow-xl overflow-hidden"
+              >
                 {isLoadingEventDetail ? (
                   <div className="flex justify-center items-center py-16">
                     <Loader2 size={36} className="animate-spin text-purple-400" />
@@ -1493,18 +1378,17 @@ const TastyCreative = () => {
                           <div
                             className="w-4 h-4 rounded-full mt-2 flex-shrink-0"
                             style={{
-                              backgroundColor:
-                                selectedEvent.colorId === "1" ? "#7986cb" :
-                                  selectedEvent.colorId === "2" ? "#33b679" :
-                                    selectedEvent.colorId === "3" ? "#8e24aa" :
-                                      selectedEvent.colorId === "4" ? "#e67c73" :
-                                        selectedEvent.colorId === "5" ? "#f6c026" :
-                                          selectedEvent.colorId === "6" ? "#f5511d" :
-                                            selectedEvent.colorId === "7" ? "#039be5" :
-                                              selectedEvent.colorId === "8" ? "#616161" :
-                                                selectedEvent.colorId === "9" ? "#3f51b5" :
-                                                  selectedEvent.colorId === "10" ? "#0b8043" :
-                                                    selectedEvent.colorId === "11" ? "#d50000" : "#4285f4"
+                              backgroundColor: selectedEvent.colorId === "1" ? "#7986cb" :
+                                selectedEvent.colorId === "2" ? "#33b679" :
+                                  selectedEvent.colorId === "3" ? "#8e24aa" :
+                                    selectedEvent.colorId === "4" ? "#e67c73" :
+                                      selectedEvent.colorId === "5" ? "#f6c026" :
+                                        selectedEvent.colorId === "6" ? "#f5511d" :
+                                          selectedEvent.colorId === "7" ? "#039be5" :
+                                            selectedEvent.colorId === "8" ? "#616161" :
+                                              selectedEvent.colorId === "9" ? "#3f51b5" :
+                                                selectedEvent.colorId === "10" ? "#0b8043" :
+                                                  selectedEvent.colorId === "11" ? "#d50000" : "#4285f4",
                             }}
                           />
                         )}
@@ -1526,8 +1410,7 @@ const TastyCreative = () => {
                         )}
                       </div>
                     </DialogHeader>
-
-                    <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                    <div className="py-4 space-y-6 max-h-[50vh] md:max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                       {/* Date and Time */}
                       <div>
                         <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1544,10 +1427,13 @@ const TastyCreative = () => {
                                 // All-day event
                                 <p className="text-white text-lg">
                                   {formatDateTime(selectedEvent.start.date, true)}
-                                  {selectedEvent.end && selectedEvent.end.date && new Date(selectedEvent.start.date).toDateString() !== new Date(selectedEvent.end.date).toDateString() && (
-                                    <> to {formatDateTime(selectedEvent.end.date, true)}</>
-                                  )}
-                                  <span className="ml-2 text-xs bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">All day</span>
+                                  {selectedEvent.end && selectedEvent.end.date &&
+                                    new Date(selectedEvent.start.date).toDateString() !== new Date(selectedEvent.end.date).toDateString() && (
+                                      <> to {formatDateTime(selectedEvent.end.date, true)}</>
+                                    )}
+                                  <span className="ml-2 text-xs bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">
+                                    All day
+                                  </span>
                                 </p>
                               ) : (
                                 // Timed event
@@ -1563,9 +1449,8 @@ const TastyCreative = () => {
                         </div>
                       </div>
 
-                      {/* Google Drive Link - Better handling */}
+                      {/* Google Drive Link */}
                       {selectedEvent.description && (() => {
-                        // Extract the Drive file ID from the WebView Link
                         const driveMatch = selectedEvent.description.match(/WebView Link:\s*https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/[^\s]+/i);
                         const fileId = driveMatch && driveMatch[1];
 
@@ -1582,7 +1467,6 @@ const TastyCreative = () => {
                             </h3>
                             <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20">
                               <div className="w-full">
-                                {/* Embedded Google Drive Preview - more reliable than direct thumbnail */}
                                 <div className="relative w-full pb-[56.25%] overflow-hidden rounded-lg bg-black/60 border border-purple-500/20 mb-3">
                                   <iframe
                                     src={embedUrl}
@@ -1608,7 +1492,7 @@ const TastyCreative = () => {
                         );
                       })()}
 
-                      {/* Description if available - with cleaned up formatting */}
+                      {/* Description */}
                       {selectedEvent.description && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1617,26 +1501,25 @@ const TastyCreative = () => {
                           </h3>
                           <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20 max-h-60 overflow-y-auto">
                             <div className="prose prose-sm prose-invert max-w-none">
-                              <div dangerouslySetInnerHTML={{
-                                __html: selectedEvent.description
-                                  // Remove the thumbnail and webview link lines
-                                  .replace(/Thumbnail:\s*https:\/\/[^\n]+\n?/gi, '')
-                                  .replace(/WebView Link:\s*https:\/\/[^\n]+\n?/gi, '')
-                                  .replace(/Model:\s*[^\n]+\n?/gi, '')
-                                  // Make remaining URLs clickable
-                                  .replace(
-                                    /(https?:\/\/[^\s]+)/g,
-                                    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 break-all">$1</a>'
-                                  )
-                                  // Convert newlines to <br> tags
-                                  .replace(/\n/g, '<br />')
-                              }} />
+                              <div
+                                dangerouslySetInnerHTML={{
+                                  __html: selectedEvent.description
+                                    .replace(/Thumbnail:\s*https:\/\/[^\n]+\n?/gi, '')
+                                    .replace(/WebView Link:\s*https:\/\/[^\n]+\n?/gi, '')
+                                    .replace(/Model:\s*[^\n]+\n?/gi, '')
+                                    .replace(
+                                      /(https?:\/\/[^\s]+)/g,
+                                      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 break-all">$1</a>'
+                                    )
+                                    .replace(/\n/g, '<br />'),
+                                }}
+                              />
                             </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Location if available */}
+                      {/* Location */}
                       {selectedEvent.location && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1654,7 +1537,7 @@ const TastyCreative = () => {
                         </div>
                       )}
 
-                      {/* Conference data for virtual meetings */}
+                      {/* Conference Data */}
                       {selectedEvent.conferenceData && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1677,7 +1560,7 @@ const TastyCreative = () => {
                         </div>
                       )}
 
-                      {/* Attendees if available */}
+                      {/* Attendees */}
                       {selectedEvent.attendees && selectedEvent.attendees.length > 0 && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1690,7 +1573,11 @@ const TastyCreative = () => {
                                 <li key={index} className="flex items-center justify-between bg-black/30 p-2 rounded-lg border border-white/5">
                                   <div className="flex items-center">
                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mr-3">
-                                      <span className="text-xs font-bold text-white">{attendee.displayName ? attendee.displayName[0].toUpperCase() : attendee.email[0].toUpperCase()}</span>
+                                      <span className="text-xs font-bold text-white">
+                                        {attendee.displayName
+                                          ? attendee.displayName[0].toUpperCase()
+                                          : attendee.email[0].toUpperCase()}
+                                      </span>
                                     </div>
                                     <div>
                                       <span className="text-white text-sm font-medium">
@@ -1710,15 +1597,23 @@ const TastyCreative = () => {
                                       </div>
                                     </div>
                                   </div>
-                                  <span className={`text-xs px-2 py-1 rounded-full ${attendee.responseStatus === 'accepted' ? 'bg-green-900/30 text-green-300 border border-green-500/30' :
-                                    attendee.responseStatus === 'declined' ? 'bg-red-900/30 text-red-300 border border-red-500/30' :
-                                      attendee.responseStatus === 'tentative' ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30' :
-                                        'bg-gray-900/30 text-gray-300 border border-gray-500/30'
-                                    }`}>
-                                    {attendee.responseStatus === 'accepted' ? 'Accepted' :
-                                      attendee.responseStatus === 'declined' ? 'Declined' :
-                                        attendee.responseStatus === 'tentative' ? 'Maybe' :
-                                          'Pending'}
+                                  <span
+                                    className={`text-xs px-2 py-1 rounded-full ${attendee.responseStatus === 'accepted'
+                                      ? 'bg-green-900/30 text-green-300 border border-green-500/30'
+                                      : attendee.responseStatus === 'declined'
+                                        ? 'bg-red-900/30 text-red-300 border border-red-500/30'
+                                        : attendee.responseStatus === 'tentative'
+                                          ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30'
+                                          : 'bg-gray-900/30 text-gray-300 border border-gray-500/30'
+                                      }`}
+                                  >
+                                    {attendee.responseStatus === 'accepted'
+                                      ? 'Accepted'
+                                      : attendee.responseStatus === 'declined'
+                                        ? 'Declined'
+                                        : attendee.responseStatus === 'tentative'
+                                          ? 'Maybe'
+                                          : 'Pending'}
                                   </span>
                                 </li>
                               ))}
@@ -1727,7 +1622,7 @@ const TastyCreative = () => {
                         </div>
                       )}
 
-                      {/* Creator/Organizer information */}
+                      {/* Creator/Organizer */}
                       {(selectedEvent.creator || selectedEvent.organizer) && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
@@ -1740,8 +1635,11 @@ const TastyCreative = () => {
                                 <User size={20} className="text-purple-300" />
                               </div>
                               <p className="text-white">
-                                {selectedEvent.creator?.displayName || selectedEvent.creator?.email ||
-                                  selectedEvent.organizer?.displayName || selectedEvent.organizer?.email || 'Unknown'}
+                                {selectedEvent.creator?.displayName ||
+                                  selectedEvent.creator?.email ||
+                                  selectedEvent.organizer?.displayName ||
+                                  selectedEvent.organizer?.email ||
+                                  'Unknown'}
                               </p>
                             </div>
                           </div>
@@ -1760,14 +1658,12 @@ const TastyCreative = () => {
                           <ExternalLink size={14} className="mr-2" /> View in Google Calendar
                         </a>
                       )}
-                      {/* NO CLOSE BUTTON HERE - we already have one at the top */}
                     </div>
                   </>
                 ) : (
                   <div className="py-12 text-center">
                     <CalendarIcon size={48} className="mx-auto text-gray-500 opacity-50 mb-4" />
                     <p className="text-gray-400 text-lg">Event details not available</p>
-                    {/* ONLY ONE close button across the entire component */}
                     <DialogClose asChild>
                       <Button className="mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0">
                         Close
@@ -2524,11 +2420,11 @@ const TastyCreative = () => {
                                     {getVoiceParameters(
                                       item.history_item_id
                                     ) && (
-                                      <div className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-green-800/50 border border-green-400/30">
-                                        <Check size={8} className="mr-1" />{" "}
-                                        Parameters Available
-                                      </div>
-                                    )}
+                                        <div className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-green-800/50 border border-green-400/30">
+                                          <Check size={8} className="mr-1" />{" "}
+                                          Parameters Available
+                                        </div>
+                                      )}
 
                                     <div className="flex flex-wrap gap-1 mt-2">
                                       <Button
@@ -2541,11 +2437,11 @@ const TastyCreative = () => {
                                         disabled={
                                           isLoadingHistoryAudio &&
                                           selectedHistoryItem?.history_item_id ===
-                                            item.history_item_id
+                                          item.history_item_id
                                         }
                                       >
                                         {isLoadingHistoryAudio &&
-                                        selectedHistoryItem?.history_item_id ===
+                                          selectedHistoryItem?.history_item_id ===
                                           item.history_item_id ? (
                                           <>
                                             <Loader2
@@ -2675,8 +2571,8 @@ const TastyCreative = () => {
               </span>
             )}
             {activeTab === 'calendar' && (
-              <span className={`ml-1 ${isCalendarSignedIn ? 'text-green-400' : 'text-yellow-400'}`}>
-                Google Calendar {isCalendarSignedIn ? '(Connected)' : '(Disconnected)'}
+              <span className="ml-1">
+                Calendar
               </span>
             )}
             {(activeTab !== 'image' && activeTab !== 'voice' && activeTab !== 'calendar') && (
