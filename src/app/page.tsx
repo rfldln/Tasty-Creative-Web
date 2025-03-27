@@ -94,6 +94,8 @@ import {
 } from './services/google-calendar-implementation';
 import LiveFlyer from '@/components/LiveFlyer';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
   character?: {
@@ -203,8 +205,13 @@ interface CalendarEvent {
 const TastyCreative = () => {
   // Get authentication context
   const { user, logout } = useAuth();
+
+  const searchParams = useSearchParams();
+  const tabValue = searchParams.get('tab') || "calendar";
+  const router = useRouter();
+
   const [displayName, setDisplayName] = useState("Admin");
-  const [activeTab, setActiveTab] = useState('calendar');
+ const [activeTab, setActiveTab] = useState(tabValue || 'calendar');
   const [isPaid, setIsPaid] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState("");
   const [promptText, setPromptText] = useState("");
@@ -283,6 +290,18 @@ const TastyCreative = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const historyAudioRef = useRef<HTMLAudioElement | null>(null);
   const characterLimit = 1000;
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+
+    const params = new URLSearchParams(searchParams.toString());
+    
+    params.set('tab', value);
+    
+    router.replace(`?${params.toString()}`, { scroll: false });
+
+   
+  };
 
   // Initialize the voice parameters cache
   useEffect(() => {
@@ -1054,7 +1073,7 @@ const TastyCreative = () => {
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
-        <Tabs defaultValue="calendar" className="w-full" onValueChange={setActiveTab}>
+        <Tabs defaultValue={tabValue} className="w-full" onValueChange={handleTabChange}>
           <TabsList className="grid grid-cols-6 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="calendar"
