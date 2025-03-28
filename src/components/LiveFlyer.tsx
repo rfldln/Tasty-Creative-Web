@@ -521,7 +521,6 @@ export default function LiveFlyer() {
 
   //   const [date, setDate] = useState<Date>();
 
-
   return (
     <div className="flex flex-col lg:flex-row gap-5">
       <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
@@ -968,67 +967,69 @@ export default function LiveFlyer() {
 
         {/* File picker modal */}
         {showFilePicker && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-            <div className="bg-black/80 rounded-lg p-6 max-w-lg w-full max-h-[80vh] overflow-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">
-                  {currentFolder
-                    ? `Folder: ${currentFolder.name}`
-                    : "Select an image"}
-                </h3>
-                <button
-                  onClick={() => setShowFilePicker(false)}
-                  className="text-gray-500 hover:text-gray-700 cursor-pointer"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-
-              {/* Folder navigation */}
-              {parentFolder && (
-                <div className="mb-4">
+          <div className="fixed inset-0 px-20 bg-black/60 flex items-center justify-center z-50">
+            <div className="bg-black/80 rounded-lg px-6 pb-6  w-full max-h-[80vh] overflow-auto">
+              <div className="sticky top-0 bg-black pb-0.5">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">
+                    {currentFolder
+                      ? `Folder: ${currentFolder.name}`
+                      : "Select an image"}
+                  </h3>
                   <button
-                    onClick={handleNavigateUp}
-                    className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                    onClick={() => setShowFilePicker(false)}
+                    className="text-gray-500 hover:text-gray-700 cursor-pointer"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
+                      width="20"
+                      height="20"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="mr-1"
                     >
-                      <path d="M15 18l-6-6 6-6" />
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
-                    Back to {parentFolder.name}
                   </button>
                 </div>
-              )}
+
+                {/* Folder navigation */}
+                {parentFolder && (
+                  <div className="mb-4 w-full h-full ">
+                    <button
+                      onClick={handleNavigateUp}
+                      className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-1"
+                      >
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                      Back to {parentFolder.name}
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {isGooglePickerLoading ? (
-                <div className="flex justify-center items-center py-8">
+                <div className="flex justify-center items-center py-8 h-full w-full">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {googleFiles.length > 0 ? (
                     googleFiles.map((file) => (
                       <div
