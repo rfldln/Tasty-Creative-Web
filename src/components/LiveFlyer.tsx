@@ -1317,7 +1317,9 @@ export default function LiveFlyer() {
                       ? "opacity-60 cursor-not-allowed"
                       : "opacity-100 cursor-pointer"
                   }`}
-                  disabled={isEventCreating || isFetchingImage}
+                  disabled={
+                    isEventCreating || isFetchingImage || eventCreated?.success
+                  }
                 >
                   {isEventCreating ? "Creating Event..." : "Create Event"}
                 </button>
