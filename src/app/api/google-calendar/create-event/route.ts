@@ -28,6 +28,17 @@ const timezoneMap: Record<string, string> = {
   UTC: "Etc/UTC",
 };
 
+// Logging helper function
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function log(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  if (data) {
+    console.log(`[${timestamp}] ${message}`, JSON.stringify(data, null, 2));
+  } else {
+    console.log(`[${timestamp}] ${message}`);
+  }
+}
+
 /**
  * Search for Google Sheet files in a folder and its subfolders
  * @param drive Google Drive API instance
@@ -43,12 +54,18 @@ async function findSpreadsheet(
   modelName: string,
   isPaid: boolean
 ): Promise<{ spreadsheetId: string; sheetName: string } | null> {
+  log(
+    `Starting spreadsheet search for model: ${modelName} (${
+      isPaid ? "Paid" : "Free"
+    }) in folder: ${folderId}`
+  );
+
   const sheetMimeType = "application/vnd.google-apps.spreadsheet";
   const paidTerm = isPaid ? "Paid" : "Free";
 
   try {
     // Search for all spreadsheets in the parent folder and its subfolders
-    // Using the 'in' operator to find files in this folder or any subfolder
+    log(`Searching for spreadsheets in folder: ${folderId}`);
     const response = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='${sheetMimeType}'`,
       fields: "files(id, name)",
@@ -58,6 +75,7 @@ async function findSpreadsheet(
     });
 
     const files = response.data.files || [];
+    log(`Found ${files.length} spreadsheets in parent folder`, { files });
 
     // First pass: Look for exact match with model name and paid/free status
     for (const file of files) {
@@ -67,7 +85,7 @@ async function findSpreadsheet(
 
       // Skip files with OFTV in the name
       if (fileName.includes("oftv") || fileName.includes("OFTV")) {
-        console.log(`Skipping spreadsheet with OFTV in name: ${file.name}`);
+        log(`Skipping spreadsheet with OFTV in name: ${file.name}`);
         continue;
       }
 
@@ -75,6 +93,7 @@ async function findSpreadsheet(
         fileName.includes(modelNameLower) &&
         fileName.includes(paidTermLower)
       ) {
+        log(`Found matching spreadsheet: ${file.name}`, { file });
         return {
           spreadsheetId: file.id,
           sheetName: "Used Captions", // Default sheet name, adjust as needed
@@ -82,41 +101,27 @@ async function findSpreadsheet(
       }
     }
 
-    // // Second pass: Look for partial matches or files containing just the model name
-    // for (const file of files) {
-    //   const fileName = file.name.toLowerCase();
-    //   const modelNameLower = modelName.toLowerCase();
-
-    //   // Skip files with OFTV in the name
-    //   if (fileName.includes("oftv") || fileName.includes("OFTV")) {
-    //     console.log(`Skipping spreadsheet with OFTV in name: ${file.name}`);
-    //     continue;
-    //   }
-
-    //   if (fileName.includes(modelNameLower)) {
-    //     return {
-    //       spreadsheetId: file.id,
-    //       sheetName: "Used Captions", // Default sheet name, adjust as needed
-    //     };
-    //   }
-    // }
-
     // If no direct matches found in the parent folder, search in subfolders
     const folderMimeType = "application/vnd.google-apps.folder";
+    log(`Searching for subfolders in folder: ${folderId}`);
     const foldersResponse = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='${folderMimeType}'`,
       fields: "files(id, name)",
     });
 
     const folders = foldersResponse.data.files || [];
+    log(`Found ${folders.length} subfolders`, { folders });
 
     // Search each subfolder recursively
     for (const folder of folders) {
-      // First check if the subfolder itself matches our criteria
+      log(`Searching in subfolder: ${folder.name} (${folder.id})`);
 
       // Search for spreadsheets in this subfolder
       const result = await searchInFolder(drive, folder.id, modelName, isPaid);
-      if (result) return result;
+      if (result) {
+        log(`Found spreadsheet in subfolder: ${folder.name}`, { result });
+        return result;
+      }
 
       // If not found, search through any further subfolders
       const result2 = await searchRecursively(
@@ -125,12 +130,21 @@ async function findSpreadsheet(
         modelName,
         isPaid
       );
-      if (result2) return result2;
+      if (result2) {
+        log(
+          `Found spreadsheet in recursive search of subfolder: ${folder.name}`,
+          { result2 }
+        );
+        return result2;
+      }
     }
 
+    log(
+      `No matching spreadsheet found for model: ${modelName} in folder hierarchy`
+    );
     return null;
   } catch (error) {
-    console.error("Error searching for spreadsheet:", error);
+    log("Error searching for spreadsheet", error);
     return null;
   }
 }
@@ -145,6 +159,8 @@ async function searchInFolder(
   modelName: string,
   isPaid: boolean
 ): Promise<{ spreadsheetId: string; sheetName: string } | null> {
+  log(`Searching in folder: ${folderId} for model: ${modelName}`);
+
   const sheetMimeType = "application/vnd.google-apps.spreadsheet";
   const paidTerm = isPaid ? "Paid" : "Free";
 
@@ -156,6 +172,9 @@ async function searchInFolder(
     });
 
     const sheets = sheetsResponse.data.files || [];
+    log(`Found ${sheets.length} spreadsheets in folder ${folderId}`, {
+      sheets,
+    });
 
     // First pass: Look for exact match with model name and paid/free status
     for (const sheet of sheets) {
@@ -165,7 +184,7 @@ async function searchInFolder(
 
       // Skip files with OFTV in the name
       if (fileName.includes("oftv") || fileName.includes("OFTV")) {
-        console.log(`Skipping spreadsheet with OFTV in name: ${sheet.name}`);
+        log(`Skipping spreadsheet with OFTV in name: ${sheet.name}`);
         continue;
       }
 
@@ -173,6 +192,7 @@ async function searchInFolder(
         fileName.includes(modelNameLower) &&
         fileName.includes(paidTermLower)
       ) {
+        log(`Found matching spreadsheet in folder: ${sheet.name}`, { sheet });
         return {
           spreadsheetId: sheet.id,
           sheetName: "Used Captions", // Default sheet name
@@ -180,28 +200,10 @@ async function searchInFolder(
       }
     }
 
-    // // Second pass: Look for just model name in the filename
-    // for (const sheet of sheets) {
-    //   const fileName = sheet.name.toLowerCase();
-    //   const modelNameLower = modelName.toLowerCase();
-
-    //   // Skip files with OFTV in the name
-    //   if (fileName.includes("oftv") || fileName.includes("OFTV")) {
-    //     console.log(`Skipping spreadsheet with OFTV in name: ${sheet.name}`);
-    //     continue;
-    //   }
-
-    //   if (fileName.includes(modelNameLower)) {
-    //     return {
-    //       spreadsheetId: sheet.id,
-    //       sheetName: "Used Captions", // Default sheet name
-    //     };
-    //   }
-    // }
-
+    log(`No matching spreadsheet found in folder: ${folderId}`);
     return null;
   } catch (error) {
-    console.error(`Error searching folder ${folderId}:`, error);
+    log(`Error searching folder ${folderId}:`, error);
     return null;
   }
 }
@@ -216,6 +218,10 @@ async function searchRecursively(
   modelName: string,
   isPaid: boolean
 ): Promise<{ spreadsheetId: string; sheetName: string } | null> {
+  log(
+    `Starting recursive search in folder: ${folderId} for model: ${modelName}`
+  );
+
   const folderMimeType = "application/vnd.google-apps.folder";
 
   try {
@@ -226,39 +232,53 @@ async function searchRecursively(
     });
 
     const subFolders = subFoldersResponse.data.files || [];
+    log(`Found ${subFolders.length} subfolders in folder ${folderId}`, {
+      subFolders,
+    });
 
     // First, search for spreadsheets directly in this folder
     const result = await searchInFolder(drive, folderId, modelName, isPaid);
-    console.log(result);
+    log(`Search in folder ${folderId} result:`, result);
     if (result) return result;
 
     // Recursively search each subfolder
     for (const subFolder of subFolders) {
+      log(
+        `Recursively searching subfolder: ${subFolder.name} (${subFolder.id})`
+      );
       const result = await searchRecursively(
         drive,
         subFolder.id,
         modelName,
         isPaid
       );
-      console.log(result, "subfolder");
+      log(`Recursive search result for subfolder ${subFolder.name}:`, result);
       if (result) return result;
     }
 
+    log(
+      `No matching spreadsheet found in recursive search of folder: ${folderId}`
+    );
     return null;
   } catch (error) {
-    console.error(`Error searching folder ${folderId}:`, error);
+    log(`Error searching folder ${folderId}:`, error);
     return null;
   }
 }
 
 export async function POST(request: NextRequest) {
+  log("Received POST request to calendar/sheets endpoint");
+
   const tokensCookie = request.cookies.get("google_auth_tokens")?.value;
   if (!tokensCookie) {
+    log("No authentication tokens found in cookies");
     return NextResponse.json(
       { message: "Not authenticated with Google", requireAuth: true },
       { status: 401 }
     );
   }
+
+  log("Found authentication tokens in cookies");
 
   let tokens = JSON.parse(tokensCookie) as {
     access_token: string;
@@ -275,7 +295,10 @@ export async function POST(request: NextRequest) {
 
   const now = Date.now();
   if (!tokens.expiry_date || now > tokens.expiry_date) {
+    log("Access token expired or missing expiry date");
+
     if (!tokens.refresh_token) {
+      log("No refresh token available");
       return NextResponse.json(
         {
           message: "Session expired. Please re-authenticate.",
@@ -285,6 +308,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    log("Attempting to refresh access token");
     try {
       const { credentials } = await oauth2Client.refreshAccessToken();
       tokens = {
@@ -293,6 +317,7 @@ export async function POST(request: NextRequest) {
         expiry_date: credentials.expiry_date!,
       };
       oauth2Client.setCredentials(tokens);
+      log("Successfully refreshed access token");
 
       const response = NextResponse.json({
         message: "Event processing...",
@@ -305,7 +330,7 @@ export async function POST(request: NextRequest) {
       });
       return response;
     } catch (refreshError) {
-      console.error("Error refreshing Google token:", refreshError);
+      log("Error refreshing Google token:", refreshError);
       return NextResponse.json(
         {
           message: "Failed to refresh Google token. Please re-authenticate.",
@@ -317,7 +342,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    log("Parsing request body");
     const formData: FormData = await request.json();
+    log("Parsed form data:", formData);
 
     if (
       !formData.model ||
@@ -325,6 +352,7 @@ export async function POST(request: NextRequest) {
       !formData.time ||
       !formData.timezone
     ) {
+      log("Missing required fields in form data");
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
@@ -337,8 +365,11 @@ export async function POST(request: NextRequest) {
 
     // The parent folder ID from your URL
     const parentFolderId = process.env.GOOGLE_DRIVE_SHEET_FOLDER_ID!;
+    log(`Using parent folder ID: ${parentFolderId}`);
 
     const ianaTimezone = timezoneMap[formData.timezone] || formData.timezone;
+    log(`Converted timezone: ${formData.timezone} -> ${ianaTimezone}`);
+
     const [hours, minutes] = formData.time.split(":").map(Number);
     const parsedDate = new Date(formData.date);
 
@@ -350,6 +381,9 @@ export async function POST(request: NextRequest) {
       minutes
     );
     const endDateTime = new Date(eventDateTime.getTime() + 60 * 60 * 1000);
+    log(
+      `Event date/time: ${eventDateTime.toISOString()} to ${endDateTime.toISOString()}`
+    );
 
     let description = `Model: ${formData.model}\n`;
     if (formData.paid) description += "This is a paid session\n";
@@ -373,6 +407,7 @@ export async function POST(request: NextRequest) {
     };
 
     const calendarId = process.env.GOOGLE_CALENDAR_ID;
+    log(`Creating calendar event in calendar: ${calendarId}`, { event });
 
     try {
       const response = await calendar.events.insert({
@@ -385,7 +420,10 @@ export async function POST(request: NextRequest) {
         eventLink: response.data.htmlLink,
       };
 
+      log("Successfully created calendar event", calendarSuccess);
+
       if (!calendarSuccess) {
+        log("Calendar event creation failed");
         return NextResponse.json(
           {
             message: calendarSuccess,
@@ -395,6 +433,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Find appropriate spreadsheet based on model and paid status
+      log(
+        `Searching for spreadsheet for model: ${formData.model} (${
+          formData.paid ? "Paid" : "Free"
+        })`
+      );
       const spreadsheetInfo = await findSpreadsheet(
         drive,
         parentFolderId,
@@ -402,10 +445,10 @@ export async function POST(request: NextRequest) {
         formData.paid
       );
 
-      console.log(spreadsheetInfo, "spreadsheetInfo");
+      log("Spreadsheet search result:", spreadsheetInfo);
 
       if (!spreadsheetInfo && calendarSuccess) {
-        // If no specific spreadsheet found, use a default one or return an error
+        log("No matching spreadsheet found but calendar event was created");
         return NextResponse.json(
           {
             message: `Calendar Event created but could not find appropriate spreadsheet for model ${
@@ -417,6 +460,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (!spreadsheetInfo) {
+        log("No matching spreadsheet found");
         return NextResponse.json(
           {
             message: `Could not find appropriate spreadsheet for model ${
@@ -427,15 +471,21 @@ export async function POST(request: NextRequest) {
         );
       }
       const { spreadsheetId, sheetName } = spreadsheetInfo;
+      log(`Found spreadsheet: ${spreadsheetId} with sheet: ${sheetName}`);
 
       try {
         // Append to Google Sheets using the found spreadsheetId
+        log(
+          `Fetching headers from spreadsheet: ${spreadsheetId}, sheet: ${sheetName}`
+        );
         const headerRes = await sheets.spreadsheets.values.get({
           spreadsheetId,
           range: `${sheetName}!1:3`, // Fetch first 3 rows
         });
 
         const headerRows = headerRes.data.values || [];
+        log(`Found ${headerRows.length} header rows`, { headerRows });
+
         let headers: string[] = [];
 
         // Find the first row that contains the required headers
@@ -450,6 +500,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (headers.length === 0) {
+          log("Could not find required columns in spreadsheet", { headerRows });
           throw new Error(
             `Could not find required columns. Headers found: ${JSON.stringify(
               headerRows
@@ -460,6 +511,7 @@ export async function POST(request: NextRequest) {
         const filteredHeaders = headers.map((header, index) =>
           header.trim() ? header.trim().toLowerCase() : `empty_${index}`
         );
+        log("Filtered headers:", filteredHeaders);
 
         // Find all required column indexes
         const timeColumnIndex = filteredHeaders.indexOf("time (pst)");
@@ -469,8 +521,18 @@ export async function POST(request: NextRequest) {
         const priceInfoIndex = filteredHeaders.indexOf("price/info");
         const scheduleIndex = filteredHeaders.indexOf("post schedule");
 
+        log("Column indexes found:", {
+          timeColumnIndex,
+          flyerColumnIndex,
+          paywallContentIndex,
+          captionIndex,
+          priceInfoIndex,
+          scheduleIndex,
+        });
+
         // Check if required columns exist
         if (timeColumnIndex === -1 || flyerColumnIndex === -1) {
+          log("Required columns not found", { filteredHeaders });
           throw new Error(
             `Could not find required columns. Headers found: ${filteredHeaders.join(
               ", "
@@ -479,14 +541,15 @@ export async function POST(request: NextRequest) {
         }
 
         // Get the full sheet data to identify section boundaries
+        log("Fetching full sheet data to identify section boundaries");
         const fullDataRes = await sheets.spreadsheets.values.get({
           spreadsheetId,
           range: `${sheetName}`,
         });
 
-        console.log(fullDataRes, "fullDataRes");
-
+        log("Full sheet data retrieved");
         const allRows = fullDataRes.data.values || [];
+        log(`Total rows in sheet: ${allRows.length}`);
 
         // Find the row index where "1 Time Post" section starts
         let oneTimePostStartRow = 0;
@@ -497,6 +560,7 @@ export async function POST(request: NextRequest) {
             break;
           }
         }
+        log(`"1 Time Post" section starts at row: ${oneTimePostStartRow}`);
 
         // Find the row index where "Used Post" section starts
         let usedPostStartRow = allRows.length;
@@ -507,8 +571,10 @@ export async function POST(request: NextRequest) {
             break;
           }
         }
+        log(`"Used Post" section starts at row: ${usedPostStartRow}`);
 
         // Add this before your batch update operations
+        log("Getting sheet metadata to find actual sheet ID");
         const sheetInfo = await sheets.spreadsheets.get({
           spreadsheetId,
           fields: "sheets.properties",
@@ -526,18 +592,18 @@ export async function POST(request: NextRequest) {
         }
 
         if (actualSheetId === null) {
-          console.error(
-            `Sheet named "${sheetName}" not found in the spreadsheet`
-          );
+          log(`Sheet named "${sheetName}" not found in the spreadsheet`);
           throw new Error(
             `Unable to find sheet "${sheetName}" in the spreadsheet`
           );
         }
-
-        // Now use actualSheetId instead of 0 in your batch update requests
+        log(`Actual sheet ID found: ${actualSheetId}`);
 
         // Create a new row right before the "Used Post" section
         try {
+          log(
+            `Attempting to insert new row before "Used Post" section at row ${usedPostStartRow}`
+          );
           await sheets.spreadsheets.batchUpdate({
             spreadsheetId,
             requestBody: {
@@ -545,19 +611,20 @@ export async function POST(request: NextRequest) {
                 {
                   insertDimension: {
                     range: {
-                      sheetId: actualSheetId, // Assuming the first sheet
+                      sheetId: actualSheetId,
                       dimension: "ROWS",
-                      startIndex: usedPostStartRow, // Position just before "Used Post"
-                      endIndex: usedPostStartRow + 1, // Insert 1 row
+                      startIndex: usedPostStartRow,
+                      endIndex: usedPostStartRow + 1,
                     },
-                    inheritFromBefore: true, // Inherit formatting from the row above
+                    inheritFromBefore: true,
                   },
                 },
               ],
             },
           });
+          log("Successfully inserted new row");
         } catch (error) {
-          console.error("Error inserting row:", error);
+          log("Error inserting row:", error);
           // Continue execution even if this fails - we'll try to use an existing row
         }
 
@@ -570,10 +637,12 @@ export async function POST(request: NextRequest) {
               hour12: true,
             }).format(eventDateTime),
         ];
+        log(`PST time formatted: ${pstTime[0]}`);
 
         const imageFormula = `=HYPERLINK("${formData.webViewLink}", IMAGE("${formData.thumbnail}"))`;
+        log(`Image formula: ${imageFormula}`);
 
-        // Create an array for the row values (fill with empty strings for columns we don't have data for)
+        // Create an array for the row values
         const rowValues = Array(
           Math.max(
             timeColumnIndex,
@@ -584,6 +653,7 @@ export async function POST(request: NextRequest) {
             priceInfoIndex !== -1 ? priceInfoIndex : 0
           ) + 1
         ).fill("");
+        log("Initialized empty row values array", { rowValues });
 
         // Populate with our data
         rowValues[timeColumnIndex] = pstTime[0];
@@ -594,11 +664,15 @@ export async function POST(request: NextRequest) {
           rowValues[scheduleIndex] = "TEST - LIVE";
         }
 
+        log("Populated row values", { rowValues });
+
         // The row where we'll add our new data - right before the Used Post section
         const targetRow = usedPostStartRow + 1; // +1 because sheet rows are 1-indexed and we inserted a row
+        log(`Target row for data insertion: ${targetRow}`);
 
         try {
           // Update the values in the target row
+          log(`Updating values in row ${targetRow}`);
           await sheets.spreadsheets.values.update({
             spreadsheetId,
             range: `${sheetName}!A${targetRow}`,
@@ -607,8 +681,9 @@ export async function POST(request: NextRequest) {
               values: [rowValues],
             },
           });
+          log("Successfully updated row values");
         } catch (error) {
-          console.error("Error updating values:", error);
+          log("Error updating values:", error);
           throw error; // This is critical, so we'll throw the error if it fails
         }
 
@@ -626,6 +701,10 @@ export async function POST(request: NextRequest) {
           const lastColumnIndex = Math.max(...columnsToFormat);
           const firstColumnIndex = Math.min(...columnsToFormat);
 
+          log(
+            `Highlighting cells from column ${firstColumnIndex} to ${lastColumnIndex} in row ${targetRow}`
+          );
+
           // Now format the row with yellow background
           await sheets.spreadsheets.batchUpdate({
             spreadsheetId,
@@ -635,7 +714,7 @@ export async function POST(request: NextRequest) {
                   updateCells: {
                     range: {
                       sheetId: actualSheetId,
-                      startRowIndex: targetRow - 1, // 0-indexed in API
+                      startRowIndex: targetRow - 1,
                       endRowIndex: targetRow,
                       startColumnIndex: firstColumnIndex,
                       endColumnIndex: lastColumnIndex + 1,
@@ -659,8 +738,9 @@ export async function POST(request: NextRequest) {
               ],
             },
           });
+          log("Successfully highlighted cells");
         } catch (error) {
-          console.error("Error highlighting cells:", error);
+          log("Error highlighting cells:", error);
           // Continue execution even if highlighting fails
         }
 
@@ -674,6 +754,14 @@ export async function POST(request: NextRequest) {
           return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=${actualSheetId}&range=${rowNumber}:${rowNumber}`;
         };
 
+        const spreadsheetLink = generateSpreadsheetLink(
+          spreadsheetId,
+          sheetName,
+          targetRow,
+          actualSheetId ?? 0
+        );
+        log("Generated spreadsheet link", { spreadsheetLink });
+
         // In your response, use this function
         return NextResponse.json({
           message: "Event created and logged in Google Sheets",
@@ -681,15 +769,10 @@ export async function POST(request: NextRequest) {
           eventLink: response.data.htmlLink,
           spreadsheetId,
           sheetName,
-          spreadsheetLink: generateSpreadsheetLink(
-            spreadsheetId,
-            sheetName,
-            targetRow,
-            actualSheetId ?? 0 // Pass the actualSheetId here, defaulting to 0 if undefined
-          ),
+          spreadsheetLink,
         });
       } catch (sheetsError) {
-        console.error("Error updating spreadsheet:", sheetsError);
+        log("Error updating spreadsheet:", sheetsError);
         // Return partial success - calendar worked but sheets failed
         return NextResponse.json(
           {
@@ -709,12 +792,13 @@ export async function POST(request: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (calendarError: any) {
       if (calendarError.code === 401) {
+        log("Authentication expired error from Google Calendar API");
         return NextResponse.json(
           { message: "Authentication expired", requireAuth: true },
           { status: 401 }
         );
       }
-      console.error("Google Calendar API error:", calendarError);
+      log("Google Calendar API error:", calendarError);
       return NextResponse.json(
         {
           message: `Error creating calendar event: ${calendarError.message}`,
@@ -725,7 +809,7 @@ export async function POST(request: NextRequest) {
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error("Error processing request:", error);
+    log("Error processing request:", error);
     return NextResponse.json(
       { message: "Failed to process request", error: error.message },
       { status: 500 }
