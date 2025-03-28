@@ -1321,7 +1321,7 @@ export default function LiveFlyer() {
                 >
                   {isEventCreating ? "Creating Event..." : "Create Event"}
                 </button>
-                {(sheetLink || calendarLink) && (
+                {eventCreated && (
                   <div className="rounded-lg p-4 space-y-3">
                     <div className="flex items-center font-medium">
                       <svg
@@ -1338,7 +1338,7 @@ export default function LiveFlyer() {
                           d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      Event Created Successfully!
+                      {eventCreated.message}
                     </div>
 
                     <div className="space-y-2">
