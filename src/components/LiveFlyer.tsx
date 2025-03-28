@@ -30,6 +30,7 @@ interface FormData {
   imageId: string;
   noOfTemplate: number;
   customRequest: boolean;
+  customDetails: string;
 }
 
 interface WebhookResponse {
@@ -120,6 +121,8 @@ export default function LiveFlyer() {
   const [isEventCreating, setIsEventCreating] = useState(false);
   const [itemReceived, setItemReceived] = useState(0);
   const [requestSent, setRequestSent] = useState(false);
+  const [sheetLink, setSheetLink] = useState<string | null>(null);
+  const [calendarLink, setCalendarLink] = useState<string | null>(null);
 
   const [eventCreated, setEventCreated] = useState<{
     success: boolean;
@@ -137,6 +140,7 @@ export default function LiveFlyer() {
     imageId: "",
     noOfTemplate: 1,
     customRequest: false,
+    customDetails: "",
   });
 
   // Check authentication status when component mounts
@@ -230,7 +234,7 @@ export default function LiveFlyer() {
   };
 
   const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, type } = e.target;
     const value =
@@ -273,6 +277,7 @@ export default function LiveFlyer() {
       formDataToSend.append("imageName", formData.imageName || "");
       formDataToSend.append("noOfTemplate", String(formData.noOfTemplate));
       formDataToSend.append("isCustomRequest", String(formData.customRequest));
+      formDataToSend.append("customDetails", formData.customDetails);
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
@@ -333,6 +338,9 @@ export default function LiveFlyer() {
       });
 
       const result = await response.json();
+
+      setSheetLink(result.spreadsheetLink);
+      setCalendarLink(result.eventLink);
 
       // Handle authentication error (token expired or missing)
       if (response.status === 401 && result.requireAuth) {
@@ -940,6 +948,31 @@ export default function LiveFlyer() {
             </div>
           </div>
 
+          {formData.customRequest && (
+            <div className="col-span-2">
+              <div className="flex flex-col">
+                <label
+                  htmlFor="customDetails"
+                  className="text-sm font-medium mb-1"
+                >
+                  Custom request details:
+                </label>
+                <div className="flex gap-2">
+                  <textarea
+                    id="customDetails"
+                    name="customDetails"
+                    className="rounded-md p-2 flex-1 bg-black/50 text-gray-400 border-0 focus:outline-1 focus:outline-black resize-y"
+                    value={formData.customDetails}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading || isFetchingImage || webhookData}
+                    rows={4}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mt-2 col-span-2">
             <button
               type="submit"
@@ -1284,31 +1317,87 @@ export default function LiveFlyer() {
                       ? "opacity-60 cursor-not-allowed"
                       : "opacity-100 cursor-pointer"
                   }`}
-                  disabled={
-                    isEventCreating || isFetchingImage || eventCreated?.success
-                  }
+                  disabled={isEventCreating || isFetchingImage}
                 >
                   {isEventCreating ? "Creating Event..." : "Create Event"}
                 </button>
-                {/* {eventCreated && eventCreated.message && (
-              <div
-                className={`mt-4 p-3 rounded ${
-                  eventCreated.success ? "bg-green-100" : "bg-red-100"
-                }`}
-              >
-                <p>{eventCreated.message}</p>
-                {eventCreated.eventLink && (
-                  <a
-                    href={eventCreated.eventLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    View Event
-                  </a>
+                {sheetLink && (
+                  <div className="rounded-lg p-4 space-y-3">
+                    <div className="flex items-center font-medium">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Event Created Successfully!
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 text-purple-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                          />
+                        </svg>
+                        <Link
+                          href={sheetLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-600 hover:underline"
+                        >
+                          View Spreadsheet
+                        </Link>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 text-purple-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7V3m8 4V3m-9 8h10M5 11h14a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2z"
+                          />
+                        </svg>
+                        <Link
+                          href={calendarLink || ""}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-600 hover:underline"
+                        >
+                          Open Calendar Event
+                        </Link>
+                      </div>
+
+                      <div className="text-sm text-gray-500">
+                        Alternatively, navigate to the Calendar tab
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </div>
-            )} */}
               </div>
             </>
           )}

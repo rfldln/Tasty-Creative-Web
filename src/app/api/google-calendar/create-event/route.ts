@@ -664,12 +664,29 @@ export async function POST(request: NextRequest) {
           // Continue execution even if highlighting fails
         }
 
+        const generateSpreadsheetLink = (
+          spreadsheetId: string,
+          sheetName: string,
+          rowNumber: number,
+          actualSheetId: number
+        ) => {
+          // Construct the URL with the specific sheet gid
+          return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=${actualSheetId}&range=${rowNumber}:${rowNumber}`;
+        };
+
+        // In your response, use this function
         return NextResponse.json({
           message: "Event created and logged in Google Sheets",
           eventId: response.data.id,
           eventLink: response.data.htmlLink,
           spreadsheetId,
           sheetName,
+          spreadsheetLink: generateSpreadsheetLink(
+            spreadsheetId,
+            sheetName,
+            targetRow,
+            actualSheetId ?? 0 // Pass the actualSheetId here, defaulting to 0 if undefined
+          ),
         });
       } catch (sheetsError) {
         console.error("Error updating spreadsheet:", sheetsError);
