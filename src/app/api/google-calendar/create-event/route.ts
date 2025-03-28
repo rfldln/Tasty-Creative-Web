@@ -33,7 +33,7 @@ const timezoneMap: Record<string, string> = {
  * @param drive Google Drive API instance
  * @param folderId Parent folder ID to search in
  * @param modelName Model name to search for
- * @param isPaid Whether to search for "Paid Schedule" or "Free Schedule" in file names
+ * @param isPaid Whether to search for "Paid" or "Free" in file names
  * @returns Found spreadsheet ID and sheet name, or null if not found
  */
 async function findSpreadsheet(
@@ -44,7 +44,7 @@ async function findSpreadsheet(
   isPaid: boolean
 ): Promise<{ spreadsheetId: string; sheetName: string } | null> {
   const sheetMimeType = "application/vnd.google-apps.spreadsheet";
-  const paidTerm = isPaid ? "Paid Schedule" : "Free Schedule";
+  const paidTerm = isPaid ? "Paid" : "Free";
 
   try {
     // Search for all spreadsheets in the parent folder and its subfolders
@@ -146,7 +146,7 @@ async function searchInFolder(
   isPaid: boolean
 ): Promise<{ spreadsheetId: string; sheetName: string } | null> {
   const sheetMimeType = "application/vnd.google-apps.spreadsheet";
-  const paidTerm = isPaid ? "Paid Schedule" : "Free Schedule";
+  const paidTerm = isPaid ? "Paid" : "Free";
 
   try {
     // Get all spreadsheets in this folder
@@ -402,13 +402,15 @@ export async function POST(request: NextRequest) {
         formData.paid
       );
 
+      console.log(spreadsheetInfo, "spreadsheetInfo");
+
       if (!spreadsheetInfo && calendarSuccess) {
         // If no specific spreadsheet found, use a default one or return an error
         return NextResponse.json(
           {
             message: `Calendar Event created but could not find appropriate spreadsheet for model ${
               formData.model
-            } (${formData.paid ? "Paid Schedule" : "Free Schedule"})`,
+            } (${formData.paid ? "Paid" : "Free"})`,
           },
           { status: 404 }
         );
@@ -419,7 +421,7 @@ export async function POST(request: NextRequest) {
           {
             message: `Could not find appropriate spreadsheet for model ${
               formData.model
-            } (${formData.paid ? "Paid Schedule" : "Free Schedule"})`,
+            } (${formData.paid ? "Paid" : "Free"})`,
           },
           { status: 404 }
         );
