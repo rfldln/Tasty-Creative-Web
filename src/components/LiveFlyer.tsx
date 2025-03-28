@@ -119,6 +119,7 @@ export default function LiveFlyer() {
   const [isCustomImage, setIsCustomImage] = useState(false);
   const [isEventCreating, setIsEventCreating] = useState(false);
   const [itemReceived, setItemReceived] = useState(0);
+  const [requestSent, setRequestSent] = useState(false);
 
   const [eventCreated, setEventCreated] = useState<{
     success: boolean;
@@ -301,6 +302,7 @@ export default function LiveFlyer() {
       if (formData.customRequest == true) {
         setIsFetchingImage(false);
         setIsLoading(false);
+        setRequestSent(true);
       }
 
       if (textData.includes("404")) {
@@ -946,7 +948,7 @@ export default function LiveFlyer() {
                   ? "opacity-60 cursor-not-allowed"
                   : "opacity-100"
               }`}
-              // disabled={isLoading || isFetchingImage}
+              disabled={isLoading || isFetchingImage || requestSent}
             >
               {formData.customRequest ? (
                 <span>
