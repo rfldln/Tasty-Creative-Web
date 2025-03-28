@@ -1,23 +1,22 @@
-// app/api/google-drive/list/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const folderId = searchParams.get('folderId');
-  const folderName = searchParams.get('folderName');
-  
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const folderId = searchParams.get('folderId') || process.env.GOOGLE_DRIVE_BASE_FOLDER_ID!; // Default parent folder
+  const folderName = searchParams.get('folderName'); // Optional folder name to search
+
   const cookieStore = await cookies();
-  const tokensCookie = cookieStore.get('google_auth_tokens');
+  const tokensCookie = cookieStore.get("google_auth_tokens");
 
   if (!tokensCookie) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   try {
     const tokens = JSON.parse(tokensCookie.value);
-    
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -27,135 +26,102 @@ export async function GET(request: Request) {
     oauth2Client.setCredentials({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
-      expiry_date: tokens.expiry_date
+      expiry_date: tokens.expiry_date,
     });
 
-    // Check if token needs refresh
-    if (tokens.expiry_date && Date.now() > tokens.expiry_date) {
-      const { credentials } = await oauth2Client.refreshAccessToken();
-      
-      // Update the cookie with new tokens
-      const updatedTokens = JSON.stringify({
-        access_token: credentials.access_token,
-        refresh_token: credentials.refresh_token || tokens.refresh_token,
-        expiry_date: credentials.expiry_date,
-      });
-      
-      cookieStore.set('google_auth_tokens', updatedTokens, { 
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-        path: '/'
-      });
-    }
+    const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    // Create Drive client
-    const drive = google.drive({
-      version: 'v3',
-      auth: oauth2Client,
+    // Get current folder details
+    const currentFolderResponse = await drive.files.get({
+      fileId: folderId,
+      fields: 'id, name, parents, mimeType, createdTime, modifiedTime',
+      supportsAllDrives: true
     });
 
-    // If no folder ID is provided, list the root folder or the specified base folder
-    // You can set this to your shared folder ID to always start there
-    const baseRootFolderId = process.env.GOOGLE_DRIVE_BASE_FOLDER_ID || '1wDNFJ_vJ4dn383HafJuuMtcMn4Lzi-RP';
-    const queryFolderId = folderId || baseRootFolderId;
+    const currentFolder = {
+      id: currentFolderResponse.data.id,
+      name: currentFolderResponse.data.name,
+      mimeType: currentFolderResponse.data.mimeType,
+      parents: currentFolderResponse.data.parents,
+      createdAt: currentFolderResponse.data.createdTime,
+      modifiedAt: currentFolderResponse.data.modifiedTime
+    };
 
-    // If searching for a specific model's folder by name
-    if (folderName && !folderId) {
-      // First, look for the folder with the specified name in the base folder
-      const folderQuery = `'${baseRootFolderId}' in parents and name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder'`;
-      
-      const folderResponse = await drive.files.list({
-        q: folderQuery,
-        fields: 'files(id, name)',
+    // If folderName is provided, search for it within current folder
+    let targetFolder = currentFolder;
+    if (folderName && folderName !== currentFolder.name) {
+      const searchResponse = await drive.files.list({
+        q: `name = '${folderName}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder'`,
         spaces: 'drive',
+        fields: 'files(id, name, parents, mimeType)',
+        pageSize: 1,
+        corpora: 'user',
+        includeItemsFromAllDrives: true,
+        supportsAllDrives: true
       });
+
+      const matchingFolders = searchResponse.data.files || [];
       
-      if (folderResponse.data.files && folderResponse.data.files.length > 0) {
-        // If found the model folder, use its ID
-        const modelFolder = folderResponse.data.files[0];
-        
-        // Now get contents of that folder
-        const query = `'${modelFolder.id}' in parents and (mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder')`;
-        
-        const response = await drive.files.list({
-          q: query,
-          fields: 'files(id, name, mimeType, webContentLink, thumbnailLink)',
-          spaces: 'drive',
-          pageSize: 50,
-        });
-        
-        // Prepare folders and files for the response
-        const files = response.data.files?.map(file => ({
-          ...file,
-          isFolder: file.mimeType === 'application/vnd.google-apps.folder'
-        })) || [];
-        
+      if (matchingFolders.length === 0) {
         return NextResponse.json({ 
-          files,
-          currentFolder: { id: modelFolder.id, name: modelFolder.name },
-          parentFolder: { id: baseRootFolderId, name: 'Root' }
-        });
+          error: `No folder found matching "${folderName}" in current folder`,
+          currentFolder
+        }, { status: 404 });
       }
+
+      targetFolder = {
+        id: matchingFolders[0].id!,
+        name: matchingFolders[0].name!,
+        mimeType: matchingFolders[0].mimeType!,
+        parents: matchingFolders[0].parents,
+        createdAt: null,
+        modifiedAt: null
+      };
     }
 
-    // Default query for listing contents of a folder
-    const query = `'${queryFolderId}' in parents and (mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder')`;
-    
-    const response = await drive.files.list({
-      q: query,
-      fields: 'files(id, name, mimeType, webContentLink, thumbnailLink)',
+    // List contents of the target folder
+    const listResponse = await drive.files.list({
+      q: `'${targetFolder.id}' in parents`,
       spaces: 'drive',
-      pageSize: 50,
+      fields: 'files(id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink, thumbnailLink)',
+      pageSize: 1000,
+      corpora: 'user',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
+      orderBy: 'folder,name'
     });
 
-    // Get folder information for navigation breadcrumbs
-    let currentFolder = { id: queryFolderId, name: 'Root' };
-    let parentFolder = null;
-    
-    if (queryFolderId !== baseRootFolderId) {
-      try {
-        const folderInfo = await drive.files.get({
-          fileId: queryFolderId,
-          fields: 'id, name, parents'
-        });
-        
-        currentFolder = { 
-          id: folderInfo.data.id || queryFolderId, 
-          name: folderInfo.data.name || 'Folder' 
-        };
-        
-        // If this folder has a parent, get its info too
-        if (folderInfo.data.parents && folderInfo.data.parents.length > 0) {
-          const parentId = folderInfo.data.parents[0];
-          const parentInfo = await drive.files.get({
-            fileId: parentId,
-            fields: 'id, name'
-          });
-          
-          parentFolder = { 
-            id: parentInfo.data.id || parentId, 
-            name: parentInfo.data.name || 'Parent Folder' 
-          };
-        }
-      } catch (error) {
-        console.error('Error getting folder information:', error);
-      }
-    }
+    const files = (listResponse.data.files || []).map(file => ({
+      id: file.id!,
+      name: file.name!,
+      isFolder: file.mimeType === 'application/vnd.google-apps.folder',
+      size: file.size ? parseInt(file.size) : null,
+      createdAt: file.createdTime,
+      modifiedAt: file.modifiedTime,
+      mimeType: file.mimeType,
+      webViewLink: file.webViewLink,
+      thumbnailLink: file.thumbnailLink,
+      parents: file.parents
+    }));
 
-    // Prepare folders and files for the response
-    const files = response.data.files?.map(file => ({
-      ...file,
-      isFolder: file.mimeType === 'application/vnd.google-apps.folder'
-    })) || [];
-    
-    return NextResponse.json({ 
+    return NextResponse.json({
       files,
-      currentFolder,
-      parentFolder
+      currentFolder: {
+        id: currentFolder.id,
+        name: currentFolder.name,
+        parents: currentFolder.parents
+      },
+      parentFolder: targetFolder.parents?.[0] ? {
+        id: targetFolder.parents[0],
+        name: 'Parent Folder' // Name will be fetched when navigating up
+      } : null
     });
+
   } catch (error) {
-    console.error('Error accessing Google Drive:', error);
-    return NextResponse.json({ error: 'Failed to access Google Drive' }, { status: 500 });
+    console.error('Google Drive API Error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to retrieve files', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
   }
 }
