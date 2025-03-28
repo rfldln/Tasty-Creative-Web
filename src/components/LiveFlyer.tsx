@@ -1321,7 +1321,7 @@ export default function LiveFlyer() {
                 >
                   {isEventCreating ? "Creating Event..." : "Create Event"}
                 </button>
-                {sheetLink && (
+                {(sheetLink || calendarLink) && (
                   <div className="rounded-lg p-4 space-y-3">
                     <div className="flex items-center font-medium">
                       <svg
@@ -1358,12 +1358,14 @@ export default function LiveFlyer() {
                           />
                         </svg>
                         <Link
-                          href={sheetLink}
+                          href={sheetLink || ""}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-purple-600 hover:underline"
                         >
-                          View Spreadsheet
+                          {sheetLink
+                            ? "View Spreadsheet"
+                            : "Failed to insert on spreadsheet"}
                         </Link>
                       </div>
 
@@ -1388,7 +1390,9 @@ export default function LiveFlyer() {
                           rel="noopener noreferrer"
                           className="text-purple-600 hover:underline"
                         >
-                          Open Calendar Event
+                          {calendarLink
+                            ? "Open Calendar Event"
+                            : "Failed to insert on calendar"}
                         </Link>
                       </div>
 
