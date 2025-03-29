@@ -1233,7 +1233,7 @@ export default function LiveFlyer() {
                       : "opacity-100 cursor-pointer"
                   }`}
                   disabled={
-                    isEventCreating || isFetchingImage 
+                    isEventCreating || isFetchingImage || eventCreated?.success
                   }
                 >
                   {isEventCreating ? "Creating Event..." : "Create Event"}
