@@ -6,52 +6,16 @@ import { v4 as uuidv4 } from "uuid";
 import { useState, FormEvent, ChangeEvent, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { liveFlyerValidation } from "../../schema/zodValidationSchema";
-import { MODELS, TIMEZONES } from "@/lib/lib";
-
+import { TIMEZONES } from "@/lib/lib";
+import { toast } from "sonner";
+import ModelsDropdown from "./ModelsDropdown";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-
-interface FormData {
-  model: string;
-  date: string;
-  time: string;
-  timezone: string;
-  imageUrl?: string;
-  imageName?: string;
-  imageFile?: File;
-  paid: boolean;
-  customImage: boolean;
-  imageId: string;
-  noOfTemplate: number;
-  customRequest: boolean;
-  customDetails: string;
-}
-
-interface WebhookResponse {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-  error?: string;
-}
-
-interface GoogleDriveFile {
-  id: string;
-  name: string;
-  mimeType?: string;
-  isFolder?: boolean;
-  thumbnailLink?: string;
-  webContentLink?: string;
-}
-
-interface FolderInfo {
-  id: string;
-  name: string;
-}
+} from "./ui/select";
 
 export default function LiveFlyer() {
   const router = useRouter();
@@ -130,7 +94,7 @@ export default function LiveFlyer() {
     eventLink?: string;
   } | null>(null);
 
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<ModelFormData>({
     model: "",
     date: "",
     time: "",
@@ -142,6 +106,8 @@ export default function LiveFlyer() {
     customRequest: false,
     customDetails: "",
   });
+
+  console.log("Form Data:", formData);
 
   // Check authentication status when component mounts
   useEffect(() => {
@@ -521,16 +487,6 @@ export default function LiveFlyer() {
     });
   };
 
-  // useEffect(() => {
-  //   setEventCreated({
-  //     success: false,
-  //     message: "",
-  //     eventLink: "",
-  //   });
-  // }, [formData]);
-
-  //   const [date, setDate] = useState<Date>();
-
   return (
     <div className="flex flex-col lg:flex-row gap-5">
       <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
@@ -539,37 +495,13 @@ export default function LiveFlyer() {
         </h1>
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-2">
           <div className="col-span-2">
-            <div className="flex flex-col">
-              <label
-                htmlFor="model"
-                className="text-sm text-gray-300 font-medium mb-1"
-              >
-                Select Model
-              </label>
-
-              <Select
-                value={formData.model}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, model: value }))
-                }
-                disabled={isLoading || isFetchingImage || webhookData}
-              >
-                <SelectTrigger className="bg-black/60 cursor-pointer border-white/10 p-2 text-gray-400 rounded-lg w-full">
-                  <SelectValue placeholder="Select Model" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/90 border-white/10 text-gray-400 max-h-72">
-                  {MODELS.map((model) => (
-                    <SelectItem
-                      key={model.name}
-                      value={model.name}
-                      className="flex items-center justify-between py-2"
-                    >
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ModelsDropdown
+              formData={formData}
+              setFormData={setFormData}
+              isLoading={isLoading}
+              isFetchingImage={isFetchingImage}
+              webhookData={webhookData}
+            />
           </div>
 
           {formData.model && (
@@ -824,19 +756,6 @@ export default function LiveFlyer() {
               <label htmlFor="date" className="text-sm font-medium mb-1">
                 Date
               </label>
-              {/* <input
-                type="date"
-                id="date"
-                name="date"
-                className="bg-black/60 text-gray-400 border-white/10 rounded-lg w-full p-2 
-                [&::-webkit-calendar-picker-indicator]:text-gray-400
-                [&::-webkit-calendar-picker-indicator]:opacity-60"
-                value={formData.date}
-                onChange={handleInputChange}
-                required
-                disabled={isLoading || isFetchingImage}
-              /> */}
-
               <input
                 type="date"
                 id="date"
@@ -1140,10 +1059,6 @@ export default function LiveFlyer() {
       </div>
       {response && (
         <div className="flex flex-col gap-4 shadow-md justify-between  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
-          {/* <h3 className="text-sm font-medium mb-2 text-center">
-              Generating Flyer:
-            </h3> */}
-
           {formData.customRequest === true ? (
             <div className="flex items-center h-full justify-center w-full p-4">
               <div
@@ -1318,7 +1233,7 @@ export default function LiveFlyer() {
                       : "opacity-100 cursor-pointer"
                   }`}
                   disabled={
-                    isEventCreating || isFetchingImage || eventCreated?.success
+                    isEventCreating || isFetchingImage 
                   }
                 >
                   {isEventCreating ? "Creating Event..." : "Create Event"}
@@ -1398,9 +1313,11 @@ export default function LiveFlyer() {
                         </Link>
                       </div>
 
-                      <div className="text-sm text-gray-500">
-                        Alternatively, navigate to the Calendar tab
-                      </div>
+                      {calendarLink && (
+                        <div className="text-sm text-gray-500">
+                          Alternatively, navigate to the Calendar tab
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

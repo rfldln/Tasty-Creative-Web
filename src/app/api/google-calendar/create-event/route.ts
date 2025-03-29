@@ -80,7 +80,10 @@ async function findSpreadsheet(
     // First pass: Look for exact match with model name and paid/free status
     for (const file of files) {
       const fileName = file.name.toLowerCase();
-      const modelNameLower = modelName.toLowerCase();
+
+      const valueMatch = modelName.match(/\(([^)]+)\)$/);
+      const conCatModelName = valueMatch ? valueMatch[1] : modelName;
+      const modelNameLower = conCatModelName.toLowerCase();
       const paidTermLower = paidTerm.toLowerCase();
 
       // Skip files with OFTV in the name
@@ -89,10 +92,12 @@ async function findSpreadsheet(
         continue;
       }
 
-      if (
-        fileName.includes(modelNameLower) &&
-        fileName.includes(paidTermLower)
-      ) {
+      if (fileName.includes("ppv") || fileName.includes("PPV")) {
+        log(`Skipping spreadsheet with PPV in name: ${file.name}`);
+        continue;
+      }
+
+      if (fileName.includes(modelNameLower + " " + paidTermLower)) {
         log(`Found matching spreadsheet: ${file.name}`, { file });
         return {
           spreadsheetId: file.id,
@@ -179,7 +184,9 @@ async function searchInFolder(
     // First pass: Look for exact match with model name and paid/free status
     for (const sheet of sheets) {
       const fileName = sheet.name.toLowerCase();
-      const modelNameLower = modelName.toLowerCase();
+      const valueMatch = modelName.match(/\(([^)]+)\)$/);
+      const conCatModelName = valueMatch ? valueMatch[1] : modelName;
+      const modelNameLower = conCatModelName.toLowerCase();
       const paidTermLower = paidTerm.toLowerCase();
 
       // Skip files with OFTV in the name
@@ -187,11 +194,12 @@ async function searchInFolder(
         log(`Skipping spreadsheet with OFTV in name: ${sheet.name}`);
         continue;
       }
+      if (fileName.includes("ppv") || fileName.includes("PPV")) {
+        log(`Skipping spreadsheet with PPV in name: ${sheet.name}`);
+        continue;
+      }
 
-      if (
-        fileName.includes(modelNameLower) &&
-        fileName.includes(paidTermLower)
-      ) {
+      if (fileName.includes(modelNameLower + " " + paidTermLower)) {
         log(`Found matching spreadsheet in folder: ${sheet.name}`, { sheet });
         return {
           spreadsheetId: sheet.id,
