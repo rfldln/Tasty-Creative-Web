@@ -288,7 +288,7 @@ export async function POST(request: NextRequest) {
 
   log("Found authentication tokens in cookies");
 
-  let tokens = JSON.parse(tokensCookie) as {
+  const tokens = JSON.parse(tokensCookie) as {
     access_token: string;
     refresh_token: string;
     expiry_date: number;
@@ -317,36 +317,36 @@ export async function POST(request: NextRequest) {
     }
 
     log("Attempting to refresh access token");
-    try {
-      const { credentials } = await oauth2Client.refreshAccessToken();
-      tokens = {
-        access_token: credentials.access_token || "",
-        refresh_token: credentials.refresh_token || tokens.refresh_token,
-        expiry_date: credentials.expiry_date!,
-      };
-      oauth2Client.setCredentials(tokens);
-      log("Successfully refreshed access token");
+    // try {
+    //   const { credentials } = await oauth2Client.refreshAccessToken();
+    //   tokens = {
+    //     access_token: credentials.access_token || "",
+    //     refresh_token: credentials.refresh_token || tokens.refresh_token,
+    //     expiry_date: credentials.expiry_date!,
+    //   };
+    //   oauth2Client.setCredentials(tokens);
+    //   log("Successfully refreshed access token");
 
-      const response = NextResponse.json({
-        message: "Event processing...",
-      });
-      response.cookies.set("google_auth_tokens", JSON.stringify(tokens), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-        path: "/",
-      });
-      return response;
-    } catch (refreshError) {
-      log("Error refreshing Google token:", refreshError);
-      return NextResponse.json(
-        {
-          message: "Failed to refresh Google token. Please re-authenticate.",
-          requireAuth: true,
-        },
-        { status: 401 }
-      );
-    }
+    //   const response = NextResponse.json({
+    //     message: "Event processing...",
+    //   });
+    //   response.cookies.set("google_auth_tokens", JSON.stringify(tokens), {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === "production",
+    //     maxAge: 30 * 24 * 60 * 60, // 30 days
+    //     path: "/",
+    //   });
+    //   return response;
+    // } catch (refreshError) {
+    //   log("Error refreshing Google token:", refreshError);
+    //   return NextResponse.json(
+    //     {
+    //       message: "Failed to refresh Google token. Please re-authenticate.",
+    //       requireAuth: true,
+    //     },
+    //     { status: 401 }
+    //   );
+    // }
   }
 
   try {
