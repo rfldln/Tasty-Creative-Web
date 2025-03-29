@@ -330,7 +330,7 @@ export default function LiveFlyer() {
       if (response.ok) {
         setEventCreated({
           success: true,
-          message: "Event created successfully!",
+          message: result.message,
           eventLink: result.eventLink,
         });
         toast("Event created successfully!");
@@ -1255,7 +1255,17 @@ export default function LiveFlyer() {
                           d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      {eventCreated.message}
+                      {eventCreated.message}{" "}
+                      {eventCreated.message === "Event processing..." ? (
+                        <div
+                          className="text-sm text-blue-500"
+                          onClick={handleCreateEventSubmit}
+                        >
+                          Try again
+                        </div>
+                      ) : (
+                        ""
+                      )}
                     </div>
 
                     <div className="space-y-2">
