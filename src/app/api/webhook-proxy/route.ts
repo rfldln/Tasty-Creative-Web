@@ -15,9 +15,13 @@ export async function POST(request: Request) {
     // Prepare FormData for forwarding
     const forwardData = new FormData();
 
-    // Forward only non-file fields
     formData.forEach((value, key) => {
-      if (key !== "imageFile" && key !== "isCustomRequest") {
+      if (key === "model" && typeof value === "string") {
+        // Extract value inside parentheses if present (e.g., "Victoria (V)" → "V")
+        const match = value.match(/\(([^)]+)\)$/);
+        const formattedModel = match ? match[1] : value;
+        forwardData.append("model", formattedModel);
+      } else if (key !== "imageFile" && key !== "isCustomRequest") {
         forwardData.append(key, value);
       }
     });
@@ -31,6 +35,7 @@ export async function POST(request: Request) {
     // Determine which URL to use based on isCustomRequest
     const targetUrl = isCustomRequest ? discordWebhookUrl : webhookUrl;
     console.log("targetUrl", targetUrl);
+
     // Forward the request
     const response = await fetch(targetUrl, {
       method: "POST",

@@ -1,10 +1,5 @@
-export const MODELS = [
-  { name: "Autumn" },
-  { name: "Bri" },
-  { name: "Coco" },
-  { name: "Kait" },
-  { name: "MJ" },
-];
+// This file contains the library functions for the app.
+// It is a good practice to keep the library functions in a separate file
 
 export const TIMEZONES = [
   { name: "PST" },
