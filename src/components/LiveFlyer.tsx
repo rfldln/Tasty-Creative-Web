@@ -921,7 +921,7 @@ export default function LiveFlyer() {
 
         {/* File picker modal */}
         {showFilePicker && (
-          <div className="fixed inset-0 px-20 bg-black/60 flex items-center justify-center z-50">
+          <div className="fixed inset-0 px-4 lg:px-20 bg-black/60 flex items-center justify-center z-50">
             <div className="bg-black/80 rounded-lg px-6 pb-6  w-full max-h-[80vh] overflow-auto">
               <div className="sticky top-0 bg-black pb-0.5">
                 <div className="flex justify-between items-center mb-4">
@@ -1047,7 +1047,7 @@ export default function LiveFlyer() {
                       </div>
                     ))
                   ) : (
-                    <div className="col-span-2 py-8 text-center text-gray-500">
+                    <div className="py-8 text-center col-span-full w-full text-gray-500">
                       No files found in this folder
                     </div>
                   )}
