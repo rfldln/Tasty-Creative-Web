@@ -95,6 +95,7 @@ import {
 import LiveFlyer from '@/components/LiveFlyer';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import VIPFlyer from '@/components/VIPFlyer';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -2537,14 +2538,7 @@ const TastyCreative = () => {
           </TabsContent>
 
           <TabsContent value="vip">
-            {/* Keep existing VIP code */}
-            <div className="p-4 text-center bg-black/20 rounded-lg border border-white/10">
-              <h3 className="font-medium mb-2">VIP Tab Content</h3>
-              <p>
-                Switch to the Voice tab to access the enhanced ElevenLabs voice
-                generation
-              </p>
-            </div>
+          <VIPFlyer />
           </TabsContent>
 
           <TabsContent value="game">

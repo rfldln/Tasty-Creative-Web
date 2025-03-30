@@ -14,6 +14,7 @@ type ModelFormData  = {
   noOfTemplate: number;
   customRequest: boolean;
   customDetails: string;
+  type: string;
 }
 
 type ModelsDropdownProps = {
