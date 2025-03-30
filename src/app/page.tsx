@@ -2582,7 +2582,12 @@ const TastyCreative = () => {
                 Calendar
               </span>
             )}
-            {(activeTab !== 'image' && activeTab !== 'voice' && activeTab !== 'calendar') && (
+            {activeTab === 'live' && (
+              <span className="ml-1">
+                Live
+              </span>
+            )}
+            {(activeTab !== 'image' && activeTab !== 'voice' && activeTab !== 'calendar' && activeTab !== 'live') && (
               <span className="ml-1">No active API connections</span>
             )}
           </div>
