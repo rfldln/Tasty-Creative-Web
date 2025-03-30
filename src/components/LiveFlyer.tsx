@@ -105,6 +105,7 @@ export default function LiveFlyer() {
     noOfTemplate: 1,
     customRequest: false,
     customDetails: "",
+    type: "LIVE",
   });
 
   console.log("Form Data:", formData);
@@ -244,6 +245,7 @@ export default function LiveFlyer() {
       formDataToSend.append("noOfTemplate", String(formData.noOfTemplate));
       formDataToSend.append("isCustomRequest", String(formData.customRequest));
       formDataToSend.append("customDetails", formData.customDetails);
+      formDataToSend.append("type", formData.type);
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
@@ -486,13 +488,16 @@ export default function LiveFlyer() {
       return newData;
     });
   };
-console.log(selectedImage);
+
   return (
     <div className="flex flex-col lg:flex-row gap-5">
       <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
-        <h1 className="text-2xl font-bold text-center">
-          Live Flyer Generation
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold text-start">
+            Live Flyer Generation
+          </h1>
+          <p className="text-gray-400 text-sm">Create promotion flyers for upcoming live events</p>
+        </div>
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-2">
           <div className="col-span-2">
             <ModelsDropdown
@@ -1114,7 +1119,9 @@ console.log(selectedImage);
                     />
                   ) : (
                     <iframe
-                      src={convertToPreviewLink(selectedImage.webViewLink ?? "")}
+                      src={convertToPreviewLink(
+                        selectedImage.webViewLink ?? ""
+                      )}
                       width={400}
                       height={400}
                       frameBorder="0"
@@ -1125,7 +1132,7 @@ console.log(selectedImage);
                   )}
                 </div>
               ) : (
-                <div className="h-[250px] w-full lg:w-[250px] flex items-center justify-center border border-gradient-to-r border-purple-400 rounded">
+                <div className="h-[250px] w-full lg:w-[250px] bg-black/60 flex items-center justify-center border border-gradient-to-r border-purple-400 rounded-md">
                   <span className="text-sm text-gray-500 text-center px-2">
                     {selectedImage?.name || "No image selected"}
                   </span>
@@ -1150,7 +1157,7 @@ console.log(selectedImage);
               </div>
 
               {isFetchingImage ? (
-                <div className="w-full lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded bg-black/40">
+                <div className="w-full lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded-md bg-black/40">
                   <div className="flex flex-col items-center justify-center">
                     <svg
                       className="animate-spin h-8 w-8 text-purple-500 mb-2"
@@ -1198,7 +1205,7 @@ console.log(selectedImage);
                   </Link>
                 </div>
               ) : (
-                <div className="h-[250px] w-full lg:w-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-400 rounded">
+                <div className="h-[250px] w-full lg:w-[250px] bg-black/60 flex items-center justify-center  border border-gradient-to-r border-purple-400 rounded-md">
                   <span className="text-sm text-gray-500 text-center px-2">
                     Flyer not yet generated
                   </span>
