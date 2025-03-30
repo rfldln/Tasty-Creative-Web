@@ -38,7 +38,7 @@ type GoogleDriveFile = {
   mimeType?: string;
   isFolder?: boolean;
   thumbnailLink?: string;
-  webContentLink?: string;
+  webViewLink?: string;
 }
 
 type FolderInfo = {

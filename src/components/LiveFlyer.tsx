@@ -1,5 +1,5 @@
 "use client";
-import { cn } from "@/lib/utils";
+import { cn, convertToPreviewLink } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
@@ -486,7 +486,7 @@ export default function LiveFlyer() {
       return newData;
     });
   };
-
+console.log(selectedImage);
   return (
     <div className="flex flex-col lg:flex-row gap-5">
       <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
@@ -923,7 +923,7 @@ export default function LiveFlyer() {
         {showFilePicker && (
           <div className="fixed inset-0 px-4 lg:px-20 bg-black/60 flex items-center justify-center z-50">
             <div className="bg-black/80 rounded-lg px-6 pb-6  w-full max-h-[80vh] overflow-auto">
-              <div className="sticky top-0 bg-black pb-0.5">
+              <div className="sticky top-0 pt-2 py-0.5">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">
                     {currentFolder
@@ -1057,193 +1057,250 @@ export default function LiveFlyer() {
           </div>
         )}
       </div>
-      {response && (
-        <div className="flex flex-col gap-4 shadow-md justify-between  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
-          {formData.customRequest === true ? (
-            <div className="flex items-center h-full justify-center w-full p-4">
-              <div
-                className={cn(
-                  " bg-opacity-50   border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
-                  { hidden: error }
-                )}
-              >
-                <div className="text-2xl mb-2">
-                  🎉 Successfully submitted request to Discord! 🚀
-                </div>
-                <p className="text-opacity-80">
-                  Your message has been sent successfully! 📨✨
-                </p>
+
+      <div className="flex flex-col gap-4 shadow-md justify-between  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
+        <div>
+          <h1 className="text-bold">Preview</h1>
+          <p className="text-sm text-gray-400 mb-2">
+            Live flyer preview will appear here
+          </p>
+        </div>
+        {formData.customRequest === true ? (
+          <div className="flex items-center h-full justify-center w-full p-4">
+            <div
+              className={cn(
+                " bg-opacity-50   border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
+                { hidden: error }
+              )}
+            >
+              <div className="text-2xl mb-2">
+                🎉 Successfully submitted request to Discord! 🚀
               </div>
-              <div
-                className={cn(
-                  "bg-red-100 bg-opacity overflow-hidden relative-50 border text-wrap h-full border-red-300 border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
-                  { hidden: !error }
-                )}
-              >
-                <div className="text-2xl mb-2">
-                  ⚠️ Webhook Communication Failed! 🚫
-                </div>
-                <p className="text-red-800 text-opacity-80">
-                  Unable to send message to Discord. Please check your webhook
-                  configuration. 🔧❌
-                </p>
-                <p className="h-full text-wrap">Details: {error}</p>
-              </div>
+              <p className="text-opacity-80">
+                Your message has been sent successfully! 📨✨
+              </p>
             </div>
-          ) : (
-            <>
-              <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
-                {selectedImage && selectedImage.thumbnailLink ? (
-                  <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] border bg-black/40 rounded-md border-black">
+            <div
+              className={cn(
+                "bg-red-100 bg-opacity overflow-hidden relative-50 border text-wrap h-full border-red-300 border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
+                { hidden: !error }
+              )}
+            >
+              <div className="text-2xl mb-2">
+                ⚠️ Webhook Communication Failed! 🚫
+              </div>
+              <p className="text-red-800 text-opacity-80">
+                Unable to send message to Discord. Please check your webhook
+                configuration. 🔧❌
+              </p>
+              <p className="h-full text-wrap">Details: {error}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
+              {selectedImage && selectedImage.thumbnailLink ? (
+                <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] border bg-black/40 rounded-md border-black">
+                  {isCustomImage ? (
                     <Image
                       src={selectedImage.thumbnailLink}
                       alt={selectedImage.name}
                       width={400}
                       height={400}
                       className="object-contain max-h-full max-w-full"
+                      unoptimized={selectedImage.thumbnailLink
+                        .toLocaleLowerCase()
+                        .endsWith(".heic")}
                     />
-                  </div>
-                ) : (
-                  <div className="w-48 h-48 flex items-center justify-center border border-gray-300 rounded">
-                    <span className="text-sm text-gray-500 text-center px-2">
-                      {selectedImage?.name || "No image selected"}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-center rotate-90 lg:rotate-0">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
+                  ) : (
+                    <iframe
+                      src={convertToPreviewLink(selectedImage.webViewLink ?? "")}
+                      width={400}
+                      height={400}
+                      frameBorder="0"
+                      allowFullScreen
+                      title="Live Flyer Preview"
+                      className="object-contain max-h-full max-w-full rounded-md"
+                    />
+                  )}
                 </div>
-
-                {isFetchingImage ? (
-                  <div className="w-full lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded bg-black/40">
-                    <div className="flex flex-col items-center justify-center">
-                      <svg
-                        className="animate-spin h-8 w-8 text-purple-500 mb-2"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      <span className="text-sm text-gray-500">
-                        Generating...
-                      </span>
-                    </div>
-                  </div>
-                ) : webhookData &&
-                  webhookData.thumbnail &&
-                  webhookData.webViewLink ? (
-                  <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
-                    <Link
-                      href={webhookData.webViewLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="h-full w-full flex items-center justify-center"
-                    >
-                      <Image
-                        src={webhookData.thumbnail}
-                        alt="Generated Flyer"
-                        width={400}
-                        height={400}
-                        className="object-contain max-h-full max-w-full rounded-md"
-                      />
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="w-48 h-48 flex items-center justify-center border border-gray-300 rounded">
-                    <span className="text-sm text-gray-500 text-center px-2">
-                      Flyer not yet generated
-                    </span>
-                  </div>
-                )}
-              </div>
-              {webhookData && (
-                <>
-                  <div className="h-full flex flex-col gap-2">
-                    <hr className="border-purple-400" />
-                    <span className="text-gray-300">
-                      {" "}
-                      History: {history.length}
-                    </span>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 overflow-y-auto ">
-                      {history.map((item, index) => (
-                        <div
-                          key={index}
-                          className="border p-2 border-gradient-to-r border-purple-400 rounded-md flex flex-col items-center justify-center hover:bg-black/40"
-                        >
-                          <div className="w-24 h-24 rounded-md overflow-hidden ">
-                            <Image
-                              src={item.thumbnail}
-                              alt="Generated Flyer"
-                              width={200}
-                              height={200}
-                              className={cn(
-                                "object-contain max-h-full rounded-md max-w-full cursor-pointer",
-                                {
-                                  "cursor-not-allowed":
-                                    isFetchingImage || isLoading,
-                                }
-                              )}
-                              onClick={() => {
-                                if (!isFetchingImage || !isLoading) {
-                                  setWebhookData(item);
-                                }
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
+              ) : (
+                <div className="h-[250px] w-full lg:w-[250px] flex items-center justify-center border border-gradient-to-r border-purple-400 rounded">
+                  <span className="text-sm text-gray-500 text-center px-2">
+                    {selectedImage?.name || "No image selected"}
+                  </span>
+                </div>
               )}
-              <div className="mt-2 col-span-2">
-                <button
-                  type="button"
-                  onClick={handleCreateEventSubmit}
-                  className={`rounded-md px-5 w-full  bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
-                    isEventCreating || isFetchingImage || eventCreated?.success
-                      ? "opacity-60 cursor-not-allowed"
-                      : "opacity-100 cursor-pointer"
-                  }`}
-                  disabled={
-                    isEventCreating || isFetchingImage || eventCreated?.success
-                  }
+
+              <div className="flex items-center justify-center rotate-90 lg:rotate-0">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  {isEventCreating ? "Creating Event..." : "Create Event"}
-                </button>
-                {eventCreated && (
-                  <div className="rounded-lg p-4 space-y-3">
-                    <div className="flex items-center font-medium">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </div>
+
+              {isFetchingImage ? (
+                <div className="w-full lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded bg-black/40">
+                  <div className="flex flex-col items-center justify-center">
+                    <svg
+                      className="animate-spin h-8 w-8 text-purple-500 mb-2"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span className="text-sm text-gray-500">Generating...</span>
+                  </div>
+                </div>
+              ) : webhookData &&
+                webhookData.thumbnail &&
+                webhookData.webViewLink ? (
+                <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
+                  <Link
+                    href={webhookData.webViewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-full w-full flex items-center justify-center"
+                    title="Click to view flyer"
+                  >
+                    <iframe
+                      src={convertToPreviewLink(webhookData.webViewLink)}
+                      width={400}
+                      height={400}
+                      frameBorder="0"
+                      allowFullScreen
+                      title="Live Flyer Preview"
+                      className="object-contain max-h-full max-w-full rounded-md"
+                    />
+                  </Link>
+                </div>
+              ) : (
+                <div className="h-[250px] w-full lg:w-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-400 rounded">
+                  <span className="text-sm text-gray-500 text-center px-2">
+                    Flyer not yet generated
+                  </span>
+                </div>
+              )}
+            </div>
+            {webhookData && (
+              <>
+                <div className="h-full flex flex-col gap-2">
+                  <hr className="border-purple-400" />
+                  <span className="text-gray-300">
+                    {" "}
+                    Generated: {history.length}
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 overflow-y-auto ">
+                    {history.map((item, index) => (
+                      <div
+                        key={index}
+                        className="border p-2 border-gradient-to-r border-purple-400 rounded-md flex flex-col items-center justify-center hover:bg-black/40"
+                      >
+                        <div className="w-24 h-24 rounded-md overflow-hidden ">
+                          <Image
+                            src={item.thumbnail}
+                            alt="Generated Flyer"
+                            width={200}
+                            height={200}
+                            className={cn(
+                              "object-contain max-h-full rounded-md max-w-full cursor-pointer",
+                              {
+                                "cursor-not-allowed":
+                                  isFetchingImage || isLoading,
+                              }
+                            )}
+                            onClick={() => {
+                              if (!isFetchingImage || !isLoading) {
+                                setWebhookData(item);
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+            <div className="mt-2 col-span-2">
+              <button
+                type="button"
+                onClick={handleCreateEventSubmit}
+                className={`rounded-md px-5 w-full  bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
+                  isEventCreating ||
+                  isFetchingImage ||
+                  eventCreated?.success ||
+                  !response
+                    ? "opacity-60 cursor-not-allowed"
+                    : "opacity-100 cursor-pointer"
+                }`}
+                disabled={
+                  isEventCreating ||
+                  isFetchingImage ||
+                  eventCreated?.success ||
+                  !response
+                }
+              >
+                {isEventCreating ? "Creating Event..." : "Create Event"}
+              </button>
+              {eventCreated && (
+                <div className="rounded-lg p-4 space-y-3">
+                  <div className="flex items-center font-medium">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    {eventCreated.message}{" "}
+                    {eventCreated.message === "Event processing..." ? (
+                      <div
+                        className="text-sm text-blue-500"
+                        onClick={handleCreateEventSubmit}
+                      >
+                        Try again
+                      </div>
+                    ) : (
+                      ""
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6 mr-2"
+                        className="h-5 w-5 text-purple-500"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -1252,90 +1309,60 @@ export default function LiveFlyer() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
                         />
                       </svg>
-                      {eventCreated.message}{" "}
-                      {eventCreated.message === "Event processing..." ? (
-                        <div
-                          className="text-sm text-blue-500"
-                          onClick={handleCreateEventSubmit}
-                        >
-                          Try again
-                        </div>
-                      ) : (
-                        ""
-                      )}
+                      <Link
+                        href={sheetLink || ""}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-purple-600 hover:underline"
+                      >
+                        {sheetLink
+                          ? "View Spreadsheet"
+                          : "Failed to insert on spreadsheet"}
+                      </Link>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 text-purple-500"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                          />
-                        </svg>
-                        <Link
-                          href={sheetLink || ""}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-purple-600 hover:underline"
-                        >
-                          {sheetLink
-                            ? "View Spreadsheet"
-                            : "Failed to insert on spreadsheet"}
-                        </Link>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 text-purple-500"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 7V3m8 4V3m-9 8h10M5 11h14a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2z"
-                          />
-                        </svg>
-                        <Link
-                          href={calendarLink || ""}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-purple-600 hover:underline"
-                        >
-                          {calendarLink
-                            ? "Open Calendar Event"
-                            : "Failed to insert on calendar"}
-                        </Link>
-                      </div>
-
-                      {calendarLink && (
-                        <div className="text-sm text-gray-500">
-                          Alternatively, navigate to the Calendar tab
-                        </div>
-                      )}
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-purple-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 11h14a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2z"
+                        />
+                      </svg>
+                      <Link
+                        href={calendarLink || ""}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-purple-600 hover:underline"
+                      >
+                        {calendarLink
+                          ? "Open Calendar Event"
+                          : "Failed to insert on calendar"}
+                      </Link>
                     </div>
+
+                    {calendarLink && (
+                      <div className="text-sm text-gray-500">
+                        Alternatively, navigate to the Calendar tab
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
