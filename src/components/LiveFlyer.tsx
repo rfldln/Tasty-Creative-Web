@@ -496,7 +496,9 @@ export default function LiveFlyer() {
           <h1 className="text-2xl font-bold text-start">
             Live Flyer Generation
           </h1>
-          <p className="text-gray-400 text-sm">Create promotion flyers for upcoming live events</p>
+          <p className="text-gray-400 text-sm">
+            Create promotion flyers for upcoming live events
+          </p>
         </div>
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-2">
           <div className="col-span-2">
@@ -928,7 +930,7 @@ export default function LiveFlyer() {
         {showFilePicker && (
           <div className="fixed inset-0 px-4 lg:px-20 bg-black/60 flex items-center justify-center z-50">
             <div className="bg-black/80 rounded-lg px-6 pb-6  w-full max-h-[80vh] overflow-auto">
-              <div className="sticky top-0 pt-2 py-0.5">
+              <div className="sticky top-0 pt-2 py-0.5 bg-black/60">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">
                     {currentFolder
