@@ -93,9 +93,9 @@ export async function GET(request: NextRequest) {
         modifiedAt: null, // Set to null or fetch if available
       };
 
-      // Check if "Vault New - Autumn" exists inside the target folder
+      // Check if "Vault New - ${modelName}" exists inside the target folder
       const vaultNewSearchResponse = await drive.files.list({
-        q: `name = 'Vault New - Autumn' and '${targetFolder.id}' in parents and mimeType = 'application/vnd.google-apps.folder'`,
+        q: `name = 'Vault New - ${modelName}' and '${targetFolder.id}' in parents and mimeType = 'application/vnd.google-apps.folder'`,
         spaces: "drive",
         fields: "files(id, name, parents, mimeType)",
         pageSize: 1,
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       const vaultNewFolder = vaultNewSearchResponse.data.files?.[0];
 
       if (vaultNewFolder) {
-        console.log("Automatically navigating to Vault New - Autumn");
+        console.log("Automatically navigating to Vault New - ${modelName}");
         targetFolder = {
           id: vaultNewFolder.id,
           name: vaultNewFolder.name,
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
           modifiedAt: null, // Set to null or fetch if available
         };
 
-        // Check if "Wall Posts" exists inside the Vault New - Autumn folder
+        // Check if "Wall Posts" exists inside the Vault New - ${modelName} folder
         const wallPostsSearchResponse = await drive.files.list({
           q: `name = 'Wall Posts' and '${targetFolder.id}' in parents and mimeType = 'application/vnd.google-apps.folder'`,
           spaces: "drive",
