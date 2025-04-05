@@ -1076,7 +1076,7 @@ export default function LiveFlyer() {
             Live flyer preview will appear here
           </p>
         </div>
-        {formData.customRequest === true ? (
+        {formData.customRequest === true && requestSent ? (
           <div className="flex items-center h-full justify-center w-full p-4">
             <div
               className={cn(
