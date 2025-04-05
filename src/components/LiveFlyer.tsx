@@ -1023,6 +1023,7 @@ export default function LiveFlyer() {
                               alt={file.name}
                               className="max-h-full object-contain"
                               loading="lazy"
+                              unoptimized
                             />
                           ) : (
                             <svg
