@@ -1239,6 +1239,7 @@ export default function LiveFlyer() {
                             alt="Generated Flyer"
                             width={200}
                             height={200}
+                            unoptimized
                             className={cn(
                               "object-contain max-h-full rounded-md max-w-full cursor-pointer",
                               {
