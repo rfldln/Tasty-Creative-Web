@@ -691,6 +691,7 @@ export default function LiveFlyer() {
                             height={200}
                             className="w-full h-full object-contain"
                             loading="lazy"
+                            unoptimized
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
