@@ -690,6 +690,7 @@ export default function LiveFlyer() {
                             width={200}
                             height={200}
                             className="w-full h-full object-contain"
+                            loading="lazy"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
@@ -1021,6 +1022,7 @@ export default function LiveFlyer() {
                               height={200}
                               alt={file.name}
                               className="max-h-full object-contain"
+                              loading="lazy"
                             />
                           ) : (
                             <svg
@@ -1115,6 +1117,7 @@ export default function LiveFlyer() {
                       width={400}
                       height={400}
                       className="object-contain max-h-full max-w-full"
+                      loading="lazy"
                       unoptimized={selectedImage.thumbnailLink
                         .toLocaleLowerCase()
                         .endsWith(".heic")}
@@ -1246,6 +1249,7 @@ export default function LiveFlyer() {
                                 setWebhookData(item);
                               }
                             }}
+                            loading="lazy"
                           />
                         </div>
                       </div>
