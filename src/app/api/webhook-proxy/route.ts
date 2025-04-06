@@ -1,15 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const webhookUrl = process.env.WEBHOOK_URL!;
 const discordWebhookUrl = process.env.DISCORD_BOT_WEBHOOK_URL!;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
 
     // Get isCustomRequest from form data
     const isCustomRequest = formData.get("isCustomRequest") === "true";
-
     console.log("isCustomRequest", isCustomRequest);
 
     // Prepare FormData for forwarding
@@ -17,7 +16,6 @@ export async function POST(request: Request) {
 
     formData.forEach((value, key) => {
       if (key === "model" && typeof value === "string") {
-        // Extract value inside parentheses if present (e.g., "Victoria (V)" → "V")
         const match = value.match(/\(([^)]+)\)$/);
         const formattedModel = match ? match[1] : value;
         forwardData.append("model", formattedModel);
@@ -32,14 +30,26 @@ export async function POST(request: Request) {
       forwardData.append("data", imageFile, imageFile.name);
     }
 
-    // Determine which URL to use based on isCustomRequest
+    // 🧠 Extract google_user from cookie
+    const userCookie = request.cookies.get("google_user")?.value;
+    if (userCookie) {
+      try {
+        const user = JSON.parse(userCookie);
+        if (user?.name) forwardData.append("user_name", user.name);
+        if (user?.email) forwardData.append("user_email", user.email);
+      } catch (err) {
+        console.error("Failed to parse google_user cookie:", err);
+      }
+    }
+
+    // Determine which URL to use
     const targetUrl = isCustomRequest ? discordWebhookUrl : webhookUrl;
     console.log("targetUrl", targetUrl);
 
     // Forward the request
     const response = await fetch(targetUrl, {
       method: "POST",
-      body: forwardData, // Forward as FormData
+      body: forwardData,
     });
 
     const textData = await response.text();
