@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/spreadsheets",
+    "profile",
+    "email", 
   ];
 
   const authUrl = oauth2Client.generateAuthUrl({
