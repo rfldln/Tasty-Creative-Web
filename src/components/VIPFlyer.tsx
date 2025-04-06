@@ -99,6 +99,7 @@ export default function FlyerGenerator() {
                       className="max-h-full max-w-full object-contain z-10"
                       width={1080}
                       height={1350}
+                      unoptimized
                     />
                   )}
 
@@ -109,6 +110,7 @@ export default function FlyerGenerator() {
                     className="absolute top-0 left-0 max-h-full max-w-full object-contain z-20"
                     width={1080}
                     height={1350}
+                    unoptimized
                   />
 
                   {/* Image label */}

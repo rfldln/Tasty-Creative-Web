@@ -133,6 +133,7 @@ export default function ImageCropper({
                 onLoad={onImageLoad}
                 width={1080}
                 height={1350}
+                unoptimized
               />
             </ReactCrop>
           </div>
