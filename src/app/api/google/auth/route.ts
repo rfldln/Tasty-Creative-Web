@@ -9,10 +9,12 @@ const oauth2Client = new google.auth.OAuth2(
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const tab = searchParams.get("tab") || "live";
+  const tab = searchParams.get("tab");
   const scopes = [
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/drive.readonly",
+    'https://www.googleapis.com/auth/drive.metadata.readonly',
+    "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/spreadsheets",
     "profile",
     "email", 

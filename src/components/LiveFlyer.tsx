@@ -234,19 +234,19 @@ export default function LiveFlyer() {
 
       // Append text data
       formDataToSend.append("customImage", String(formData.customImage));
-      formDataToSend.append("date", formData.date);
-      formDataToSend.append("model", formData.model);
+      formDataToSend.append("date", formData.date || "");
+      formDataToSend.append("model", formData.model || "");
       formDataToSend.append("paid", String(formData.paid));
-      formDataToSend.append("time", formData.time);
-      formDataToSend.append("timezone", formData.timezone);
-      formDataToSend.append("imageId", formData.imageId);
+      formDataToSend.append("time", formData.time || "");
+      formDataToSend.append("timezone", formData.timezone || "");
+      formDataToSend.append("imageId", formData.imageId || "");
       formDataToSend.append("requestId", requestId);
       formDataToSend.append("timestamp", new Date().toISOString());
       formDataToSend.append("imageName", formData.imageName || "");
       formDataToSend.append("noOfTemplate", String(formData.noOfTemplate));
       formDataToSend.append("isCustomRequest", String(formData.customRequest));
-      formDataToSend.append("customDetails", formData.customDetails);
-      formDataToSend.append("type", formData.type);
+      formDataToSend.append("customDetails", formData.customDetails || "");
+      formDataToSend.append("type", formData.type || "");
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
