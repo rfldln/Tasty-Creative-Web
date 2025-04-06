@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
       account_2: process.env.ELEVENLABS_KEY_ACCOUNT_2,
       account_3: process.env.ELEVENLABS_KEY_ACCOUNT_3,
       account_4: process.env.ELEVENLABS_KEY_ACCOUNT_4,
-      account_5: process.env.ELEVENLABS_KEY_ACCOUNT_5, // Added new account
+      account_5: process.env.ELEVENLABS_KEY_ACCOUNT_5,
+      account_6: process.env.ELEVENLABS_KEY_ACCOUNT_6,
     };
     
     const apiKey = API_KEY_MAP[apiKeyProfileKey];
