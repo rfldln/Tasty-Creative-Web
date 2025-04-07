@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 const webhookUrl = process.env.WEBHOOK_URL!;
 const discordWebhookUrl = process.env.DISCORD_BOT_WEBHOOK_URL!;
-
+const vipWebhookUrl = process.env.VIP_WEBHOOK_URL!;
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
 
     // Get isCustomRequest from form data
     const isCustomRequest = formData.get("isCustomRequest") === "true";
-    console.log("isCustomRequest", isCustomRequest);
+    const isVip = formData.get("type") === "VIP";
 
     // Prepare FormData for forwarding
     const forwardData = new FormData();
@@ -43,7 +43,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine which URL to use
-    const targetUrl = isCustomRequest ? discordWebhookUrl : webhookUrl;
+    const targetUrl = isCustomRequest
+      ? discordWebhookUrl
+      : isVip
+      ? vipWebhookUrl
+      : webhookUrl;
     console.log("targetUrl", targetUrl);
 
     // Forward the request
