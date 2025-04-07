@@ -1,14 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ImageCropper from "./ImageCropper";
 import Image from "next/image";
+import ModelsDropdown from "./ModelsDropdown";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function FlyerGenerator() {
-  const [formData, setFormData] = useState({
-    croppedImage: null as string | null,
+  const router = useRouter();
+
+  const searchParams = useSearchParams();
+  const tabValue = searchParams.get("tab") || "vip";
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingImage, setIsFetchingImage] = useState(false);
+  const [webhookData, setWebhookData] = useState(null);
+  const [error, setError] = useState(null);
+  const [formData, setFormData] = useState<ModelFormData>({
+    croppedImage: null,
     templatePosition: "LEFT",
   });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/google/check-auth");
+        const data = await res.json();
+
+        if (!data.authenticated) {
+          // Get the current tab from URL or default to 'live'
+          const currentTab = tabValue || "vip";
+
+          // Include the current tab in the auth request
+          const authRes = await fetch(
+            `/api/google/auth?tab=${encodeURIComponent(currentTab)}`
+          );
+          const authData = await authRes.json();
+
+          if (authData.authUrl) {
+            // Append the tab parameter to the auth URL
+            const authUrlWithTab = new URL(authData.authUrl);
+            authUrlWithTab.searchParams.set(
+              "state",
+              JSON.stringify({ tab: currentTab })
+            );
+
+            window.location.href = authUrlWithTab.toString();
+          }
+        } else {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Authentication check failed", error);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleCropComplete = (croppedImage: string) => {
     setFormData({
@@ -29,8 +76,29 @@ export default function FlyerGenerator() {
           Create promotional materials for VIP subscription benefits
         </p>
 
-        <form className="space-y-6">
-          <div className="flex gap-4">
+        <form className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <ModelsDropdown
+              formData={formData}
+              setFormData={setFormData}
+              isLoading={isLoading}
+              isFetchingImage={isFetchingImage}
+              webhookData={webhookData}
+            />
+          </div>
+
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-2">
+              Download and Crop Image
+            </label>
+            <ImageCropper
+              onCropComplete={handleCropComplete}
+              aspectRatio={4 / 5} // For 1080:1350 aspect ratio
+              model={formData.model}
+            />
+          </div>
+
+          <div className="flex gap-4 col-span-2">
             <div>
               <label className="block text-sm font-medium mb-2">
                 Template Position
@@ -58,22 +126,31 @@ export default function FlyerGenerator() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Upload and Crop Image
-            </label>
-            <ImageCropper
-              onCropComplete={handleCropComplete}
-              aspectRatio={4 / 5} // For 1080:1350 aspect ratio
-            />
+          <div className="mt-2 col-span-2">
+            <button
+              type="submit"
+              className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
+                isLoading || isFetchingImage
+                  ? "opacity-60 cursor-not-allowed"
+                  : "opacity-100"
+              }`}
+              disabled={isLoading || isFetchingImage}
+            >
+              {formData.customRequest ? (
+                <span>
+                  {isLoading || isFetchingImage
+                    ? "Sending..."
+                    : "Send Custom Request"}
+                </span>
+              ) : (
+                <span>
+                  {isLoading || isFetchingImage
+                    ? "Generating..."
+                    : "Generate VIP Flyer"}
+                </span>
+              )}
+            </button>
           </div>
-
-          <button
-            onClick={generateFlyer}
-            className="w-full py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-md font-medium hover:from-purple-600 hover:to-blue-600 transition-colors"
-          >
-            Generate Live Flyer
-          </button>
         </form>
       </div>
 
@@ -123,8 +200,22 @@ export default function FlyerGenerator() {
               )}
             </div>
 
-            {/* Arrow */}
-            <div className="text-3xl">➔</div>
+            <div className="flex items-center justify-center rotate-90 lg:rotate-0">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </div>
 
             {/* Flyer Image */}
             <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -133,7 +224,13 @@ export default function FlyerGenerator() {
           </div>
 
           {/* Button */}
-          <button className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md font-medium hover:from-blue-600 hover:to-purple-600 transition-colors">
+          <button
+            className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
+              isLoading || isFetchingImage
+                ? "opacity-60 cursor-not-allowed"
+                : "opacity-100"
+            }`}
+          >
             Create Event
           </button>
         </div>
