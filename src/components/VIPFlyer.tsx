@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import ImageCropper from "./ImageCropper";
 import Image from "next/image";
 import ModelsDropdown from "./ModelsDropdown";
 import { useRouter, useSearchParams } from "next/navigation";
+import { POSITIONS } from "@/lib/lib";
+import { v4 as uuidv4 } from "uuid";
+import Link from "next/link";
+import { convertToPreviewLink } from "@/lib/utils";
 
 export default function FlyerGenerator() {
   const router = useRouter();
@@ -13,12 +17,31 @@ export default function FlyerGenerator() {
   const tabValue = searchParams.get("tab") || "vip";
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingImage, setIsFetchingImage] = useState(false);
-  const [webhookData, setWebhookData] = useState(null);
-  const [error, setError] = useState(null);
+  interface WebhookResponse {
+    thumbnail: string;
+    webViewLink: string;
+    imageId?: string;
+    requestId?: string;
+  }
+
+  const [webhookData, setWebhookData] = useState<WebhookResponse | null>(null);
+  const [itemReceived, setItemReceived] = useState(0);
+  const [response, setResponse] = useState<{ error?: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const lastCheckTimestamp = useRef(0);
+  const checkInterval = useRef<NodeJS.Timeout | null>(null);
+  const [history, setHistory] = useState<WebhookResponse[]>([]);
+
   const [formData, setFormData] = useState<ModelFormData>({
     croppedImage: null,
     templatePosition: "LEFT",
+    type: "VIP",
+    options: ["NSFW", "Custom", "Calls"],
+    customImage: true,
+    noOfTemplate: 1,
   });
+
+  console.log("Form Data:", formData);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -64,9 +87,157 @@ export default function FlyerGenerator() {
     });
   };
 
-  const generateFlyer = () => {};
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    // setIsProcessing(true);
+    setIsFetchingImage(true);
+    setItemReceived(0);
+    // const result = liveFlyerValidation.safeParse(formData);
+    // if (!result.success) {
+    //   setError(JSON.stringify(result.error.format()));
+    //   setIsLoading(false);
+    //   return;
+    // }
 
-  const positions = ["LEFT", "RIGHT", "BOTTOM"];
+    const requestId = uuidv4(); // Generate unique ID
+    const webhookUrl = "/api/webhook-proxy";
+
+    try {
+      const formDataToSend = new FormData();
+
+      // Append text data
+      formDataToSend.append("customImage", String(formData.customImage));
+      formDataToSend.append("date", formData.date || "");
+      formDataToSend.append("model", formData.model || "");
+      formDataToSend.append("paid", String(formData.paid));
+      formDataToSend.append("time", formData.time || "");
+      formDataToSend.append("timezone", formData.timezone || "");
+      formDataToSend.append("imageId", formData.imageId || "");
+      formDataToSend.append("requestId", requestId);
+      formDataToSend.append("timestamp", new Date().toISOString());
+      formDataToSend.append("imageName", formData.imageName || "");
+      formDataToSend.append("noOfTemplate", String(formData.noOfTemplate));
+      formDataToSend.append("isCustomRequest", String(formData.customRequest));
+      formDataToSend.append("customDetails", formData.customDetails || "");
+      formDataToSend.append("type", formData.type || "");
+      formDataToSend.append("options", String(formData.options || []));
+      formDataToSend.append("croppedImage", formData.croppedImage || "");
+      formDataToSend.append(
+        "templatePosition",
+        formData.templatePosition || ""
+      );
+
+      // Append the file if it exists
+      if (formDataToSend.has("imageFile")) {
+        formDataToSend.delete("imageFile"); // Ensure only one instance
+      }
+      if (formData.imageFile && formData.customImage) {
+        formDataToSend.append("imageFile", formData.imageFile);
+      }
+
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        body: formDataToSend, // Send as FormData (automatically sets correct headers)
+      });
+
+      // Read the response correctly
+      const textData = await response.text();
+      try {
+        const jsonData = JSON.parse(textData);
+        setResponse(jsonData);
+      } catch {
+        setResponse({ error: "Invalid JSON response from webhook" });
+      }
+
+      // if (formData.customRequest != true) {
+      //   startChecking(requestId); // Start checking using requestId
+      // }
+      // if (formData.customRequest == true) {
+      //   setIsFetchingImage(false);
+      //   setIsLoading(false);
+      //   setRequestSent(true);
+      // }
+
+      if (textData.includes("404")) {
+        setResponse({ error: "Failed to call webhook" });
+        setError(textData);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Error calling webhook:", error);
+      setResponse({ error: "Failed to call webhook" });
+      // setIsProcessing(false);
+    } finally {
+      startChecking(requestId);
+      setIsLoading(false);
+    }
+  };
+
+  const fetchWebhookData = async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/webhook?requestId=${requestId}`);
+
+      if (!response.ok) {
+        console.error("Webhook data request failed:", response.statusText);
+        return;
+      }
+
+      const result = await response.json();
+
+      if (!result || !result.data) {
+        console.warn("No data found for requestId:", requestId);
+        return;
+      }
+
+      if (result.timestamp > lastCheckTimestamp.current) {
+        setWebhookData(result.data);
+        setFormData((prev) => ({
+          ...prev,
+          thumbnail: result.data.thumbnail,
+          webViewLink: result.data.webViewLink,
+        }));
+        setHistory((prev) => [...prev, result.data]);
+        lastCheckTimestamp.current = result.timestamp;
+        setItemReceived((prev) => prev + 1);
+        // setIsProcessing(false);
+      }
+    } catch (error) {
+      console.error("Error fetching webhook data:", error);
+    }
+  };
+
+  const startChecking = (requestId: string) => {
+    if (checkInterval.current) {
+      clearInterval(checkInterval.current);
+      checkInterval.current = null;
+    }
+
+    checkInterval.current = setInterval(() => {
+      fetchWebhookData(requestId);
+    }, 2000);
+  };
+
+  // Effect to stop checking when webhookData is updated
+  useEffect(() => {
+    const totalTemplates = Number(formData.noOfTemplate);
+    if (itemReceived === totalTemplates) {
+      // setIsProcessing(false);
+
+      stopChecking();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [webhookData]);
+
+  // Check for initial data on mount
+
+  const stopChecking = () => {
+    if (checkInterval.current) {
+      clearInterval(checkInterval.current);
+      checkInterval.current = null;
+    }
+    setIsFetchingImage(false);
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6  text-white min-h-screen">
@@ -76,7 +247,7 @@ export default function FlyerGenerator() {
           Create promotional materials for VIP subscription benefits
         </p>
 
-        <form className="grid grid-cols-2 gap-4">
+        <form className="grid grid-cols-2 gap-4" onSubmit={handleSubmit}>
           <div className="col-span-2">
             <ModelsDropdown
               formData={formData}
@@ -98,14 +269,60 @@ export default function FlyerGenerator() {
             />
           </div>
 
+          {/* Added Checkbox Options */}
+          <div className="col-span-2 mt-2">
+            <label className="block text-sm font-medium mb-2">Options</label>
+            <div className="flex flex-wrap gap-4">
+              {Object.entries({
+                NSFW: true,
+                Custom: true,
+                Calls: true,
+              }).map(([option, defaultValue]) => (
+                <label
+                  key={option}
+                  className="flex items-center space-x-2 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    name={option}
+                    defaultChecked={defaultValue}
+                    onChange={(e) => {
+                      const currentOptions = [...(formData.options || [])];
+                      if (e.target.checked) {
+                        if (!currentOptions.includes(option)) {
+                          setFormData({
+                            ...formData,
+                            options: [...currentOptions, option],
+                          });
+                        }
+                      } else {
+                        setFormData({
+                          ...formData,
+                          options: currentOptions.filter(
+                            (item) => item !== option
+                          ),
+                        });
+                      }
+                    }}
+                    className="cursor-pointer accent-purple-600 rounded"
+                  />
+                  <span className="text-sm">{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="flex gap-4 col-span-2">
             <div>
               <label className="block text-sm font-medium mb-2">
                 Template Position
               </label>
               <div className="flex space-x-4">
-                {positions.map((position) => (
-                  <label key={position} className="flex items-center space-x-2">
+                {POSITIONS.map((position) => (
+                  <label
+                    key={position}
+                    className="flex items-center cursor-pointer space-x-2"
+                  >
                     <input
                       type="radio"
                       name="templatePosition"
@@ -116,7 +333,7 @@ export default function FlyerGenerator() {
                           templatePosition: e.target.value,
                         })
                       }
-                      className="text-gray-800"
+                      className=" text-purple-600 accent-purple-600 cursor-pointer rounded"
                       checked={formData.templatePosition === position}
                     />
                     <span className="text-sm">{position}</span>
@@ -134,7 +351,7 @@ export default function FlyerGenerator() {
                   ? "opacity-60 cursor-not-allowed"
                   : "opacity-100"
               }`}
-              disabled={isLoading || isFetchingImage}
+              // disabled={isLoading || isFetchingImage}
             >
               {formData.customRequest ? (
                 <span>
@@ -163,7 +380,7 @@ export default function FlyerGenerator() {
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-between items-center gap-4">
+          <div className="flex lg:flex-row flex-col justify-center items-center gap-4 ">
             {/* Preview Image */}
             <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
               {formData.croppedImage || formData.templatePosition ? (
@@ -219,13 +436,36 @@ export default function FlyerGenerator() {
 
             {/* Flyer Image */}
             <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center flex-shrink-0">
-              <p className="text-gray-500">Flyer not yet generated</p>
+              {!webhookData && (
+                <p className="text-gray-500">Flyer not yet generated</p>
+              )}
+              {webhookData && webhookData.webViewLink && (
+                <div>
+                  <Link
+                    href={webhookData.webViewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-full w-full flex items-center justify-center"
+                    title="Click to view flyer"
+                  >
+                    <iframe
+                      src={convertToPreviewLink(webhookData.webViewLink)}
+                      width={400}
+                      height={400}
+                      frameBorder="0"
+                      allowFullScreen
+                      title="Live Flyer Preview"
+                      className="object-contain max-h-full max-w-full rounded-md"
+                    />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Button */}
           <button
-            className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
+            className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
               isLoading || isFetchingImage
                 ? "opacity-60 cursor-not-allowed"
                 : "opacity-100"

@@ -17,6 +17,8 @@ type ModelFormData = {
   type?: string;
   croppedImage?: string | null;
   templatePosition?: string
+  options?: string[];
+
 };
 
 type ModelsDropdownProps = {
