@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       const inputBuffer = Buffer.concat(chunks);
 
       const outputBuffer = await heicConvert({
-        buffer: inputBuffer,
+        buffer: inputBuffer as unknown as ArrayBuffer,
         format: "JPEG",
         quality: 0.9,
       });

@@ -322,7 +322,7 @@ export default function ImageCropper({
               : "Select a Model First"
             : isListing
             ? "Opening folder..."
-            : "Connect to Google Drive"}
+            : "Connecting to Google Drive"}
         </button>
       </div>
 
