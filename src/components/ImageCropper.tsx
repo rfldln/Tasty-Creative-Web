@@ -1,8 +1,15 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { cn } from "@/lib/utils";
 import Image from "next/image";
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useTransition,
+} from "react";
 import ReactCrop, {
   Crop,
   PixelCrop,
@@ -47,6 +54,8 @@ export default function ImageCropper({
   );
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [isGooglePickerLoading, setIsGooglePickerLoading] = useState(false);
+  const [isDownloading, startDownloadTransition] = useTransition();
+  const [isListing, startListTransition] = useTransition();
 
   // Check auth status on mount
   useEffect(() => {
@@ -91,34 +100,36 @@ export default function ImageCropper({
     }
 
     try {
-      setIsGooglePickerLoading(true);
-      // If a model is selected, try to find its folder
-      let url = "/api/google-drive/list";
-      if (model) {
-        url += `?folderName=${model}`;
-      }
+      startListTransition(async () => {
+        setIsGooglePickerLoading(true);
+        // If a model is selected, try to find its folder
+        let url = "/api/google-drive/list";
+        if (model) {
+          url += `?folderName=${model}`;
+        }
 
-      const response = await fetch(url);
+        const response = await fetch(url);
 
-      // if (!response.ok) {
-      //   if (response.status === 401) {
-      //     setIsAuthenticated(false);
-      //     handleGoogleDriveAuth();
-      //     return;
-      //   }
-      //   throw new Error("Failed to fetch Google Drive files");
-      // }
+        // if (!response.ok) {
+        //   if (response.status === 401) {
+        //     setIsAuthenticated(false);
+        //     handleGoogleDriveAuth();
+        //     return;
+        //   }
+        //   throw new Error("Failed to fetch Google Drive files");
+        // }
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.files) {
-        setGoogleFiles(data.files);
-        setCurrentFolder(data.currentFolder || null);
-        setParentFolder(data.parentFolder || null);
-        setShowFilePicker(true);
-      } else {
-        alert("No images found in the selected folder");
-      }
+        if (data.files) {
+          setGoogleFiles(data.files);
+          setCurrentFolder(data.currentFolder || null);
+          setParentFolder(data.parentFolder || null);
+          setShowFilePicker(true);
+        } else {
+          alert("No images found in the selected folder");
+        }
+      });
     } catch (error) {
       console.error("Error selecting from Google Drive:", error);
       alert("Failed to connect to Google Drive");
@@ -183,17 +194,21 @@ export default function ImageCropper({
 
     try {
       // Fetch the image file from Google Drive
-      const response = await fetch(`/api/google-drive/download?id=${file.id}`);
-      if (!response.ok) {
-        throw new Error("Failed to download image");
-      }
+      startDownloadTransition(async () => {
+        const response = await fetch(
+          `/api/google-drive/download?id=${file.id}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to download image");
+        }
 
-      const blob = await response.blob();
-      const imageUrl = URL.createObjectURL(blob);
+        const blob = await response.blob();
+        const imageUrl = URL.createObjectURL(blob);
 
-      setSelectedImage(imageUrl);
-      setCrop(undefined); // Reset crop when new image is loaded
-      setShowFilePicker(false);
+        setSelectedImage(imageUrl);
+        setCrop(undefined); // Reset crop when new image is loaded
+        setShowFilePicker(false);
+      });
     } catch (error) {
       console.error("Error loading image:", error);
       alert("Failed to load selected image");
@@ -283,7 +298,7 @@ export default function ImageCropper({
           type="button"
           disabled={!model}
           onClick={handleGoogleDriveSelect}
-          className="px-4 w-full py-2 bg-black/60 text-white rounded-full 
+          className="px-4 w-full py-2 bg-black/60 text-white rounded-lg
             flex items-center justify-center gap-2"
         >
           <svg
@@ -301,10 +316,12 @@ export default function ImageCropper({
             <line x1="16" y1="5" x2="22" y2="5"></line>
             <line x1="16" y1="5" x2="12" y2="9"></line>
           </svg>
-          {isAuthenticated
+          {isAuthenticated && !isListing
             ? model
               ? `Select from ${model} folder`
               : "Select a Model First"
+            : isListing
+            ? "Opening folder..."
             : "Connect to Google Drive"}
         </button>
       </div>
@@ -355,7 +372,39 @@ export default function ImageCropper({
       {/* Google Drive File Picker Modal */}
       {showFilePicker && (
         <div className="fixed inset-0 px-4 lg:px-20 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-black/80 rounded-lg px-6 pb-6 w-full max-h-[80vh] overflow-auto">
+          <div
+            className={cn(
+              "bg-black/80 rounded-lg px-6 pb-6 w-full max-h-[80vh] overflow-auto relative",
+              { "overflow-hidden": isDownloading }
+            )}
+          >
+            {isDownloading && (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-black/90 absolute overflow-hidden">
+                <svg
+                  className="animate-spin h-8 w-8 text-purple-500 mb-2"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <span className="text-sm text-gray-500">
+                  Downloading Image...
+                </span>
+              </div>
+            )}
             <div className="sticky top-0 pt-2 py-0.5 bg-black/60">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium">

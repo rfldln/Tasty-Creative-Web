@@ -1,7 +1,8 @@
-// app/api/google-drive/download/route.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { google } from "googleapis";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import heicConvert from "heic-convert";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Parse tokens
     const { access_token, refresh_token } = JSON.parse(
       decodeURIComponent(authTokensCookie)
     );
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -35,67 +36,56 @@ export async function GET(request: Request) {
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // Verify file exists and get metadata
-    let fileMeta;
-    try {
-      const res = await drive.files.get({
-        fileId,
-        fields:
-          "id,name,mimeType,size,capabilities,permissions,shared,sharingUser,owners,trashed",
-        supportsAllDrives: true,
-      });
-      fileMeta = res.data;
-      console.log("File metadata:", JSON.stringify(fileMeta, null, 2));
-    } catch (metaError) {
-      console.error("Metadata error:", metaError);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((metaError as any).code === 404) {
-        return NextResponse.json(
-          { error: "File not found or you don't have permission to access it" },
-          { status: 404 }
-        );
+    const { data: fileMeta } = await drive.files.get({
+      fileId,
+      fields: "id,name,mimeType",
+      supportsAllDrives: true,
+    });
+
+    const mimeType = fileMeta.mimeType || "application/octet-stream";
+    const isHEIC = mimeType === "image/heic" || mimeType === "image/heif";
+
+    const response = await drive.files.get(
+      { fileId, alt: "media" },
+      { responseType: "stream" }
+    );
+
+    if (isHEIC) {
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of response.data) {
+        chunks.push(chunk);
       }
-      throw metaError;
-    }
 
-    // Download file content
-    try {
-      const response = await drive.files.get(
-        { fileId, alt: "media" },
-        { responseType: "stream" }
-      );
+      const inputBuffer = Buffer.concat(chunks);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return new NextResponse(response.data as any, {
+      const outputBuffer = await heicConvert({
+        buffer: inputBuffer,
+        format: "JPEG",
+        quality: 0.9,
+      });
+      
+
+      return new NextResponse(outputBuffer, {
         headers: {
-          "Content-Type": fileMeta.mimeType || "application/octet-stream",
+          "Content-Type": "image/jpeg",
           "Content-Disposition": `attachment; filename="${encodeURIComponent(
-            fileMeta.name || "file"
+            (fileMeta.name || "file").replace(/\.\w+$/, ".jpg")
           )}"`,
         },
       });
-    } catch (downloadError) {
-      console.error("Download error:", downloadError);
-      return NextResponse.json(
-        { error: "Failed to download file content" },
-        { status: 500 }
-      );
     }
+
+    // Non-HEIC: return as-is
+    return new NextResponse(response.data as any, {
+      headers: {
+        "Content-Type": mimeType,
+        "Content-Disposition": `attachment; filename="${encodeURIComponent(
+          fileMeta.name || "file"
+        )}"`,
+      },
+    });
   } catch (error) {
     console.error("API error:", error);
-
-    // Handle token refresh if needed
-    if (
-      error instanceof Error &&
-      (error.message.includes("invalid_grant") ||
-        error.message.includes("token expired"))
-    ) {
-      return NextResponse.json(
-        { error: "Session expired. Please re-authenticate." },
-        { status: 401 }
-      );
-    }
-
     return NextResponse.json(
       {
         error:
