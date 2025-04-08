@@ -435,7 +435,7 @@ export default function FlyerGenerator() {
             </div>
 
             {/* Flyer Image */}
-            <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
               {!webhookData && (
                 <p className="text-gray-500">Flyer not yet generated</p>
               )}
@@ -455,7 +455,7 @@ export default function FlyerGenerator() {
                       frameBorder="0"
                       allowFullScreen
                       title="Live Flyer Preview"
-                      className="object-contain max-h-full max-w-full rounded-md"
+                      className="h-full w-full object-contain rounded-md"
                     />
                   </Link>
                 </div>
