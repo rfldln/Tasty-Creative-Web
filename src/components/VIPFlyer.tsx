@@ -440,25 +440,23 @@ export default function FlyerGenerator() {
                 <p className="text-gray-500">Flyer not yet generated</p>
               )}
               {webhookData && webhookData.webViewLink && (
-                <div>
-                  <Link
-                    href={webhookData.webViewLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="h-full w-full flex items-center justify-center"
-                    title="Click to view flyer"
-                  >
-                    <iframe
-                      src={convertToPreviewLink(webhookData.webViewLink)}
-                      width={400}
-                      height={400}
-                      frameBorder="0"
-                      allowFullScreen
-                      title="Live Flyer Preview"
-                      className="h-full w-full object-contain rounded-md"
-                    />
-                  </Link>
-                </div>
+                <Link
+                  href={webhookData.webViewLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-full w-full flex items-center justify-center"
+                  title="Click to view flyer"
+                >
+                  <iframe
+                    src={convertToPreviewLink(webhookData.webViewLink)}
+                    width={400}
+                    height={400}
+                    frameBorder="0"
+                    allowFullScreen
+                    title="Live Flyer Preview"
+                    className="h-full w-full object-contain rounded-md"
+                  />
+                </Link>
               )}
             </div>
           </div>

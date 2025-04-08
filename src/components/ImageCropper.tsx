@@ -350,11 +350,11 @@ export default function ImageCropper({
             </ReactCrop>
           </div>
 
-          <div className="flex flex-wrap gap-4 justify-center">
+          <div className="flex w-full items-center gap-4">
             <button
               type="button"
               onClick={generateCroppedImage}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2  bg-purple-500 text-white rounded-md hover:bg-blue-700"
               disabled={!completedCrop}
             >
               Apply Crop
