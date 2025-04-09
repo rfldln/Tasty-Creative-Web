@@ -523,6 +523,7 @@ export default function LiveFlyer() {
     });
   };
 
+
   return (
     <div className="flex flex-col lg:flex-row gap-5">
       <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
@@ -1198,7 +1199,7 @@ export default function LiveFlyer() {
               </div>
 
               {isFetchingImage ? (
-                <div className="w-full lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded-md bg-black/40">
+                <div className="w-full relative overflow-hidden lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded-md bg-black/40">
                   <div className="flex flex-col items-center justify-center">
                     <svg
                       className="animate-spin h-8 w-8 text-purple-500 mb-2"
@@ -1221,6 +1222,13 @@ export default function LiveFlyer() {
                       ></path>
                     </svg>
                     <span className="text-sm text-gray-500">Generating...</span>
+                    <button
+                      type="button"
+                      onClick={stopChecking}
+                      className="absolute bottom-0 py-2 w-full bg-black/60 text-gray-500 rounded-t-md cursor-pointer"
+                    >
+                      Stop Generating
+                    </button>
                   </div>
                 </div>
               ) : webhookData &&
