@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { DateTime } from "luxon";
 
 export default function LiveFlyer() {
   const router = useRouter();
@@ -88,7 +89,6 @@ export default function LiveFlyer() {
   const [sheetLink, setSheetLink] = useState<string | null>(null);
   const [calendarLink, setCalendarLink] = useState<string | null>(null);
 
-
   const [eventCreated, setEventCreated] = useState<{
     success: boolean;
     message: string;
@@ -108,6 +108,38 @@ export default function LiveFlyer() {
     customDetails: "",
     type: "LIVE",
   });
+
+  useEffect(() => {
+    const { date, time, timezone } = formData;
+
+    if (!date || !time || !timezone) return;
+
+    try {
+      // Combine the date and time, then parse it with the timezone
+      const selectedDateTime = DateTime.fromFormat(
+        `${date} ${time}`,
+        "yyyy-MM-dd HH:mm",
+        {
+          zone: timezone,
+        }
+      );
+
+      // Get "today" in the same timezone
+      const nowInZone = DateTime.now().setZone(timezone);
+
+      const isToday =
+        selectedDateTime.hasSame(nowInZone, "day") &&
+        selectedDateTime.hasSame(nowInZone, "month") &&
+        selectedDateTime.hasSame(nowInZone, "year");
+
+      setFormData((prev) => ({
+        ...prev,
+        header: isToday ? "Live Tonight" : "Going Live",
+      }));
+    } catch (err) {
+      console.error("Invalid date/time/timezone format:", err);
+    }
+  }, [formData.date, formData.time, formData.timezone]);
 
   console.log("Form Data:", formData);
 
@@ -247,6 +279,7 @@ export default function LiveFlyer() {
       formDataToSend.append("isCustomRequest", String(formData.customRequest));
       formDataToSend.append("customDetails", formData.customDetails || "");
       formDataToSend.append("type", formData.type || "");
+      formDataToSend.append("header", formData.header || "");
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
