@@ -523,6 +523,9 @@ export default function LiveFlyer() {
     });
   };
 
+  const handleStopGenerating = () => {
+    stopChecking();
+  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-5">
@@ -1224,7 +1227,7 @@ export default function LiveFlyer() {
                     <span className="text-sm text-gray-500">Generating...</span>
                     <button
                       type="button"
-                      onClick={stopChecking}
+                      onClick={handleStopGenerating}
                       className="absolute bottom-0 py-2 w-full bg-black/60 text-gray-500 rounded-t-md cursor-pointer"
                     >
                       Stop Generating

@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { POSITIONS } from "@/lib/lib";
 import { v4 as uuidv4 } from "uuid";
 import Link from "next/link";
-import { convertToPreviewLink } from "@/lib/utils";
+import { cn, convertToPreviewLink } from "@/lib/utils";
 
 export default function FlyerGenerator() {
   const router = useRouter();
@@ -239,6 +239,10 @@ export default function FlyerGenerator() {
     setIsFetchingImage(false);
   };
 
+  const handleStopGenerating = () => {
+    stopChecking()
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6  text-white min-h-screen">
       <div className="bg-black/20 border border-white/10 p-6 rounded-lg">
@@ -347,11 +351,11 @@ export default function FlyerGenerator() {
             <button
               type="submit"
               className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
-                isLoading || isFetchingImage
+                isLoading || isFetchingImage || !formData.croppedImage
                   ? "opacity-60 cursor-not-allowed"
                   : "opacity-100"
               }`}
-              // disabled={isLoading || isFetchingImage}
+              disabled={isLoading || isFetchingImage || !formData.croppedImage}
             >
               {formData.customRequest ? (
                 <span>
@@ -435,11 +439,43 @@ export default function FlyerGenerator() {
             </div>
 
             {/* Flyer Image */}
-            <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-              {!webhookData && (
-                <p className="text-gray-500">Flyer not yet generated</p>
-              )}
-              {webhookData && webhookData.webViewLink && (
+            {isFetchingImage ? (
+              <div className=" relative overflow-hidden h-80 w-64 flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded-md bg-black/40">
+                <div className="flex flex-col items-center justify-center">
+                  <svg
+                    className="animate-spin h-8 w-8 text-purple-500 mb-2"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span className="text-sm text-gray-500">Generating...</span>
+                  <button
+                    type="button"
+                    onClick={handleStopGenerating}
+                    className="absolute bottom-0 py-2 w-full bg-black/60 text-gray-500 rounded-t-md cursor-pointer"
+                  >
+                    Stop Generating
+                  </button>
+                </div>
+              </div>
+            ) : webhookData &&
+              webhookData.thumbnail &&
+              webhookData.webViewLink ? (
+              <div className="flex items-center justify-center h-80 w-64 rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
                 <Link
                   href={webhookData.webViewLink}
                   target="_blank"
@@ -454,15 +490,64 @@ export default function FlyerGenerator() {
                     frameBorder="0"
                     allowFullScreen
                     title="Live Flyer Preview"
-                    className="h-full w-full object-contain rounded-md"
+                    className="object-contain max-h-full max-w-full rounded-md"
                   />
                 </Link>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="h-80 w-64 bg-black/60 flex items-center justify-center  border border-gradient-to-r border-purple-400 rounded-md">
+                <span className="text-sm text-gray-500 text-center px-2">
+                  Flyer not yet generated
+                </span>
+              </div>
+            )}
           </div>
 
+          {webhookData && (
+            <>
+              <div className="h-full flex flex-col gap-2">
+                <hr className="border-purple-400" />
+                <span className="text-gray-300">
+                  {" "}
+                  Generated: {history.length}
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 overflow-y-auto ">
+                  {history.map((item, index) => (
+                    <div
+                      key={index}
+                      className="border p-2 border-gradient-to-r border-purple-400 rounded-md flex flex-col items-center justify-center hover:bg-black/40"
+                    >
+                      <div className="w-24 h-24 rounded-md overflow-hidden ">
+                        <Image
+                          src={item.thumbnail}
+                          alt="Generated Flyer"
+                          width={200}
+                          height={200}
+                          unoptimized
+                          className={cn(
+                            "object-contain max-h-full rounded-md max-w-full cursor-pointer",
+                            {
+                              "cursor-not-allowed":
+                                isFetchingImage || isLoading,
+                            }
+                          )}
+                          onClick={() => {
+                            if (!isFetchingImage || !isLoading) {
+                              setWebhookData(item);
+                            }
+                          }}
+                          loading="lazy"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Button */}
-          <button
+          {/* <button
             className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
               isLoading || isFetchingImage
                 ? "opacity-60 cursor-not-allowed"
@@ -470,7 +555,7 @@ export default function FlyerGenerator() {
             }`}
           >
             Create Event
-          </button>
+          </button> */}
         </div>
       </div>
     </div>
