@@ -871,7 +871,7 @@ export default function LiveFlyer() {
                 htmlFor="noOfTemplate"
                 className="text-sm font-medium mb-1"
               >
-                No. of Templates (1-5)
+                No. of Flyers to generate (1-5)
               </label>
               <div className="flex gap-2 w-[40px]">
                 <input
