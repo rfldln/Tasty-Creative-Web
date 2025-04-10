@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import ImageCropper from "./ImageCropper";
 import Image from "next/image";
 import ModelsDropdown from "./ModelsDropdown";
@@ -43,6 +43,18 @@ export default function FlyerGenerator() {
   });
 
   console.log("Form Data:", formData);
+
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, type } = e.target;
+    const value =
+      type === "checkbox"
+        ? (e.target as HTMLInputElement).checked
+        : e.target.value;
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -287,11 +299,37 @@ export default function FlyerGenerator() {
                 />
               </div>
 
+              <div className=" flex gap-2 items-center relative">
+                <label
+                  className={cn(
+                    "relative inline-flex items-center cursor-pointer",
+                    {
+                      "cursor-not-allowed":
+                        isLoading || isFetchingImage || webhookData,
+                    }
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    name="customRequest"
+                    onChange={handleInputChange}
+                    checked={formData.customRequest}
+                    disabled={isLoading || isFetchingImage || !!webhookData}
+                  />
+                  <div className="w-11 h-6 bg-black/60 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500  rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+                <h1 className="text-sm text-gray-300 font-medium mb-0">
+                  Custom Flyer
+                </h1>
+              </div>
+
               <div className="col-span-2">
                 <ImageCropper
                   onCropComplete={handleCropComplete}
                   aspectRatio={4 / 5} // For 1080:1350 aspect ratio
                   model={formData.model}
+                  customRequest={formData.customRequest}
                 />
               </div>
 
@@ -340,36 +378,38 @@ export default function FlyerGenerator() {
                 </div>
               </div>
 
-              <div className="flex gap-4 col-span-2">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Template Position
-                  </label>
-                  <div className="flex space-x-4">
-                    {POSITIONS.map((position) => (
-                      <label
-                        key={position}
-                        className="flex items-center cursor-pointer space-x-2"
-                      >
-                        <input
-                          type="radio"
-                          name="templatePosition"
-                          value={position}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              templatePosition: e.target.value,
-                            })
-                          }
-                          className=" text-purple-600 accent-purple-600 cursor-pointer rounded"
-                          checked={formData.templatePosition === position}
-                        />
-                        <span className="text-sm">{position}</span>
-                      </label>
-                    ))}
+              {!formData.customRequest && (
+                <div className="flex gap-4 col-span-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Template Position
+                    </label>
+                    <div className="flex space-x-4">
+                      {POSITIONS.map((position) => (
+                        <label
+                          key={position}
+                          className="flex items-center cursor-pointer space-x-2"
+                        >
+                          <input
+                            type="radio"
+                            name="templatePosition"
+                            value={position}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                templatePosition: e.target.value,
+                              })
+                            }
+                            className=" text-purple-600 accent-purple-600 cursor-pointer rounded"
+                            checked={formData.templatePosition === position}
+                          />
+                          <span className="text-sm">{position}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="mt-2 col-span-2">
                 <button

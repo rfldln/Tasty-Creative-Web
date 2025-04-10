@@ -577,7 +577,7 @@ export default function LiveFlyer() {
   const handleStopGenerating = () => {
     stopChecking();
   };
-  console.log(response, "error");
+
   return (
     <div className="flex flex-col lg:flex-row gap-5">
       {response?.error === "Invalid JSON response from webhook" ? (
