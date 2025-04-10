@@ -29,12 +29,14 @@ interface ImageCropperProps {
   onCropComplete: (croppedImage: string) => void;
   aspectRatio?: number;
   model?: string;
+  customRequest?: boolean;
 }
 
 export default function ImageCropper({
   onCropComplete,
   aspectRatio = 4 / 5, // 1080:1350 ratio (width:height)
   model,
+  customRequest,
 }: ImageCropperProps) {
   // Image cropping states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -292,10 +294,12 @@ export default function ImageCropper({
     onCropComplete(croppedImageUrl);
   }, [completedCrop, onCropComplete]);
 
+  console.log(customRequest, "custom");
   return (
     <div className="flex flex-col gap-2 w-full">
       <label className="block text-sm font-medium">
-        {isCustomImage ? "Upload" : "Download"} and Crop Image
+        {isCustomImage ? "Upload" : "Download"}{" "}
+        {!customRequest ? "and Crop Image" : "Image to be sent"}
       </label>
       <div className="flex gap-2 ">
         <input
@@ -381,13 +385,7 @@ export default function ImageCropper({
           </p>
 
           <div className="border border-gray-300 rounded-lg overflow-hidden">
-            <ReactCrop
-              crop={crop}
-              onChange={(c) => setCrop(c)}
-              onComplete={(c) => setCompletedCrop(c)}
-              aspect={aspectRatio}
-              minWidth={100} // Prevent tiny crops
-            >
+            {customRequest ? (
               <img
                 ref={imageRef}
                 src={selectedImage ?? ""}
@@ -395,7 +393,23 @@ export default function ImageCropper({
                 className="max-h-96 max-w-full"
                 onLoad={onImageLoad}
               />
-            </ReactCrop>
+            ) : (
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={aspectRatio}
+                minWidth={100} // Prevent tiny crops
+              >
+                <img
+                  ref={imageRef}
+                  src={selectedImage ?? ""}
+                  alt="Selected"
+                  className="max-h-96 max-w-full"
+                  onLoad={onImageLoad}
+                />
+              </ReactCrop>
+            )}
           </div>
 
           <div className="flex w-full items-center gap-4">
