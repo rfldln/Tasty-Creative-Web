@@ -357,25 +357,25 @@ export default function LiveFlyer() {
     }
   };
 
-  // useEffect(() => {
-  //   const sendEmail = async () => {
-  //     stopChecking();
+  useEffect(() => {
+    const sendEmail = async () => {
+      stopChecking();
 
-  //     try {
-  //       await fetch("/api/send-email", {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify(emailData),
-  //       });
-  //       console.log("Email sent successfully");
-  //     } catch (emailError) {
-  //       console.error("Error sending email:", emailError);
-  //     }
-  //   };
-  //   if (response?.error === "Invalid JSON response from webhook") {
-  //     sendEmail();
-  //   }
-  // }, [response]);
+      try {
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(emailData),
+        });
+        console.log("Email sent successfully");
+      } catch (emailError) {
+        console.error("Error sending email:", emailError);
+      }
+    };
+    if (response?.error === "Invalid JSON response from webhook") {
+      sendEmail();
+    }
+  }, [response]);
 
   const handleCreateEventSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -579,10 +579,10 @@ export default function LiveFlyer() {
   };
 
   return (
-    // <div className="flex flex-col lg:flex-row gap-5">
-    //   {response?.error === "Invalid JSON response from webhook" ? (
-    //     <ServerOffline />
-    //   ) : (
+    <div className="flex flex-col lg:flex-row gap-5">
+      {response?.error === "Invalid JSON response from webhook" ? (
+        <ServerOffline />
+      ) : (
         <>
           <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
             <div>
@@ -1485,7 +1485,7 @@ export default function LiveFlyer() {
             )}
           </div>
         </>
-    //   )}
-    // </div>
+      )}
+    </div>
   );
 }
