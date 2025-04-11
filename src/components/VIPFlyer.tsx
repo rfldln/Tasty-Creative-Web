@@ -277,10 +277,10 @@ export default function FlyerGenerator() {
   // }, [response]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6  text-white min-h-screen">
-      {response?.error === "Invalid JSON response from webhook" ? (
-        <ServerOffline />
-      ) : (
+    // <div className="grid grid-cols-1 md:grid-cols-2 gap-6  text-white min-h-screen">
+    //   {response?.error === "Invalid JSON response from webhook" ? (
+    //     <ServerOffline />
+    //   ) : (
         <>
           <div className="bg-black/20 border border-white/10 p-6 rounded-lg">
             <h1 className="text-2xl font-bold mb-2">VIP Flyer Generation</h1>
@@ -688,8 +688,8 @@ export default function FlyerGenerator() {
           </button> */}
             </div>
           </div>
-        </>
-      )}
-    </div>
+         </>
+    //   )}
+    // </div>
   );
 }
