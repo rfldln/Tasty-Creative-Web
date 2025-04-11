@@ -412,6 +412,29 @@ export default function FlyerGenerator() {
                 </div>
               )}
 
+              <div className="flex flex-col">
+                <label
+                  htmlFor="noOfTemplate"
+                  className="text-sm font-medium mb-1"
+                >
+                  No. of Flyers to generate (1-5)
+                </label>
+                <div className="flex gap-2 w-[40px]">
+                  <input
+                    type="number"
+                    id="noOfTemplate"
+                    name="noOfTemplate"
+                    className="border-0 bg-black/50 text-gray-400  rounded-md p-2 flex-1 w-[50px] "
+                    value={formData.noOfTemplate}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading || isFetchingImage}
+                    max={5}
+                    min={1}
+                  />
+                </div>
+              </div>
+
               <div className="mt-2 col-span-2">
                 <button
                   type="submit"
