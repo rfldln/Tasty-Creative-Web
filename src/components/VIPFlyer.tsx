@@ -420,7 +420,9 @@ export default function FlyerGenerator() {
                       : "opacity-100"
                   }`}
                   disabled={
-                    isLoading || isFetchingImage || !formData.croppedImage
+                    isLoading ||
+                    isFetchingImage ||
+                    (!formData.croppedImage && !formData.customRequest)
                   }
                 >
                   {formData.customRequest ? (

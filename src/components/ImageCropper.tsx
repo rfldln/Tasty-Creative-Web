@@ -380,9 +380,11 @@ export default function ImageCropper({
 
       {selectedImage && (
         <div className="flex flex-col w-full items-center gap-4">
-          <p className="text-xs text-gray-300">
-            Crop area will maintain a 4:5 ratio (1080x1350px)
-          </p>
+          {!customRequest && (
+            <p className="text-xs text-gray-300">
+              Crop area will maintain a 4:5 ratio (1080x1350px)
+            </p>
+          )}
 
           <div className="border border-gray-300 rounded-lg overflow-hidden">
             {customRequest ? (
@@ -412,22 +414,24 @@ export default function ImageCropper({
             )}
           </div>
 
-          <div className="flex w-full items-center gap-4">
-            <button
-              type="button"
-              onClick={generateCroppedImage}
-              className="px-4 py-2  bg-purple-500 text-white rounded-md hover:bg-blue-700"
-              disabled={!completedCrop}
-            >
-              Apply Crop
-            </button>
+          {customRequest && (
+            <div className="flex w-full items-center gap-4">
+              <button
+                type="button"
+                onClick={generateCroppedImage}
+                className="px-4 py-2  bg-purple-500 text-white rounded-md hover:bg-blue-700"
+                disabled={!completedCrop}
+              >
+                Apply Crop
+              </button>
 
-            <div className="text-sm text-gray-300">
-              {imageSize.width > 0 && (
-                <span>Selected area will be exported at 1080×1350px</span>
-              )}
+              <div className="text-sm text-gray-300">
+                {imageSize.width > 0 && (
+                  <span>Selected area will be exported at 1080×1350px</span>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
