@@ -330,6 +330,7 @@ export default function FlyerGenerator() {
                   aspectRatio={4 / 5} // For 1080:1350 aspect ratio
                   model={formData.model}
                   customRequest={formData.customRequest}
+                  setFormData={setFormData}
                 />
               </div>
 
@@ -415,7 +416,9 @@ export default function FlyerGenerator() {
                 <button
                   type="submit"
                   className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
-                    isLoading || isFetchingImage || !formData.croppedImage
+                    isLoading ||
+                    isFetchingImage ||
+                    (!formData.croppedImage && !formData.customRequest)
                       ? "opacity-60 cursor-not-allowed"
                       : "opacity-100"
                   }`}

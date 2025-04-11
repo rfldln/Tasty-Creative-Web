@@ -30,6 +30,7 @@ interface ImageCropperProps {
   aspectRatio?: number;
   model?: string;
   customRequest?: boolean;
+  setFormData?: React.Dispatch<React.SetStateAction<ModelFormData>>;
 }
 
 export default function ImageCropper({
@@ -37,6 +38,7 @@ export default function ImageCropper({
   aspectRatio = 4 / 5, // 1080:1350 ratio (width:height)
   model,
   customRequest,
+  setFormData,
 }: ImageCropperProps) {
   // Image cropping states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -59,6 +61,29 @@ export default function ImageCropper({
   const [isDownloading, startDownloadTransition] = useTransition();
   const [isListing, startListTransition] = useTransition();
   const [isCustomImage, setIsCustomImage] = useState(false);
+
+  useEffect(() => {
+    const setData = async () => {
+      if (selectedImage) {
+        if (selectedImage) {
+          const response = await fetch(selectedImage);
+          const blob = await response.blob();
+          const file = new File([blob], "cropped-image.jpg", {
+            type: blob.type,
+          });
+          if (setFormData) {
+            setFormData((prev) => ({
+              ...prev,
+              imageFile: file,
+            }));
+          }
+        }
+      }
+    };
+    if (setFormData && customRequest) {
+      setData();
+    }
+  }, [selectedImage]);
 
   // Check auth status on mount
   useEffect(() => {
