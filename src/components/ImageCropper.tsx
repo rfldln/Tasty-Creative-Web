@@ -414,7 +414,7 @@ export default function ImageCropper({
             )}
           </div>
 
-          {customRequest && (
+          {!customRequest && (
             <div className="flex w-full items-center gap-4">
               <button
                 type="button"
