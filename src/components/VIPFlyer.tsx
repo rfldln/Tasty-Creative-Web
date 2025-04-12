@@ -16,14 +16,20 @@ export default function FlyerGenerator() {
 
   const searchParams = useSearchParams();
   const tabValue = searchParams.get("tab") || "vip";
+  const reqId = searchParams.get("reqId") || null;
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingImage, setIsFetchingImage] = useState(false);
+
   interface WebhookResponse {
     thumbnail: string;
     webViewLink: string;
     imageId?: string;
     requestId?: string;
   }
+  interface RequestData {
+    [key: string]: string;
+  }
+
   const [requestSent, setRequestSent] = useState(false);
   const [webhookData, setWebhookData] = useState<WebhookResponse | null>(null);
   const [itemReceived, setItemReceived] = useState(0);
@@ -32,6 +38,7 @@ export default function FlyerGenerator() {
   const lastCheckTimestamp = useRef(0);
   const checkInterval = useRef<NodeJS.Timeout | null>(null);
   const [history, setHistory] = useState<WebhookResponse[]>([]);
+  const [data, setData] = useState<RequestData | null>(null);
 
   const [formData, setFormData] = useState<ModelFormData>({
     croppedImage: null,
@@ -42,7 +49,36 @@ export default function FlyerGenerator() {
     noOfTemplate: 1,
   });
 
-  console.log("Form Data:", formData);
+  useEffect(() => {
+    async function fetchRequestData() {
+      if (!reqId) {
+        setError('No request ID provided');
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/google/sheets/request?requestId=${reqId}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch request data');
+        }
+
+        const jsonData = await response.json();
+        setData(jsonData.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        console.error('Error fetching request data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRequestData();
+  }, [reqId]); 
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -92,6 +128,8 @@ export default function FlyerGenerator() {
 
     checkAuth();
   }, [router]);
+
+  console.log(data,"data")
 
   const handleCropComplete = (croppedImage: string) => {
     setFormData({
