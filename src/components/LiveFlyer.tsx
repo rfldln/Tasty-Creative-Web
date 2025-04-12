@@ -261,7 +261,7 @@ export default function LiveFlyer() {
     }
 
     const requestId = uuidv4(); // Generate unique ID
-    const webhookUrl = "/api/webhook-proxy";
+    const webhookUrl = response?.error === "Invalid JSON response from webhook" ? "/api/discord" : "/api/webhook-proxy"; 
 
     try {
       const formDataToSend = new FormData();
@@ -373,6 +373,10 @@ export default function LiveFlyer() {
       }
     };
     if (response?.error === "Invalid JSON response from webhook") {
+      setFormData((prev) => ({
+        ...prev,
+        customRequest: true,
+      }));
       sendEmail();
     }
   }, [response]);
@@ -579,147 +583,108 @@ export default function LiveFlyer() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5">
-      {response?.error === "Invalid JSON response from webhook" ? (
+    <div className="flex flex-col gap-5">
+      {response?.error === "Invalid JSON response from webhook" && (
         <ServerOffline />
-      ) : (
-        <>
-          <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
-            <div>
-              <h1 className="text-2xl font-bold text-start">
-                Live Flyer Generation
-              </h1>
-              <p className="text-gray-400 text-sm">
-                Create promotion flyers for upcoming live events
-              </p>
+      )}
+      <div className="flex gap-4">
+        <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
+          <div>
+            <h1 className="text-2xl font-bold text-start">
+              Live Flyer Generation
+            </h1>
+            <p className="text-gray-400 text-sm">
+              Create promotion flyers for upcoming live events
+            </p>
+          </div>
+          <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-2">
+            <div className="col-span-2">
+              <ModelsDropdown
+                formData={formData}
+                setFormData={setFormData}
+                isLoading={isLoading}
+                isFetchingImage={isFetchingImage}
+                webhookData={webhookData}
+              />
             </div>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-2">
+
+            {formData.model && (
               <div className="col-span-2">
-                <ModelsDropdown
-                  formData={formData}
-                  setFormData={setFormData}
-                  isLoading={isLoading}
-                  isFetchingImage={isFetchingImage}
-                  webhookData={webhookData}
-                />
-              </div>
+                <div className="flex flex-col">
+                  <label htmlFor="image" className="text-sm font-medium mb-1">
+                    Select Image
+                  </label>
+                  <div className="space-x-1 flex items-center mb-2">
+                    <input
+                      type="checkbox"
+                      id="customImage"
+                      className={cn("cursor-pointer accent-purple-600", {
+                        "cursor-not-allowed": isLoading || isFetchingImage,
+                      })}
+                      checked={isCustomImage}
+                      disabled={isLoading || isFetchingImage}
+                      onChange={() => {
+                        setIsCustomImage((prev) => {
+                          const newCustomImageState = !prev;
 
-              {formData.model && (
-                <div className="col-span-2">
-                  <div className="flex flex-col">
-                    <label htmlFor="image" className="text-sm font-medium mb-1">
-                      Select Image
-                    </label>
-                    <div className="space-x-1 flex items-center mb-2">
-                      <input
-                        type="checkbox"
-                        id="customImage"
-                        className={cn("cursor-pointer accent-purple-600", {
-                          "cursor-not-allowed": isLoading || isFetchingImage,
-                        })}
-                        checked={isCustomImage}
-                        disabled={isLoading || isFetchingImage}
-                        onChange={() => {
-                          setIsCustomImage((prev) => {
-                            const newCustomImageState = !prev;
+                          setFormData((formData) => ({
+                            ...formData,
+                            customImage: newCustomImageState,
+                          }));
 
-                            setFormData((formData) => ({
-                              ...formData,
-                              customImage: newCustomImageState,
-                            }));
+                          // If turning off custom image, clean up any selected image
 
-                            // If turning off custom image, clean up any selected image
-
-                            // Clean up object URL if it exists
-                            if (selectedImage && selectedImage.thumbnailLink) {
-                              URL.revokeObjectURL(selectedImage.thumbnailLink);
-                            }
-
-                            // Reset the image selection
-                            setSelectedImage(null);
-
-                            // Clean up image data in the form
-                            setFormData((prev) => {
-                              const newData = { ...prev };
-                              delete newData.imageUrl;
-                              delete newData.imageName;
-                              return newData;
-                            });
-
-                            return newCustomImageState;
-                          });
-                        }}
-                      />
-                      <label
-                        htmlFor="customImage"
-                        className={cn("cursor-pointer text-sm", {
-                          "cursor-not-allowed": isLoading || isFetchingImage,
-                        })}
-                      >
-                        Custom Image
-                      </label>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {!selectedImage && !isCustomImage ? (
-                        <button
-                          onClick={handleGoogleDriveSelect}
-                          type="button"
-                          disabled={
-                            isGooglePickerLoading ||
-                            formData.model === "" ||
-                            isLoading ||
-                            isFetchingImage
+                          // Clean up object URL if it exists
+                          if (selectedImage && selectedImage.thumbnailLink) {
+                            URL.revokeObjectURL(selectedImage.thumbnailLink);
                           }
-                          className={cn(
-                            "border-2 border-dashed cursor-pointer border-black/60 rounded-md p-4 flex flex-col items-center justify-center hover:bg-black/40",
-                            { "border-red-500": error?.includes("imageId") }
-                          )}
-                        >
-                          {isGooglePickerLoading ? (
-                            <span className="text-sm text-gray-500">
-                              Loading...
-                            </span>
-                          ) : (
-                            <>
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className={cn("text-gray-300 mb-2", {
-                                  "text-red-500": error?.includes("imageId"),
-                                })}
-                              >
-                                <path d="M12 5v14M5 12h14"></path>
-                              </svg>
-                              <span
-                                className={cn("text-gray-300 text-sm", {
-                                  "text-red-500": error?.includes("imageId"),
-                                })}
-                              >
-                                {isAuthenticated
-                                  ? formData.model
-                                    ? `Select from ${formData.model} folder`
-                                    : "Select from Google Drive"
-                                  : "Connect to Google Drive"}
-                              </span>
-                            </>
-                          )}
-                        </button>
-                      ) : !selectedImage && isCustomImage ? (
-                        <div>
-                          <label
-                            htmlFor="selectImage"
-                            className={cn(
-                              "border-2 border-dashed cursor-pointer border-black/60 rounded-md p-4 flex flex-col items-center justify-center hover:bg-black/40",
-                              { "border-red-500": error?.includes("imageId") }
-                            )}
-                          >
+
+                          // Reset the image selection
+                          setSelectedImage(null);
+
+                          // Clean up image data in the form
+                          setFormData((prev) => {
+                            const newData = { ...prev };
+                            delete newData.imageUrl;
+                            delete newData.imageName;
+                            return newData;
+                          });
+
+                          return newCustomImageState;
+                        });
+                      }}
+                    />
+                    <label
+                      htmlFor="customImage"
+                      className={cn("cursor-pointer text-sm", {
+                        "cursor-not-allowed": isLoading || isFetchingImage,
+                      })}
+                    >
+                      Custom Image
+                    </label>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {!selectedImage && !isCustomImage ? (
+                      <button
+                        onClick={handleGoogleDriveSelect}
+                        type="button"
+                        disabled={
+                          isGooglePickerLoading ||
+                          formData.model === "" ||
+                          isLoading ||
+                          isFetchingImage
+                        }
+                        className={cn(
+                          "border-2 border-dashed cursor-pointer border-black/60 rounded-md p-4 flex flex-col items-center justify-center hover:bg-black/40",
+                          { "border-red-500": error?.includes("imageId") }
+                        )}
+                      >
+                        {isGooglePickerLoading ? (
+                          <span className="text-sm text-gray-500">
+                            Loading...
+                          </span>
+                        ) : (
+                          <>
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               width="24"
@@ -741,97 +706,251 @@ export default function LiveFlyer() {
                                 "text-red-500": error?.includes("imageId"),
                               })}
                             >
-                              Upload Image
+                              {isAuthenticated
+                                ? formData.model
+                                  ? `Select from ${formData.model} folder`
+                                  : "Select from Google Drive"
+                                : "Connect to Google Drive"}
                             </span>
-                          </label>
-                          <input
-                            type="file"
-                            className="hidden"
-                            id="selectImage"
-                            accept=".png,.jpg,.heic,.jpeg"
-                            max={1}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                // Create a URL for the file preview
-                                const previewUrl = URL.createObjectURL(file);
-
-                                setSelectedImage({
-                                  id: uuidv4(),
-                                  name: file.name,
-                                  mimeType: file.type,
-                                  thumbnailLink: previewUrl, // Add the preview URL here
-                                });
-
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  imageFile: file,
-                                  imageId: uuidv4(),
-                                  imageName: file.name,
-                                }));
-                              }
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="relative">
-                          <div className="w-full h-32 bg-black/40 rounded-md overflow-hidden">
-                            {selectedImage && selectedImage.thumbnailLink ? (
-                              <Image
-                                src={selectedImage.thumbnailLink}
-                                alt={selectedImage.name}
-                                width={200}
-                                height={200}
-                                className="w-full h-full object-contain"
-                                loading="lazy"
-                                unoptimized
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-sm text-gray-500">
-                                  {selectedImage?.name || "No image selected"}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!isFetchingImage && !isLoading) {
-                                handleRemoveImage();
-                              }
-                            }}
-                            className={cn(
-                              "absolute top-1 cursor-pointer right-1 bg-black/70 rounded-full p-1 shadow-sm",
-                              {
-                                "cursor-not-allowed":
-                                  isFetchingImage || isLoading,
-                              }
-                            )}
+                          </>
+                        )}
+                      </button>
+                    ) : !selectedImage && isCustomImage ? (
+                      <div>
+                        <label
+                          htmlFor="selectImage"
+                          className={cn(
+                            "border-2 border-dashed cursor-pointer border-black/60 rounded-md p-4 flex flex-col items-center justify-center hover:bg-black/40",
+                            { "border-red-500": error?.includes("imageId") }
+                          )}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className={cn("text-gray-300 mb-2", {
+                              "text-red-500": error?.includes("imageId"),
+                            })}
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className=""
-                            >
-                              <line x1="18" y1="6" x2="6" y2="18"></line>
-                              <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                          </button>
+                            <path d="M12 5v14M5 12h14"></path>
+                          </svg>
+                          <span
+                            className={cn("text-gray-300 text-sm", {
+                              "text-red-500": error?.includes("imageId"),
+                            })}
+                          >
+                            Upload Image
+                          </span>
+                        </label>
+                        <input
+                          type="file"
+                          className="hidden"
+                          id="selectImage"
+                          accept=".png,.jpg,.heic,.jpeg"
+                          max={1}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              // Create a URL for the file preview
+                              const previewUrl = URL.createObjectURL(file);
+
+                              setSelectedImage({
+                                id: uuidv4(),
+                                name: file.name,
+                                mimeType: file.type,
+                                thumbnailLink: previewUrl, // Add the preview URL here
+                              });
+
+                              setFormData((prev) => ({
+                                ...prev,
+                                imageFile: file,
+                                imageId: uuidv4(),
+                                imageName: file.name,
+                              }));
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <div className="w-full h-32 bg-black/40 rounded-md overflow-hidden">
+                          {selectedImage && selectedImage.thumbnailLink ? (
+                            <Image
+                              src={selectedImage.thumbnailLink}
+                              alt={selectedImage.name}
+                              width={200}
+                              height={200}
+                              className="w-full h-full object-contain"
+                              loading="lazy"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-sm text-gray-500">
+                                {selectedImage?.name || "No image selected"}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isFetchingImage && !isLoading) {
+                              handleRemoveImage();
+                            }
+                          }}
+                          className={cn(
+                            "absolute top-1 cursor-pointer right-1 bg-black/70 rounded-full p-1 shadow-sm",
+                            {
+                              "cursor-not-allowed":
+                                isFetchingImage || isLoading,
+                            }
+                          )}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className=""
+                          >
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-              <div className="col-span-2 flex gap-2 items-center">
+              </div>
+            )}
+            <div className="col-span-2 flex gap-2 items-center">
+              <label
+                className={cn(
+                  "relative inline-flex items-center cursor-pointer",
+                  {
+                    "cursor-not-allowed":
+                      isLoading || isFetchingImage || webhookData,
+                  }
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  name="paid"
+                  onChange={handleInputChange}
+                  checked={formData.paid}
+                  disabled={isLoading || isFetchingImage || webhookData}
+                />
+                <div className="w-11 h-6 bg-black/60 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500  rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+              </label>
+              <h1 className="text-sm text-gray-300 font-medium mb-0">
+                Paid Page
+              </h1>
+            </div>
+
+            <div className="col-span-2">
+              <div className="flex flex-col text-gray-300">
+                <label htmlFor="date" className="text-sm font-medium mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  id="date"
+                  name="date"
+                  className="bg-black/60 text-gray-400 border-white/10 rounded-lg w-full p-2 
+                [&::-webkit-calendar-picker-indicator]:text-gray-400
+                [&::-webkit-calendar-picker-indicator]:opacity-60"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading || isFetchingImage || webhookData}
+                />
+              </div>
+            </div>
+
+            <div className="col-span-1">
+              <div className="flex flex-col">
+                <label htmlFor="time" className="text-sm font-medium mb-1">
+                  Time
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    id="time"
+                    name="time"
+                    className="rounded-md p-2 flex-1 bg-black/50 text-gray-400 border-0 focus:outline-1 focus:outline-black"
+                    value={formData.time}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading || isFetchingImage || webhookData}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="col-span-1">
+              <div className="w-full mt-6">
+                <Select
+                  value={formData.timezone}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, timezone: value }))
+                  }
+                  disabled={isLoading || isFetchingImage || webhookData}
+                >
+                  <SelectTrigger className="bg-black/50 cursor-pointer !h-[41px] border-white/10 p-2 text-gray-400 rounded-lg w-full">
+                    <SelectValue placeholder="Select Timezone" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black/90 border-white/10 text-gray-400 max-h-72">
+                    {TIMEZONES.map((tz) => (
+                      <SelectItem
+                        key={tz.name}
+                        value={tz.name}
+                        className="flex items-center justify-between py-2"
+                      >
+                        {tz.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="col-span-2 flex w-full justify-between items-center h-full">
+              <div className="flex flex-col">
+                <label
+                  htmlFor="noOfTemplate"
+                  className="text-sm font-medium mb-1"
+                >
+                  No. of Flyers to generate (1-5)
+                </label>
+                <div className="flex gap-2 w-[40px]">
+                  <input
+                    type="number"
+                    id="noOfTemplate"
+                    name="noOfTemplate"
+                    className="border-0 bg-black/50 text-gray-400  rounded-md p-2 flex-1 w-[50px] "
+                    value={formData.noOfTemplate}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading || isFetchingImage}
+                    max={5}
+                    min={1}
+                  />
+                </div>
+              </div>
+              <div className=" flex gap-2 items-center relative">
                 <label
                   className={cn(
                     "relative inline-flex items-center cursor-pointer",
@@ -844,366 +963,257 @@ export default function LiveFlyer() {
                   <input
                     type="checkbox"
                     className="sr-only peer"
-                    name="paid"
+                    name="customRequest"
                     onChange={handleInputChange}
-                    checked={formData.paid}
-                    disabled={isLoading || isFetchingImage || webhookData}
+                    checked={formData.customRequest}
+                    disabled={
+                      isLoading ||
+                      isFetchingImage ||
+                      webhookData ||
+                      response?.error === "Invalid JSON response from webhook"
+                    }
                   />
                   <div className="w-11 h-6 bg-black/60 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500  rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                 </label>
                 <h1 className="text-sm text-gray-300 font-medium mb-0">
-                  Paid Page
+                  Custom Flyer
                 </h1>
               </div>
+            </div>
 
+            {formData.customRequest && (
               <div className="col-span-2">
-                <div className="flex flex-col text-gray-300">
-                  <label htmlFor="date" className="text-sm font-medium mb-1">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    id="date"
-                    name="date"
-                    className="bg-black/60 text-gray-400 border-white/10 rounded-lg w-full p-2 
-                [&::-webkit-calendar-picker-indicator]:text-gray-400
-                [&::-webkit-calendar-picker-indicator]:opacity-60"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isLoading || isFetchingImage || webhookData}
-                  />
-                </div>
-              </div>
-
-              <div className="col-span-1">
-                <div className="flex flex-col">
-                  <label htmlFor="time" className="text-sm font-medium mb-1">
-                    Time
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="time"
-                      id="time"
-                      name="time"
-                      className="rounded-md p-2 flex-1 bg-black/50 text-gray-400 border-0 focus:outline-1 focus:outline-black"
-                      value={formData.time}
-                      onChange={handleInputChange}
-                      required
-                      disabled={isLoading || isFetchingImage || webhookData}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1">
-                <div className="w-full mt-6">
-                  <Select
-                    value={formData.timezone}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, timezone: value }))
-                    }
-                    disabled={isLoading || isFetchingImage || webhookData}
-                  >
-                    <SelectTrigger className="bg-black/50 cursor-pointer !h-[41px] border-white/10 p-2 text-gray-400 rounded-lg w-full">
-                      <SelectValue placeholder="Select Timezone" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black/90 border-white/10 text-gray-400 max-h-72">
-                      {TIMEZONES.map((tz) => (
-                        <SelectItem
-                          key={tz.name}
-                          value={tz.name}
-                          className="flex items-center justify-between py-2"
-                        >
-                          {tz.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="col-span-2 flex w-full justify-between items-center h-full">
                 <div className="flex flex-col">
                   <label
-                    htmlFor="noOfTemplate"
+                    htmlFor="customDetails"
                     className="text-sm font-medium mb-1"
                   >
-                    No. of Flyers to generate (1-5)
+                    Custom request details:
                   </label>
-                  <div className="flex gap-2 w-[40px]">
-                    <input
-                      type="number"
-                      id="noOfTemplate"
-                      name="noOfTemplate"
-                      className="border-0 bg-black/50 text-gray-400  rounded-md p-2 flex-1 w-[50px] "
-                      value={formData.noOfTemplate}
+                  <div className="flex gap-2">
+                    <textarea
+                      id="customDetails"
+                      name="customDetails"
+                      className="rounded-md p-2 flex-1 bg-black/50 text-gray-400 border-0 focus:outline-1 focus:outline-black resize-y"
+                      value={formData.customDetails}
                       onChange={handleInputChange}
                       required
-                      disabled={isLoading || isFetchingImage}
-                      max={5}
-                      min={1}
-                    />
-                  </div>
-                </div>
-                <div className=" flex gap-2 items-center relative">
-                  <label
-                    className={cn(
-                      "relative inline-flex items-center cursor-pointer",
-                      {
-                        "cursor-not-allowed":
-                          isLoading || isFetchingImage || webhookData,
-                      }
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      name="customRequest"
-                      onChange={handleInputChange}
-                      checked={formData.customRequest}
                       disabled={isLoading || isFetchingImage || webhookData}
+                      rows={4}
                     />
-                    <div className="w-11 h-6 bg-black/60 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500  rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                  </label>
-                  <h1 className="text-sm text-gray-300 font-medium mb-0">
-                    Custom Flyer
-                  </h1>
-                </div>
-              </div>
-
-              {formData.customRequest && (
-                <div className="col-span-2">
-                  <div className="flex flex-col">
-                    <label
-                      htmlFor="customDetails"
-                      className="text-sm font-medium mb-1"
-                    >
-                      Custom request details:
-                    </label>
-                    <div className="flex gap-2">
-                      <textarea
-                        id="customDetails"
-                        name="customDetails"
-                        className="rounded-md p-2 flex-1 bg-black/50 text-gray-400 border-0 focus:outline-1 focus:outline-black resize-y"
-                        value={formData.customDetails}
-                        onChange={handleInputChange}
-                        required
-                        disabled={isLoading || isFetchingImage || webhookData}
-                        rows={4}
-                      />
-                    </div>
                   </div>
                 </div>
-              )}
-
-              <div className="mt-2 col-span-2">
-                <button
-                  type="submit"
-                  className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
-                    isLoading || isFetchingImage
-                      ? "opacity-60 cursor-not-allowed"
-                      : "opacity-100"
-                  }`}
-                  // disabled={isLoading || isFetchingImage || requestSent}
-                >
-                  {formData.customRequest ? (
-                    <span>
-                      {isLoading || isFetchingImage
-                        ? "Sending..."
-                        : "Send Custom Request"}
-                    </span>
-                  ) : (
-                    <span>
-                      {isLoading || isFetchingImage
-                        ? "Generating..."
-                        : "Generate Live Flyer"}
-                    </span>
-                  )}
-                </button>
               </div>
-            </form>
+            )}
 
-            {/* File picker modal */}
-            {showFilePicker && (
-              <div className="fixed inset-0 px-4 lg:px-20 bg-black/60 flex items-center justify-center z-50">
-                <div className="bg-black/80 rounded-lg px-6 pb-6  w-full max-h-[80vh] overflow-auto">
-                  <div className="sticky top-0 pt-2 py-0.5 bg-black/60">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium">
-                        {currentFolder
-                          ? `Folder: ${currentFolder.name}`
-                          : "Select an image"}
-                      </h3>
+            <div className="mt-2 col-span-2">
+              <button
+                type="submit"
+                className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
+                  isLoading || isFetchingImage
+                    ? "opacity-60 cursor-not-allowed"
+                    : "opacity-100"
+                }`}
+                // disabled={isLoading || isFetchingImage || requestSent}
+              >
+                {formData.customRequest ? (
+                  <span>
+                    {isLoading || isFetchingImage
+                      ? "Sending..."
+                      : "Send Custom Request"}
+                  </span>
+                ) : (
+                  <span>
+                    {isLoading || isFetchingImage
+                      ? "Generating..."
+                      : "Generate Live Flyer"}
+                  </span>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* File picker modal */}
+          {showFilePicker && (
+            <div className="fixed inset-0 px-4 lg:px-20 bg-black/60 flex items-center justify-center z-50">
+              <div className="bg-black/80 rounded-lg px-6 pb-6  w-full max-h-[80vh] overflow-auto">
+                <div className="sticky top-0 pt-2 py-0.5 bg-black/60">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">
+                      {currentFolder
+                        ? `Folder: ${currentFolder.name}`
+                        : "Select an image"}
+                    </h3>
+                    <button
+                      onClick={() => setShowFilePicker(false)}
+                      className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Folder navigation */}
+                  {parentFolder && (
+                    <div className="mb-4 w-full h-full ">
                       <button
-                        onClick={() => setShowFilePicker(false)}
-                        className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                        onClick={handleNavigateUp}
+                        className="flex items-center text-sm text-blue-600 hover:text-blue-800"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          width="20"
-                          height="20"
+                          width="16"
+                          height="16"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
+                          className="mr-1"
                         >
-                          <line x1="18" y1="6" x2="6" y2="18"></line>
-                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                          <path d="M15 18l-6-6 6-6" />
                         </svg>
+                        Back to {parentFolder.name}
                       </button>
                     </div>
+                  )}
+                </div>
 
-                    {/* Folder navigation */}
-                    {parentFolder && (
-                      <div className="mb-4 w-full h-full ">
-                        <button
-                          onClick={handleNavigateUp}
-                          className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                {isGooglePickerLoading ? (
+                  <div className="flex justify-center items-center py-8 h-full w-full">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {googleFiles.length > 0 ? (
+                      googleFiles.map((file) => (
+                        <div
+                          key={file.id}
+                          className="border rounded-md p-2 cursor-pointer hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600"
+                          onClick={() => handleFileSelected(file)}
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mr-1"
-                          >
-                            <path d="M15 18l-6-6 6-6" />
-                          </svg>
-                          Back to {parentFolder.name}
-                        </button>
+                          <div className="h-24 bg-gray-100 flex items-center justify-center mb-2 overflow-hidden">
+                            {file.isFolder ? (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="text-amber-500"
+                              >
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                              </svg>
+                            ) : file.thumbnailLink ? (
+                              <Image
+                                src={file.thumbnailLink}
+                                width={200}
+                                height={200}
+                                alt={file.name}
+                                className="max-h-full object-contain"
+                                loading="lazy"
+                                unoptimized
+                              />
+                            ) : (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="text-gray-300"
+                              >
+                                <rect
+                                  x="3"
+                                  y="3"
+                                  width="18"
+                                  height="18"
+                                  rx="2"
+                                  ry="2"
+                                ></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                              </svg>
+                            )}
+                          </div>
+                          <p className="text-xs truncate">
+                            {file.isFolder ? `📁 ${file.name}` : file.name}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-8 text-center col-span-full w-full text-gray-500">
+                        No files found in this folder
                       </div>
                     )}
                   </div>
-
-                  {isGooglePickerLoading ? (
-                    <div className="flex justify-center items-center py-8 h-full w-full">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                      {googleFiles.length > 0 ? (
-                        googleFiles.map((file) => (
-                          <div
-                            key={file.id}
-                            className="border rounded-md p-2 cursor-pointer hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600"
-                            onClick={() => handleFileSelected(file)}
-                          >
-                            <div className="h-24 bg-gray-100 flex items-center justify-center mb-2 overflow-hidden">
-                              {file.isFolder ? (
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="32"
-                                  height="32"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="text-amber-500"
-                                >
-                                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                                </svg>
-                              ) : file.thumbnailLink ? (
-                                <Image
-                                  src={file.thumbnailLink}
-                                  width={200}
-                                  height={200}
-                                  alt={file.name}
-                                  className="max-h-full object-contain"
-                                  loading="lazy"
-                                  unoptimized
-                                />
-                              ) : (
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="text-gray-300"
-                                >
-                                  <rect
-                                    x="3"
-                                    y="3"
-                                    width="18"
-                                    height="18"
-                                    rx="2"
-                                    ry="2"
-                                  ></rect>
-                                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                  <polyline points="21 15 16 10 5 21"></polyline>
-                                </svg>
-                              )}
-                            </div>
-                            <p className="text-xs truncate">
-                              {file.isFolder ? `📁 ${file.name}` : file.name}
-                            </p>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="py-8 text-center col-span-full w-full text-gray-500">
-                          No files found in this folder
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-4 shadow-md justify-between  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
-            <div>
-              <h1 className="text-bold">Preview</h1>
-              <p className="text-sm text-gray-400 mb-2">
-                Live flyer preview will appear here
-              </p>
             </div>
-            {formData.customRequest === true && requestSent ? (
-              <div className="flex items-center h-full justify-center w-full p-4">
-                <div
-                  className={cn(
-                    " bg-opacity-50   border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
-                    { hidden: error }
-                  )}
-                >
-                  <div className="text-2xl mb-2">
-                    🎉 Successfully submitted request to Discord! 🚀
-                  </div>
-                  <p className="text-opacity-80">
-                    Your message has been sent successfully! 📨✨
-                  </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-4 shadow-md justify-between  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
+          <div>
+            <h1 className="text-bold">Preview</h1>
+            <p className="text-sm text-gray-400 mb-2">
+              Live flyer preview will appear here
+            </p>
+          </div>
+          {formData.customRequest === true && requestSent ? (
+            <div className="flex items-center h-full justify-center w-full p-4">
+              <div
+                className={cn(
+                  " bg-opacity-50   border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
+                  { hidden: error }
+                )}
+              >
+                <div className="text-2xl mb-2">
+                  🎉 Successfully submitted request to Discord! 🚀
                 </div>
-                <div
-                  className={cn(
-                    "bg-red-100 bg-opacity overflow-hidden relative-50 border text-wrap h-full border-red-300 border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
-                    { hidden: !error }
-                  )}
-                >
-                  <div className="text-2xl mb-2">
-                    ⚠️ Webhook Communication Failed! 🚫
-                  </div>
-                  <p className="text-red-800 text-opacity-80">
-                    Unable to send message to Discord. Please check your webhook
-                    configuration. 🔧❌
-                  </p>
-                  <p className="h-full text-wrap">Details: {error}</p>
-                </div>
+                <p className="text-opacity-80">
+                  Your message has been sent successfully! 📨✨
+                </p>
               </div>
-            ) : (
+              <div
+                className={cn(
+                  "bg-red-100 bg-opacity overflow-hidden relative-50 border text-wrap h-full border-red-300 border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
+                  { hidden: !error }
+                )}
+              >
+                <div className="text-2xl mb-2">
+                  ⚠️ Webhook Communication Failed! 🚫
+                </div>
+                <p className="text-red-800 text-opacity-80">
+                  Unable to send message to Discord. Please check your webhook
+                  configuration. 🔧❌
+                </p>
+                <p className="h-full text-wrap">Details: {error}</p>
+              </div>
+            </div>
+          ) : (
+            response?.error != "Invalid JSON response from webhook" && (
               <>
                 <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
                   {selectedImage && selectedImage.thumbnailLink ? (
@@ -1482,10 +1492,10 @@ export default function LiveFlyer() {
                   )}
                 </div>
               </>
-            )}
-          </div>
-        </>
-      )}
+            )
+          )}
+        </div>
+      </div>
     </div>
   );
 }
