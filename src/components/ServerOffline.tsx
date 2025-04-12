@@ -18,6 +18,9 @@ const ServerOffline = () => {
         We&apos;re currently experiencing server connectivity issues. Our team
         has been notified and is working to resolve the problem.
       </p>
+      <p className="text-gray-300">
+        For the meantime, you can submit a request to discord about your flyer request.
+      </p>
       <div className="mt-2">
         <p className="text-gray-400 text-sm">
           Please contact admin at{" "}
