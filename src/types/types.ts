@@ -18,6 +18,7 @@ type ModelFormData = {
   croppedImage?: string | null;
   templatePosition?: string
   options?: string[];
+  header?:string;
 
 };
 

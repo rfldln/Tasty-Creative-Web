@@ -29,12 +29,16 @@ interface ImageCropperProps {
   onCropComplete: (croppedImage: string) => void;
   aspectRatio?: number;
   model?: string;
+  customRequest?: boolean;
+  setFormData?: React.Dispatch<React.SetStateAction<ModelFormData>>;
 }
 
 export default function ImageCropper({
   onCropComplete,
   aspectRatio = 4 / 5, // 1080:1350 ratio (width:height)
   model,
+  customRequest,
+  setFormData,
 }: ImageCropperProps) {
   // Image cropping states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -56,6 +60,30 @@ export default function ImageCropper({
   const [isGooglePickerLoading, setIsGooglePickerLoading] = useState(false);
   const [isDownloading, startDownloadTransition] = useTransition();
   const [isListing, startListTransition] = useTransition();
+  const [isCustomImage, setIsCustomImage] = useState(false);
+
+  useEffect(() => {
+    const setData = async () => {
+      if (selectedImage) {
+        if (selectedImage) {
+          const response = await fetch(selectedImage);
+          const blob = await response.blob();
+          const file = new File([blob], "cropped-image.jpg", {
+            type: blob.type,
+          });
+          if (setFormData) {
+            setFormData((prev) => ({
+              ...prev,
+              imageFile: file,
+            }));
+          }
+        }
+      }
+    };
+    if (setFormData && customRequest) {
+      setData();
+    }
+  }, [selectedImage]);
 
   // Check auth status on mount
   useEffect(() => {
@@ -244,17 +272,17 @@ export default function ImageCropper({
     setCrop(centerAspectCrop(width, height, aspectRatio));
   };
 
-  // const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   if (e.target.files && e.target.files.length > 0) {
-  //     const reader = new FileReader();
-  //     reader.addEventListener("load", () => {
-  //       setSelectedImage(reader.result as string);
-  //       // Reset crop when new image is loaded
-  //       setCrop(undefined);
-  //     });
-  //     reader.readAsDataURL(e.target.files[0]);
-  //   }
-  // };
+  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        setSelectedImage(reader.result as string);
+        // Reset crop when new image is loaded
+        setCrop(undefined);
+      });
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
 
   const generateCroppedImage = useCallback(() => {
     if (!completedCrop || !imageRef.current) return;
@@ -291,55 +319,100 @@ export default function ImageCropper({
     onCropComplete(croppedImageUrl);
   }, [completedCrop, onCropComplete]);
 
+  console.log(customRequest, "custom");
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className="flex flex-col gap-2 w-full">
+      <label className="block text-sm font-medium">
+        {isCustomImage ? "Upload" : "Download"}{" "}
+        {!customRequest ? "and Crop Image" : "Image to be sent"}
+      </label>
+      <div className="flex gap-2 ">
+        <input
+          type="checkbox"
+          id="customImage"
+          className="accent-purple-600 cursor-pointer"
+          checked={isCustomImage}
+          onChange={(e) => {
+            setIsCustomImage(e.target.checked);
+          }}
+        />
+        <label htmlFor="customImage" className="cursor-pointer">
+          Custom Image
+        </label>
+      </div>
       <div className="flex flex-col sm:flex-row gap-4">
-        <button
-          type="button"
-          disabled={!model}
-          onClick={handleGoogleDriveSelect}
-          className="px-4 w-full py-2 bg-black/60 text-white rounded-lg
+        {isCustomImage ? (
+          <div className="w-full">
+            <label className="px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2 cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={onSelectFile}
+                className="hidden"
+              />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-white"
+              >
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7" />
+                <line x1="16" y1="5" x2="22" y2="5" />
+                <line x1="16" y1="5" x2="12" y2="9" />
+              </svg>
+              <span>Choose File</span>
+            </label>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={!model}
+            onClick={handleGoogleDriveSelect}
+            className="px-4 w-full py-2 bg-black/60 text-white rounded-lg
             flex items-center justify-center gap-2"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
           >
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
-            <line x1="16" y1="5" x2="22" y2="5"></line>
-            <line x1="16" y1="5" x2="12" y2="9"></line>
-          </svg>
-          {isAuthenticated && !isListing
-            ? model
-              ? `Select from ${model} folder`
-              : "Select a Model First"
-            : isListing
-            ? "Opening folder..."
-            : "Connecting to Google Drive"}
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+              <line x1="16" y1="5" x2="22" y2="5"></line>
+              <line x1="16" y1="5" x2="12" y2="9"></line>
+            </svg>
+            {isAuthenticated && !isListing
+              ? model
+                ? `Select from ${model} folder`
+                : "Select a Model First"
+              : isListing
+              ? "Opening folder..."
+              : "Connecting to Google Drive"}
+          </button>
+        )}
       </div>
 
       {selectedImage && (
         <div className="flex flex-col w-full items-center gap-4">
-          <p className="text-xs text-gray-300">
-            Crop area will maintain a 4:5 ratio (1080x1350px)
-          </p>
+          {!customRequest && (
+            <p className="text-xs text-gray-300">
+              Crop area will maintain a 4:5 ratio (1080x1350px)
+            </p>
+          )}
 
           <div className="border border-gray-300 rounded-lg overflow-hidden">
-            <ReactCrop
-              crop={crop}
-              onChange={(c) => setCrop(c)}
-              onComplete={(c) => setCompletedCrop(c)}
-              aspect={aspectRatio}
-              minWidth={100} // Prevent tiny crops
-            >
+            {customRequest ? (
               <img
                 ref={imageRef}
                 src={selectedImage ?? ""}
@@ -347,25 +420,43 @@ export default function ImageCropper({
                 className="max-h-96 max-w-full"
                 onLoad={onImageLoad}
               />
-            </ReactCrop>
+            ) : (
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={aspectRatio}
+                minWidth={100} // Prevent tiny crops
+              >
+                <img
+                  ref={imageRef}
+                  src={selectedImage ?? ""}
+                  alt="Selected"
+                  className="max-h-96 max-w-full"
+                  onLoad={onImageLoad}
+                />
+              </ReactCrop>
+            )}
           </div>
 
-          <div className="flex flex-wrap gap-4 justify-center">
-            <button
-              type="button"
-              onClick={generateCroppedImage}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              disabled={!completedCrop}
-            >
-              Apply Crop
-            </button>
+          {!customRequest && (
+            <div className="flex w-full items-center gap-4">
+              <button
+                type="button"
+                onClick={generateCroppedImage}
+                className="px-4 py-2  bg-purple-500 text-white rounded-md hover:bg-blue-700"
+                disabled={!completedCrop}
+              >
+                Apply Crop
+              </button>
 
-            <div className="text-sm text-gray-300">
-              {imageSize.width > 0 && (
-                <span>Selected area will be exported at 1080×1350px</span>
-              )}
+              <div className="text-sm text-gray-300">
+                {imageSize.width > 0 && (
+                  <span>Selected area will be exported at 1080×1350px</span>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -379,7 +470,7 @@ export default function ImageCropper({
             )}
           >
             {isDownloading && (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-black/90 absolute overflow-hidden">
+              <div className="fixed inset-0 w-full min-h-screen flex flex-col items-center justify-center bg-black/90 overflow-hidden z-2">
                 <svg
                   className="animate-spin h-8 w-8 text-purple-500 mb-2"
                   xmlns="http://www.w3.org/2000/svg"
@@ -405,7 +496,7 @@ export default function ImageCropper({
                 </span>
               </div>
             )}
-            <div className="sticky top-0 pt-2 py-0.5 bg-black/60">
+            <div className="sticky top-0 pt-2 py-0.5 bg-black/60 z-50">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium">
                   {currentFolder
