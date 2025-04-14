@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
@@ -26,9 +27,6 @@ export default function FlyerGenerator() {
     imageId?: string;
     requestId?: string;
   }
-  interface RequestData {
-    [key: string]: string;
-  }
 
   const [requestSent, setRequestSent] = useState(false);
   const [webhookData, setWebhookData] = useState<WebhookResponse | null>(null);
@@ -38,7 +36,64 @@ export default function FlyerGenerator() {
   const lastCheckTimestamp = useRef(0);
   const checkInterval = useRef<NodeJS.Timeout | null>(null);
   const [history, setHistory] = useState<WebhookResponse[]>([]);
-  const [data, setData] = useState<RequestData | null>(null);
+
+  const normalizeData = (rawData: any[] | null): WebhookResponse[] => {
+    if (!Array.isArray(rawData)) return [];
+
+    const entries: WebhookResponse[] = [];
+
+    rawData.forEach((row) => {
+      const output = row["Final Output"];
+
+      if (output && typeof output === "object" && output.driveUrl) {
+        entries.push({
+          thumbnail: output.imageUrl ?? "", // fallback empty string
+          webViewLink: output.driveUrl,
+          imageId: output.fileId,
+          requestId: row["Request ID"] ?? undefined,
+        });
+      }
+    });
+
+    return entries;
+  };
+
+  useEffect(() => {
+    async function fetchRequestData() {
+      if (!reqId) {
+        setError("No request ID provided");
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(
+          `/api/google/sheets/request?requestId=${reqId}`
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch request data");
+        }
+
+        const jsonData = await response.json();
+        const normalized = normalizeData(jsonData.data);
+
+        setHistory(normalized); // ✅ Use this instead of setFileEntries
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unknown error occurred"
+        );
+        console.error("Error fetching request data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRequestData();
+  }, [reqId]);
 
   const [formData, setFormData] = useState<ModelFormData>({
     croppedImage: null,
@@ -48,37 +103,6 @@ export default function FlyerGenerator() {
     customImage: true,
     noOfTemplate: 1,
   });
-
-  useEffect(() => {
-    async function fetchRequestData() {
-      if (!reqId) {
-        setError('No request ID provided');
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(`/api/google/sheets/request?requestId=${reqId}`);
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch request data');
-        }
-
-        const jsonData = await response.json();
-        setData(jsonData.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-        console.error('Error fetching request data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchRequestData();
-  }, [reqId]); 
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -128,8 +152,6 @@ export default function FlyerGenerator() {
 
     checkAuth();
   }, [router]);
-
-  console.log(data,"data")
 
   const handleCropComplete = (croppedImage: string) => {
     setFormData({
@@ -638,19 +660,21 @@ export default function FlyerGenerator() {
                           </button>
                         </div>
                       </div>
-                    ) : webhookData &&
-                      webhookData.thumbnail &&
-                      webhookData.webViewLink ? (
+                    ) : webhookData?.thumbnail && webhookData?.webViewLink ? (
                       <div className="flex items-center justify-center h-80 w-64 rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
                         <Link
-                          href={webhookData.webViewLink}
+                          href={  
+                            webhookData?.webViewLink
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="h-full w-full flex items-center justify-center"
                           title="Click to view flyer"
                         >
                           <iframe
-                            src={convertToPreviewLink(webhookData.webViewLink)}
+                            src={convertToPreviewLink(
+                              webhookData?.webViewLink
+                            )}
                             width={400}
                             height={400}
                             frameBorder="0"
@@ -668,10 +692,10 @@ export default function FlyerGenerator() {
                       </div>
                     )}
                   </div>
-                </>
+                </> 
               )}
 
-              {webhookData && (
+              {(webhookData || history) && (
                 <>
                   <div className="h-full flex flex-col gap-2">
                     <hr className="border-purple-400" />
