@@ -69,6 +69,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_7: {
+    name: "OF Nicole's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Nicole",
+        voiceId: "h29VgKFSX37NZ0jnbcKH",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
