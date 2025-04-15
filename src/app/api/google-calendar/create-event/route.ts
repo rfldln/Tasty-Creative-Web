@@ -400,7 +400,7 @@ export async function POST(request: NextRequest) {
       description += `WebView Link: ${formData.webViewLink}\n`;
 
     const event = {
-      summary: `TEST - ${formData.model} OF Live`,
+      summary: `${formData.model} OF Live`,
       description,
       start: { dateTime: eventDateTime.toISOString(), timeZone: ianaTimezone },
       end: { dateTime: endDateTime.toISOString(), timeZone: ianaTimezone },
@@ -669,7 +669,7 @@ export async function POST(request: NextRequest) {
 
         // Set Post Schedule to "LIVE"
         if (scheduleIndex !== -1) {
-          rowValues[scheduleIndex] = "TEST - LIVE";
+          rowValues[scheduleIndex] = "LIVE";
         }
 
         log("Populated row values", { rowValues });
