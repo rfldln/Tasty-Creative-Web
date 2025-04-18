@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // const webhookUrl = process.env.WEBHOOK_URL!;
-const webhookUrl = 'https://oarfish-open-lively.ngrok-free.app/webhook/8891f352-4735-4daf-9b0f-bf691c59d1a0asd'
+const webhookUrl = 'https://oarfish-open-lively.ngrok-free.app/webhook/8891f352-4735-4daf-9b0f-bf691c59d1a0'
 // const discordWebhookUrl = process.env.DISCORD_BOT_WEBHOOK_URL!;
-const discordWebhookUrl = 'https://oarfish-open-lively.ngrok-free.app/webhook/6dc27650-f328-4b37-912b-006882d69a65asd'
+const discordWebhookUrl = 'https://oarfish-open-lively.ngrok-free.app/webhook/6dc27650-f328-4b37-912b-006882d69a65'
 // const vipWebhookUrl = process.env.VIP_WEBHOOK_URL!;
-const vipWebhookUrl = 'https://oarfish-open-lively.ngrok-free.app/webhook/fc87dd15-0df9-4ee1-8947-2a82d961fed4asd'
+const vipWebhookUrl = 'https://oarfish-open-lively.ngrok-free.app/webhook/fc87dd15-0df9-4ee1-8947-2a82d961fed4'
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
