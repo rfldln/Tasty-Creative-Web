@@ -33,7 +33,8 @@ import {
   Phone,
   MoreHorizontal,
   ExternalLink,
-  FileText
+  FileText,
+  UsersRound
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -96,6 +97,7 @@ import LiveFlyer from '@/components/LiveFlyer';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import VIPFlyer from '@/components/VIPFlyer';
+import ModelPage from './models/page';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -1075,7 +1077,7 @@ const TastyCreative = () => {
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
         <Tabs defaultValue={tabValue} className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-6 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
+          <TabsList className="grid grid-cols-7 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="calendar"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
@@ -1117,6 +1119,13 @@ const TastyCreative = () => {
             >
               <Mic size={16} className="sm:mr-1" />
               <span className="hidden sm:inline">AI Voice</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="model"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
+            >
+              <UsersRound size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">Models</span>
             </TabsTrigger>
           </TabsList>
 
@@ -2538,7 +2547,7 @@ const TastyCreative = () => {
           </TabsContent>
 
           <TabsContent value="vip">
-          <VIPFlyer />
+            <VIPFlyer />
           </TabsContent>
 
           <TabsContent value="game">
@@ -2550,6 +2559,10 @@ const TastyCreative = () => {
                 generation
               </p>
             </div>
+          </TabsContent>
+
+          <TabsContent value="model">
+            <ModelPage />
           </TabsContent>
         </Tabs>
       </div>
