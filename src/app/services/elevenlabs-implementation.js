@@ -53,7 +53,7 @@ export const API_KEY_PROFILES = {
     voices: [
       {
         name: "OF Bronwin",
-        voiceId: "rFfKB0Jvn1Pj082TgJl2",
+        voiceId: "bbY4EbJ4diWPBBc5gWZS",
         category: "professional",
       },
     ],
