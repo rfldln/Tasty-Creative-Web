@@ -15,18 +15,18 @@ const ModelCard = ({ model }: ModelCardProps) => {
   return (
     <div className="rounded-xl bg-muted/50 p-4 flex flex-col justify-between h-[300px]">
       <div className="text-lg font-semibold mb-2">{model.name}</div>
-      <div className="flex-grow flex items-center justify-center overflow-hidden rounded-md">
+      <div className="flex-grow overflow-hidden rounded-md">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
             alt="Preview"
-            className="object-cover w-full h-full rounded-md"
+            className="object-cover object-top w-full h-full rounded-md"
           />
         ) : (
           <img
             src="/model.png"
             alt="Default"
-            className="object-contain w-full h-full opacity-60"
+            className="object-contain object-top w-full h-full opacity-60"
           />
         )}
       </div>
