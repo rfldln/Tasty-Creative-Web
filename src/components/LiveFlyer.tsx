@@ -1387,6 +1387,7 @@ export default function LiveFlyer() {
                       isEventCreating ||
                       isFetchingImage ||
                       eventCreated?.success ||
+                      !!calendarLink ||
                       !webhookData ||
                       !response
                         ? "opacity-60 cursor-not-allowed"
@@ -1396,6 +1397,7 @@ export default function LiveFlyer() {
                       isEventCreating ||
                       isFetchingImage ||
                       eventCreated?.success ||
+                      !!calendarLink ||
                       !webhookData ||
                       !response
                     }
