@@ -12,12 +12,52 @@ import { SidebarTrigger } from "./ui/sidebar";
 import ModelCard from "./ModelCard";
 import { cn } from "@/lib/utils";
 import LaunchPrep from "./LaunchPrep";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const ModelTab = () => {
+  const router = useRouter();
+
+  const searchParams = useSearchParams();
+  const tabValue = searchParams.get("tab") || "model";
   const [hash, setHash] = useState<string>("");
   const [allModels, setAllModels] = useState<Model[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/google/check-auth");
+        const data = await res.json();
+
+        if (!data.authenticated) {
+          // Get the current tab from URL or default to 'live'
+          const currentTab = tabValue || "model";
+
+          // Include the current tab in the auth request
+          const authRes = await fetch(
+            `/api/google/auth?tab=${encodeURIComponent(currentTab)}`
+          );
+          const authData = await authRes.json();
+
+          if (authData.authUrl) {
+            // Append the tab parameter to the auth URL
+            const authUrlWithTab = new URL(authData.authUrl);
+            authUrlWithTab.searchParams.set(
+              "state",
+              JSON.stringify({ tab: currentTab })
+            );
+
+            window.location.href = authUrlWithTab.toString();
+          }
+        }
+      } catch (error) {
+        console.error("Authentication check failed", error);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   // Handle hash change
   useEffect(() => {
