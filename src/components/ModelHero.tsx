@@ -2,7 +2,6 @@
 "use client";
 
 import { DISPLAY_FIELDS, extractDriveId } from "@/lib/lib";
-
 import React, { useEffect, useState } from "react";
 
 interface ModelDetails {
@@ -12,6 +11,7 @@ interface ModelDetails {
 type ModelHeroProps = {
   selectedModel: string | null;
 };
+
 const ModelHero = ({ selectedModel }: ModelHeroProps) => {
   const [modelDetails, setModelDetails] = useState<ModelDetails | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,60 +51,68 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
   const thumbnailUrl = fileId
     ? `https://lh3.googleusercontent.com/d/${fileId}`
     : null;
+  const modelName = modelDetails?.["Client Name"] || "";
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="w-full h-[300px] animate-pulse  flex items-center justify-center text-2xl font-semibold">
+      <div className="w-full h-64 animate-pulse flex items-center justify-center text-2xl font-semibold">
         Loading model info...
       </div>
     );
-  if (!modelDetails) return <div></div>;
+  }
+
+  if (!modelDetails) return null;
 
   return (
-    <div className="p-4 space-y-3 grid grid-cols-2 ">
-      <h2 className="text-2xl font-bold col-span-2">
-        Model: {modelDetails["Client Name"]}
+    <div className=" rounded-lg p-6">
+      <h2 className="text-2xl font-bold mb-4 text-white border-b pb-2">
+        Model: {modelName}
       </h2>
-      <div className="flex  gap-2 col-span-2">
-        <div className="flex-grow overflow-hidden rounded-md max-h-[300px] max-w-[300px] min-h-[300px] min-w-[300px]">
+
+      <div className="flex flex-col md:flex-row gap-6 md:items-center">
+        {/* Profile Image */}
+        <div className="md:w-1/3 overflow-hidden rounded-md">
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
-              alt={modelDetails["Client Name"]}
-              className="object-cover object-top w-full h-full rounded-md"
+              alt={modelName}
+              className="w-full object-cover rounded-md transition-transform hover:scale-105"
             />
           ) : (
             <img
               src="/model.png"
               alt="Preview"
-              className="object-contain object-top w-full h-full opacity-60"
+              className="w-full object-contain opacity-60 min-h-[200px]"
             />
           )}
         </div>
-        <div className="flex flex-col justify-between w-full h-full">
-          <ul className="space-y-1 w-full">
+
+        {/* Model Details */}
+        <div className="md:w-2/3 flex flex-col justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
             {DISPLAY_FIELDS.map(({ label, key }) => {
               const value = modelDetails[key] || "";
               return (
-                <li key={key} className="text-sm">
-                  <strong>{label}:</strong>{" "}
-                  {key === "Profile Link" && value ? (
-                    <a
-                      href={value}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline"
-                    >
-                      View Profile
-                    </a>
-                  ) : (
-                    value || "-"
-                  )}
-                </li>
+                <div key={key} className="py-1">
+                  <span className="font-semibold text-gray-300">{label}:</span>{" "}
+                  <span className="text-white">
+                    {key === "Profile Link" && value ? (
+                      <a
+                        href={value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 underline"
+                      >
+                        View Profile
+                      </a>
+                    ) : (
+                      value || "-"
+                    )}
+                  </span>
+                </div>
               );
             })}
-          </ul>
-          <div></div>
+          </div>
         </div>
       </div>
     </div>
