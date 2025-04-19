@@ -81,13 +81,15 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
                 target.onerror = null;
                 target.src = "/model.png";
               }}
-              className={`object-contain object-top w-full h-full rounded-md opacity-60`}
+              className={`object-cover object-top w-full h-full rounded-md ${
+                !thumbnailUrl ? "object-contain" : ""
+              }`}
             />
           ) : (
             <img
               src="/model.png"
               alt="Preview"
-              className="w-full object-contain opacity-60 min-h-[200px]"
+              className="w-full object-contain min-h-[200px]"
             />
           )}
         </div>
