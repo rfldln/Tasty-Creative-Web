@@ -261,7 +261,10 @@ export default function LiveFlyer() {
     }
 
     const requestId = uuidv4(); // Generate unique ID
-    const webhookUrl = response?.error === "Invalid JSON response from webhook" ? "/api/discord" : "/api/webhook-proxy"; 
+    const webhookUrl =
+      response?.error === "Invalid JSON response from webhook"
+        ? "/api/discord"
+        : "/api/webhook-proxy";
 
     try {
       const formDataToSend = new FormData();
@@ -1384,6 +1387,8 @@ export default function LiveFlyer() {
                       isEventCreating ||
                       isFetchingImage ||
                       eventCreated?.success ||
+                      !!calendarLink ||
+                      !webhookData ||
                       !response
                         ? "opacity-60 cursor-not-allowed"
                         : "opacity-100 cursor-pointer"
@@ -1392,6 +1397,8 @@ export default function LiveFlyer() {
                       isEventCreating ||
                       isFetchingImage ||
                       eventCreated?.success ||
+                      !!calendarLink ||
+                      !webhookData ||
                       !response
                     }
                   >
