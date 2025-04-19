@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { extractDriveId } from "@/lib/lib";
 
 const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
@@ -13,6 +13,8 @@ const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
   const handleClick = () => {
     setSelectedModel(model.name);
   };
+  const [imgSrc, setImgSrc] = useState(thumbnailUrl || "/model.png");
+  const isFallback = imgSrc === "/model.png";
 
   return (
     <div
@@ -23,22 +25,18 @@ const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
       <div className="flex-grow overflow-hidden rounded-md">
         {thumbnailUrl ? (
           <img
-            src={thumbnailUrl || "/model.png"}
+            src={imgSrc}
             alt={model.name}
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.onerror = null;
-              target.src = "/model.png";
-            }}
+            onError={() => setImgSrc("/model.png")}
             className={`object-cover object-top w-full h-full rounded-md ${
-              !thumbnailUrl ? " object-contain" : ""
+              isFallback ? "object-contain opacity-60" : ""
             }`}
           />
         ) : (
           <img
             src="/model.png"
             alt="Preview"
-            className="object-contain object-top w-full h-full"
+            className="object-contain object-top opacity-60 w-full h-full"
           />
         )}
       </div>
