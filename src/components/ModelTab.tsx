@@ -158,8 +158,8 @@ const ModelTab = () => {
           fallback={<div className="text-sm md:text-base">Loading...</div>}
         >
           {loadingModels ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-              {[...Array(3)].map((_, i) => (
+            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+              {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
                   className="aspect-video rounded-lg sm:rounded-xl bg-muted/50 animate-pulse"
