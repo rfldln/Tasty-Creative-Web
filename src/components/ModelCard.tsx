@@ -1,4 +1,4 @@
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
 import React from "react";
 
 const extractDriveId = (url: string) => {
@@ -23,12 +23,13 @@ const ModelCard = ({ model }: ModelCardProps) => {
             width="100%"
             height="200"
             allow="autoplay"
+            loading="lazy"
             className="rounded-md mt-2"
           />
         </div>
       ) : (
         <div className="flex-grow flex items-center justify-center h-[207px]">
-          <Image src="/model.png" alt="" height={200} width={200}/>
+          <img src="/model.png" alt="" height={200} width={200} />
         </div>
       )}
     </div>
