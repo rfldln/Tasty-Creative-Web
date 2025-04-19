@@ -30,13 +30,15 @@ const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
               target.onerror = null;
               target.src = "/model.png";
             }}
-            className={`object-contain object-top w-full h-full rounded-md opacity-60`}
+            className={`object-cover object-top w-full h-full rounded-md ${
+              !thumbnailUrl ? " object-contain" : ""
+            }`}
           />
         ) : (
           <img
             src="/model.png"
             alt="Preview"
-            className="object-contain object-top w-full h-full opacity-60"
+            className="object-contain object-top w-full h-full"
           />
         )}
       </div>
