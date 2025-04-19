@@ -8,21 +8,24 @@ import {
   BreadcrumbSeparator,
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
-import { SidebarTrigger } from "./ui/sidebar";
+import { SidebarTrigger, useSidebar } from "./ui/sidebar";
 import ModelCard from "./ModelCard";
 import { cn } from "@/lib/utils";
 import LaunchPrep from "./LaunchPrep";
 import { useRouter, useSearchParams } from "next/navigation";
+import ModelHero from "./ModelHero";
 
 const ModelTab = () => {
   const router = useRouter();
 
   const searchParams = useSearchParams();
   const tabValue = searchParams.get("tab") || "model";
+
   const [hash, setHash] = useState<string>("");
   const [allModels, setAllModels] = useState<Model[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
+  const { selectedModel, setSelectedModel } = useSidebar();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -134,10 +137,19 @@ const ModelTab = () => {
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-sm md:text-base truncate max-w-28 sm:max-w-40 md:max-w-full">
+                <BreadcrumbPage
+                  className={cn("text-sm md:text-base truncate max-w-28 sm:max-w-40 md:max-w-full cursor-pointer",{"text-gray-400": selectedModel})}
+                  onClick={() => setSelectedModel(null)}
+                >
                   {formattedHash()}
                 </BreadcrumbPage>
               </BreadcrumbItem>
+              {selectedModel && (
+                <BreadcrumbSeparator className="hidden md:block" />
+              )}
+              <BreadcrumbPage className="text-sm md:text-base truncate max-w-28 sm:max-w-40 md:max-w-full">
+                {selectedModel}
+              </BreadcrumbPage>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
@@ -148,32 +160,46 @@ const ModelTab = () => {
             "rounded-lg sm:rounded-xl transition-all duration-300 bg-muted/50",
             "h-[60px]",
             {
+              "h-auto": formattedHash() != "Onboarding" && selectedModel,
+            },
+            {
               "h-auto": formattedHash() === "Onboarding",
             }
           )}
         >
-          {formattedHash() === "Onboarding" && <LaunchPrep />}
-        </div>
-        <Suspense
-          fallback={<div className="text-sm md:text-base">Loading...</div>}
-        >
-          {loadingModels ? (
-            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="aspect-video rounded-lg sm:rounded-xl bg-muted/50 animate-pulse"
-                ></div>
-              ))}
-            </div>
+          {formattedHash() === "Onboarding" ? (
+            <LaunchPrep />
           ) : (
-            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-              {models.map((model, index) => (
-                <ModelCard key={index} model={model} />
-              ))}
-            </div>
+            <ModelHero selectedModel={selectedModel ?? null} />
           )}
-        </Suspense>
+        </div>
+        {!selectedModel && (
+          <Suspense
+            fallback={<div className="text-sm md:text-base">Loading...</div>}
+          >
+            {loadingModels ? (
+              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="aspect-video rounded-lg sm:rounded-xl bg-muted/50 animate-pulse"
+                  ></div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                {models.map((model, index) => (
+                  <ModelCard
+                    key={index}
+                    model={model}
+                    selectedModel={selectedModel ?? null}
+                    setSelectedModel={setSelectedModel ?? (() => {})}
+                  />
+                ))}
+              </div>
+            )}
+          </Suspense>
+        )}
       </div>
     </>
   );

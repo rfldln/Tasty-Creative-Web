@@ -58,4 +58,6 @@ type Model = {
 
 type ModelCardProps = {
   model: Model;
+  selectedModel: string | null;
+  setSelectedModel: React.Dispatch<React.SetStateAction<string | null>>;
 };

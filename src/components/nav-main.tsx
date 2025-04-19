@@ -33,7 +33,7 @@ export function NavMain({
     }[]
   }[]
 }) {
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, setSelectedModel } = useSidebar();
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -58,7 +58,7 @@ export function NavMain({
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
                       <SidebarMenuSubButton asChild>
-                        <a href={subItem.url} onClick={() => setOpenMobile(false)}>
+                        <a href={subItem.url} onClick={() => { setOpenMobile(false); setSelectedModel(""); }}>
                           <span>{subItem.title}</span>
                         </a>
                       </SidebarMenuSubButton>
