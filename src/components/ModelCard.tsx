@@ -19,13 +19,13 @@ const ModelCard = ({ model }: ModelCardProps) => {
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
-            alt="Preview"
+            alt={model.name}
             className="object-cover object-top w-full h-full rounded-md"
           />
         ) : (
           <img
             src="/model.png"
-            alt="Default"
+            alt="preview"
             className="object-contain object-top w-full h-full opacity-60"
           />
         )}
