@@ -74,9 +74,14 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
         <div className="md:w-1/3 overflow-hidden rounded-md">
           {thumbnailUrl ? (
             <img
-              src={thumbnailUrl}
+              src={thumbnailUrl || "/model.png"}
               alt={modelName}
-              className="w-full object-cover rounded-md transition-transform hover:scale-105"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.src = "/model.png";
+              }}
+              className={`object-contain object-top w-full h-full rounded-md opacity-60`}
             />
           ) : (
             <img
