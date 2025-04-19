@@ -15,19 +15,17 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   isFetchingImage,
   webhookData,
 }) => {
-  const [models, setModels] = useState<string[]>([]);
+  const [models, setModels] = useState<Model[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
 
   useEffect(() => {
     const fetchModels = async () => {
+      setLoadingModels(true);
       try {
         const response = await fetch("/api/models");
         const data = await response.json();
         if (Array.isArray(data)) {
-          const uniqueSortedModels = [...new Set(data)].sort((a, b) =>
-            a.localeCompare(b)
-          );
-          setModels(uniqueSortedModels);
+          setModels(data);
         }
       } catch (error) {
         console.error("Error fetching models:", error);
@@ -38,7 +36,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
 
     fetchModels();
   }, []);
-  
+
   return (
     <div className="flex flex-col">
       <label htmlFor="model" className="text-sm text-gray-300 font-medium mb-1">
@@ -63,10 +61,10 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
           {models.map((model, index) => (
             <SelectItem
               key={index}
-              value={model}
+              value={model.name}
               className="flex items-center justify-between py-2"
             >
-              {model}
+              {model.name}
             </SelectItem>
           ))}
         </SelectContent>

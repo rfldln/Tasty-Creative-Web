@@ -49,7 +49,7 @@ const data = {
         },
         {
           title: "Dropped",
-          url: "#droped-models",
+          url: "#dropped-models",
         },
         {
           title: "Onboarding",

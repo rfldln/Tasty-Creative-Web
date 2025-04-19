@@ -16,14 +16,13 @@ type ModelFormData = {
   customDetails?: string;
   type?: string;
   croppedImage?: string | null;
-  templatePosition?: string
+  templatePosition?: string;
   options?: string[];
-  header?:string;
-
+  header?: string;
 };
 
 type ModelsDropdownProps = {
-  formData: ModelFormData ;
+  formData: ModelFormData;
   setFormData: React.Dispatch<React.SetStateAction<ModelFormData>>;
   isLoading: boolean;
   isFetchingImage: boolean;
@@ -49,4 +48,14 @@ type GoogleDriveFile = {
 type FolderInfo = {
   id: string;
   name: string;
+};
+
+type Model = {
+  name: string;
+  profile: string;
+  status: string
+};
+
+type ModelCardProps = {
+  model: Model;
 };
