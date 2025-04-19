@@ -13,19 +13,21 @@ const ModelCard = ({ model }: ModelCardProps) => {
     : null;
 
   return (
-    <div className="aspect-video rounded-xl bg-muted/50 p-4 flex flex-col justify-between">
-      <div className="text-lg font-semibold">{model.name}</div>
-      <div className="flex-grow flex items-center justify-center">
+    <div className="rounded-xl bg-muted/50 p-4 flex flex-col justify-between h-[300px]">
+      <div className="text-lg font-semibold mb-2">{model.name}</div>
+      <div className="flex-grow flex items-center justify-center overflow-hidden rounded-md">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
             alt="Preview"
-            className="rounded-md mt-2 object-cover h-[200px] w-full"
+            className="object-cover w-full h-full rounded-md"
           />
         ) : (
-          <div className="flex items-center justify-center h-[200px] w-full">
-            <img src="/model.png" alt="Default" height={200} width={200} />
-          </div>
+          <img
+            src="/model.png"
+            alt="Default"
+            className="object-contain w-full h-full opacity-60"
+          />
         )}
       </div>
     </div>
