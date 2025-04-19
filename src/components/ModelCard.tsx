@@ -4,10 +4,7 @@
 import React from "react";
 import { extractDriveId } from "@/lib/lib";
 
-const ModelCard = ({
-  model,
-  setSelectedModel,
-}: ModelCardProps) => {
+const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
   const fileId = extractDriveId(model.profile);
   const thumbnailUrl = fileId
     ? `https://lh3.googleusercontent.com/d/${fileId}`
@@ -26,9 +23,14 @@ const ModelCard = ({
       <div className="flex-grow overflow-hidden rounded-md">
         {thumbnailUrl ? (
           <img
-            src={thumbnailUrl}
+            src={thumbnailUrl || "/model.png"}
             alt={model.name}
-            className="object-cover object-top w-full h-full rounded-md"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.src = "/model.png";
+            }}
+            className={`object-contain object-top w-full h-full rounded-md opacity-60`}
           />
         ) : (
           <img
