@@ -34,7 +34,7 @@ const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
   return (
     <div
       onClick={handleClick}
-      className="rounded-xl bg-gray-800 overflow-hidden shadow-lg cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-blue-900/20 hover:shadow-xl group border border-gray-700 h-[300px] flex flex-col"
+      className="rounded-xl relative bg-gray-800 overflow-hidden shadow-lg cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-blue-900/20 hover:shadow-xl group border border-gray-700 h-[300px] flex flex-col"
     >
       {/* Card Image Section */}
       <div className="h-[220px] overflow-hidden relative">

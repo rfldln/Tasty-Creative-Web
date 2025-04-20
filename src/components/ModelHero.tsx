@@ -80,7 +80,9 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
     return (
       <div className="w-full h-64 flex items-center justify-center bg-gray-900 rounded-lg">
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex items-center justify-center h-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
           <p className="mt-4 text-xl font-medium text-gray-300">
             Loading model info...
           </p>

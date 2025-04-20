@@ -158,8 +158,6 @@ const ModelTab = () => {
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6 ">
-        {/* Main Header Background with Gradient */}
-
         {/* Content Container */}
         <div
           className={`rounded-xl transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border border-gray-700/30 overflow-hidden ${
