@@ -138,7 +138,10 @@ const ModelTab = () => {
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage
-                  className={cn("text-sm md:text-base truncate max-w-28 sm:max-w-40 md:max-w-full cursor-pointer",{"text-gray-400": selectedModel})}
+                  className={cn(
+                    "text-sm md:text-base truncate max-w-28 sm:max-w-40 md:max-w-full cursor-pointer",
+                    { "text-gray-400": selectedModel }
+                  )}
                   onClick={() => setSelectedModel(null)}
                 >
                   {formattedHash()}
@@ -154,18 +157,18 @@ const ModelTab = () => {
           </Breadcrumb>
         </div>
       </header>
-      <div className="flex flex-1 flex-col gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 pt-0">
+      <div className="flex flex-1 flex-col gap-4 p-4 md:p-6 ">
+        {/* Main Header Background with Gradient */}
+
+        {/* Content Container */}
         <div
-          className={cn(
-            "rounded-lg sm:rounded-xl transition-all duration-300 bg-muted/50",
-            "h-[60px]",
-            {
-              "h-auto": formattedHash() != "Onboarding" && selectedModel,
-            },
-            {
-              "h-auto": formattedHash() === "Onboarding",
-            }
-          )}
+          className={`rounded-xl transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border border-gray-700/30 overflow-hidden ${
+            formattedHash() !== "Onboarding" && selectedModel
+              ? "h-auto"
+              : formattedHash() === "Onboarding"
+              ? "h-auto"
+              : "h-[60px]"
+          }`}
         >
           {formattedHash() === "Onboarding" ? (
             <LaunchPrep />
@@ -173,26 +176,36 @@ const ModelTab = () => {
             <ModelHero selectedModel={selectedModel ?? null} />
           )}
         </div>
+
+        {/* Grid of Model Cards */}
         {!selectedModel && (
           <Suspense
-            fallback={<div className="text-sm md:text-base">Loading...</div>}
+            fallback={
+              <div className="p-4 text-center">
+                <div className="inline-flex items-center">
+                  <div className="w-6 h-6 border-2 border-t-transparent border-blue-500 rounded-full animate-spin mr-2"></div>
+                  <span className="text-gray-300">Loading models...</span>
+                </div>
+              </div>
+            }
           >
             {loadingModels && formattedHash() != "Onboarding" ? (
-              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {[...Array(4)].map((_, i) => (
                   <div
                     key={i}
-                    className="aspect-video rounded-lg sm:rounded-xl bg-muted/50 animate-pulse"
-                  ></div>
+                    className="h-[300px] rounded-xl bg-gray-800 animate-pulse relative overflow-hidden"
+                  >
+                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gray-900 animate-pulse"></div>
+                  </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {models.map((model, index) => (
                   <ModelCard
                     key={index}
                     model={model}
-                    selectedModel={selectedModel ?? null}
                     setSelectedModel={setSelectedModel ?? (() => {})}
                   />
                 ))}
