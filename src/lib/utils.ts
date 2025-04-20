@@ -19,6 +19,34 @@ export function convertToPreviewLink(link: string): string | undefined {
   return link.replace("view", "preview");
 }
 
+export const extractDriveId = (url: string) => {
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)\//);
+  return match ? match[1] : null;
+};
+
+ // Function to generate thumbnail URL based on fileId
+ export const getThumbnailUrl = (fileId: string | undefined) => {
+  console.log("File ID:", fileId); // Debugging line
+  const extractedFileId = fileId ? extractDriveId(fileId) : "";
+  console.log("Extracted File ID:", extractedFileId); // Debugging line
+  return fileId
+    ? `https://lh3.googleusercontent.com/d/${extractedFileId}`
+    : undefined;
+};
+
+// Function to extract URL from formula
+export const extractUrlFromFormula = (formula: string): string => {
+  const regex = /IMAGE\("([^"]+)"/;
+  const match = formula.match(regex);
+  return match ? match[1] : "";
+};
+
+export const extractLinkFromFormula = (formula: string): string => {
+  const regex = /HYPERLINK\("([^"]+)"/;
+  const match = formula.match(regex);
+  return match ? match[1] : "";
+};
+
 
 export const emailData = {
   to: "kentjohnliloc@gmail.com,txl.tasty@gmail.com",

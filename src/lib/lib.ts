@@ -22,11 +22,6 @@ export const DISPLAY_FIELDS: { label: string; key: string }[] = [
   { label: "Profile Link", key: "Profile Link" },
 ];
 
-export const extractDriveId = (url: string) => {
-  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)\//);
-  return match ? match[1] : null;
-};
-
 export const prepFields = [
   "Share 3+ sexting scripts",
   "Set up & share Notion",
