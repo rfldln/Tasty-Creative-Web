@@ -3,6 +3,7 @@
 
 import { DISPLAY_FIELDS, extractDriveId } from "@/lib/lib";
 import React, { useEffect, useState } from "react";
+import ModelAssets from "./ModelAssets";
 
 interface ModelDetails {
   [key: string]: string;
@@ -64,12 +65,12 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
   if (!modelDetails) return null;
 
   return (
-    <div className=" rounded-lg p-6">
+    <div className=" rounded-lg p-6 flex flex-col gap-4">
       <h2 className="text-2xl font-bold mb-4 text-white border-b pb-2">
         Model: {modelName}
       </h2>
 
-      <div className="flex flex-col md:flex-row gap-6 md:items-center">
+      <div className="flex flex-col md:flex-row gap-6 md:items-center ">
         {/* Profile Image */}
         <div className="md:w-1/3 overflow-hidden rounded-md">
           {thumbnailUrl ? (
@@ -122,6 +123,7 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
           </div>
         </div>
       </div>
+      {selectedModel && <ModelAssets modelName={selectedModel} />}
     </div>
   );
 };

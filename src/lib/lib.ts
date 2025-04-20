@@ -26,3 +26,14 @@ export const extractDriveId = (url: string) => {
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)\//);
   return match ? match[1] : null;
 };
+
+export const prepFields = [
+  "Share 3+ sexting scripts",
+  "Set up & share Notion",
+  "Fill out Client Info tab",
+  "Confirm pricing with all teams",
+  "Schedule social posts for launch",
+  "Store passwords in client sheet",
+  "Notify teams of launch date",
+  "Complete Airtable profile",
+];
