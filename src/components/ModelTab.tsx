@@ -177,7 +177,7 @@ const ModelTab = () => {
           <Suspense
             fallback={<div className="text-sm md:text-base">Loading...</div>}
           >
-            {loadingModels ? (
+            {loadingModels && formattedHash() != "Onboarding" ? (
               <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                 {[...Array(4)].map((_, i) => (
                   <div
