@@ -78,14 +78,12 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
 
   if (loading) {
     return (
-      <div className="w-full h-64 flex items-center justify-center bg-gray-900 rounded-lg">
+      <div className="w-full h-64 rounded-xl flex items-center justify-center transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border border-gray-700/30 overflow-hidden">
         <div className="flex flex-col items-center">
           <div className="flex items-center justify-center h-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-          <p className="mt-4 text-xl font-medium text-gray-300">
-            Loading model info...
-          </p>
+          <p className="text-gray-300 text-lg">Loading model info...</p>
         </div>
       </div>
     );
@@ -94,7 +92,7 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
   if (!modelDetails) return null;
 
   return (
-    <div className="bg-gray-900 rounded-lg shadow-lg overflow-hidden">
+    <div className="bg-gradient-to-b from-gray-900 to-gray-850 rounded-lg shadow-lg overflow-hidden">
       {/* Header */}
       <div className="rounded-t-xl transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border px-4 py-6 border-gray-700/30 overflow-hidden">
         <h2 className="text-2xl font-bold text-white flex items-center ml-1">
@@ -183,7 +181,7 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
       </div>
 
       {/* Model Assets Section */}
-      <div className="px-2 pb-6">
+      <div className="px-6 pb-6">
         {selectedModel && <ModelAssets modelName={selectedModel} />}
       </div>
     </div>
