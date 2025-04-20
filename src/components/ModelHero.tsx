@@ -96,8 +96,8 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
   return (
     <div className="bg-gray-900 rounded-lg shadow-lg overflow-hidden">
       {/* Header */}
-      <div className="bg-gray-800 py-4 px-6 border-b border-gray-700">
-        <h2 className="text-2xl font-bold text-white flex items-center">
+      <div className="rounded-t-xl transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border px-4 py-6 border-gray-700/30 overflow-hidden">
+        <h2 className="text-2xl font-bold text-white flex items-center ml-1">
           Model: <span className="ml-2 text-blue-400">{modelName}</span>
         </h2>
       </div>
@@ -183,7 +183,7 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
       </div>
 
       {/* Model Assets Section */}
-      <div className="px-6 pb-6">
+      <div className="px-2 pb-6">
         {selectedModel && <ModelAssets modelName={selectedModel} />}
       </div>
     </div>

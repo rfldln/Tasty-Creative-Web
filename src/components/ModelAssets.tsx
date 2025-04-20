@@ -103,7 +103,7 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
       <div className="flex flex-wrap md:flex-nowrap border-b border-gray-700 mb-6">
         <button
           onClick={() => handleTabClick("all")}
-          className={`flex-1 py-3 px-4 text-center font-medium text-sm md:text-base transition-colors duration-200 ${
+          className={`flex-1 py-3 cursor-pointer px-4 text-center font-medium text-sm md:text-base transition-colors duration-200 ${
             activeTab === "all"
               ? "text-blue-400 border-b-2 border-blue-400"
               : "text-gray-300 hover:text-blue-300"
@@ -113,7 +113,7 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
         </button>
         <button
           onClick={() => handleTabClick("vip")}
-          className={`flex-1 py-3 px-4 text-center font-medium text-sm md:text-base transition-colors duration-200 ${
+          className={`flex-1 py-3 px-4 cursor-pointer text-center font-medium text-sm md:text-base transition-colors duration-200 ${
             activeTab === "vip"
               ? "text-blue-400 border-b-2 border-blue-400"
               : "text-gray-300 hover:text-blue-300"
@@ -123,7 +123,7 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
         </button>
         <button
           onClick={() => handleTabClick("live")}
-          className={`flex-1 py-3 px-4 text-center font-medium text-sm md:text-base transition-colors duration-200 ${
+          className={`flex-1 py-3 px-4 cursor-pointer text-center font-medium text-sm md:text-base transition-colors duration-200 ${
             activeTab === "live"
               ? "text-blue-400 border-b-2 border-blue-400"
               : "text-gray-300 hover:text-blue-300"
