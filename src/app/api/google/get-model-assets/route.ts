@@ -62,27 +62,27 @@ export async function GET(req: Request): Promise<NextResponse> {
       const [valuesResponse, formulasResponse] = await Promise.all([
         sheets.spreadsheets.values.get({
           spreadsheetId: SPREADSHEET_ID,
-          range: `${sheetName}!A3:Z`, // Start from row 3
-          valueRenderOption: "FORMATTED_VALUE", // Fetch displayed values
+          range: `${sheetName}!A3:Z`, // Includes header row (row 3)
+          valueRenderOption: "FORMATTED_VALUE",
         }),
         sheets.spreadsheets.values.get({
           spreadsheetId: SPREADSHEET_ID,
-          range: `${sheetName}!A3:Z`, // Same range for formulas
-          valueRenderOption: "FORMULA", // Fetch actual formulas
+          range: `${sheetName}!A3:Z`,
+          valueRenderOption: "FORMULA",
         }),
       ]);
 
       const values = valuesResponse.data.values ?? [];
       const formulas = formulasResponse.data.values ?? [];
-      console.log(`📊 Rows fetched from ${sheetName}:`, values.length);
 
-      if (values.length < 2) {
-        console.log("⚠️ Skipping sheet with no data");
+      if (values.length === 0) {
+        console.log(`⚠️ No data in ${sheetName}`);
         continue;
       }
 
       const headers = values[0] as string[];
-      console.log("🧩 Headers:", headers);
+      const dataRows = values.slice(1); // Start from row 4 (data)
+      const dataFormulas = formulas.slice(1); // Align with data
 
       const modelIndex = headers.indexOf("Model");
 
@@ -91,30 +91,41 @@ export async function GET(req: Request): Promise<NextResponse> {
         continue;
       }
 
-      const rows = values
-        .slice(1)
-        .filter((row) => {
-          const cellValue = row[modelIndex]?.trim().toLowerCase();
-          return cellValue === modelName.toLowerCase();
-        })
+      const rows = dataRows
         .map((row, rowIndex) => {
+          const modelCell = row[modelIndex]?.trim();
+          if (
+            !modelCell ||
+            modelCell.toLowerCase() !== modelName.toLowerCase()
+          ) {
+            return null;
+          }
+
           const rowObj: Record<
             string,
             string | { value: string; formula: string }
           > = {};
+
           headers.forEach((header, index) => {
             const value = row[index]?.trim() || "";
-            const formula = formulas[rowIndex + 1]?.[index] || "";
-            rowObj[header] = String(formula).startsWith("=")
-              ? { value, formula }
-              : value;
+            const formula = dataFormulas[rowIndex]?.[index] || "";
+            rowObj[header] =
+              typeof formula === "string" && formula.startsWith("=")
+                ? { value, formula }
+                : value;
           });
+
           rowObj["type"] = sheetName.includes("VIP") ? "vip" : "live";
           rowObj["Sheet"] = sheetName;
-          return rowObj;
-        });
 
-      console.log(`✅ Matching rows found in ${sheetName}:`, rows.length);
+          return rowObj;
+        })
+        .filter(Boolean) as Record<
+        string,
+        string | { value: string; formula: string }
+      >[];
+
+      console.log(`✅ Matching rows in ${sheetName}:`, rows.length);
 
       if (sheetName.includes("Live")) {
         allMatchingRows.live.push(...rows);
@@ -124,7 +135,6 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
 
     console.log("🧾 Final structured output:", allMatchingRows);
-
     return NextResponse.json(allMatchingRows, { status: 200 });
   } catch (error) {
     console.error("❌ Error fetching model assets:", error);

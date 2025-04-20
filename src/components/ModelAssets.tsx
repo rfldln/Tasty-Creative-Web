@@ -89,13 +89,11 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
 
   // Function to extract URL from formula
   const extractUrlFromFormula = (formula: string): string => {
-    const regex = /HYPERLINK\("([^"]+)"/;
+    const regex = /IMAGE\("([^"]+)"/;
     const match = formula.match(regex);
-    const fileId = match ? extractDriveId(match[1]) : null;
-    const thumbnailUrl = fileId
-      ? `https://lh3.googleusercontent.com/d/${fileId}`
-      : null;
-    return thumbnailUrl || "";
+    console.log(match,'match')
+
+    return  match ? match[1] : "";
   };
 
   if (loading) {
