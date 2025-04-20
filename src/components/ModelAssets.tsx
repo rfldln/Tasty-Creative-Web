@@ -91,13 +91,13 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
   const extractUrlFromFormula = (formula: string): string => {
     const regex = /IMAGE\("([^"]+)"/;
     const match = formula.match(regex);
-    return  match ? match[1] : "";
+    return match ? match[1] : "";
   };
 
   const extractLinkFromFormula = (formula: string): string => {
     const regex = /HYPERLINK\("([^"]+)"/;
     const match = formula.match(regex);
-    return  match ? match[1] : "";
+    return match ? match[1] : "";
   };
 
   if (loading) {
@@ -186,11 +186,7 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
                     loading="lazy"
                   />
                 ) : (
-                  <img
-                    src={getThumbnailUrl(asset["Request ID"])}
-                    alt={`Asset ${asset["Request ID"]}`}
-                    className="max-h-full object-contain"
-                  />
+                  <p>No Preview Available</p>
                 )}
               </div>
 
@@ -212,9 +208,16 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Date:</span>
                   <span className="text-sm text-gray-300">
-                    {asset["Date"] || "N/A"}
+                    {asset["Date"]
+                      ? new Date(asset["Date"]).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "N/A"}
                   </span>
                 </div>
+
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Model:</span>
                   <span className="text-sm text-gray-300">
@@ -235,7 +238,9 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
                   "value" in asset["Final Output"] &&
                   "formula" in asset["Final Output"] && (
                     <a
-                      href={extractLinkFromFormula(asset["Final Output"].formula)}
+                      href={extractLinkFromFormula(
+                        asset["Final Output"].formula
+                      )}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 text-center"
@@ -243,16 +248,19 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
                       View Output
                     </a>
                   )}
-                {asset["PSD File"] && typeof asset["PSD File"] === "object" && "value" in asset["PSD File"] && "formula" in asset["PSD File"] && (
-                  <a
-                    href={extractLinkFromFormula(asset["PSD File"].formula)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-200 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 text-center"
-                  >
-                    PSD File
-                  </a>
-                )}
+                {asset["PSD File"] &&
+                  typeof asset["PSD File"] === "object" &&
+                  "value" in asset["PSD File"] &&
+                  "formula" in asset["PSD File"] && (
+                    <a
+                      href={extractLinkFromFormula(asset["PSD File"].formula)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-200 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 text-center"
+                    >
+                      PSD File
+                    </a>
+                  )}
               </div>
             </div>
           </div>
