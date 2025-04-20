@@ -91,8 +91,12 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
   const extractUrlFromFormula = (formula: string): string => {
     const regex = /IMAGE\("([^"]+)"/;
     const match = formula.match(regex);
-    console.log(match,'match')
+    return  match ? match[1] : "";
+  };
 
+  const extractLinkFromFormula = (formula: string): string => {
+    const regex = /HYPERLINK\("([^"]+)"/;
+    const match = formula.match(regex);
     return  match ? match[1] : "";
   };
 
@@ -204,9 +208,6 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
             </div>
 
             <div className="p-4">
-              <h3 className="text-lg font-bold mb-2 text-gray-100">
-                Request ID: {asset["Request ID"]}
-              </h3>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Date:</span>
@@ -229,9 +230,12 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
               </div>
               <div className="mt-4 flex space-x-2">
                 {asset["Final Output"] &&
-                  typeof asset["Final Output"] === "string" && (
+                  asset["Final Output"] &&
+                  typeof asset["Final Output"] === "object" &&
+                  "value" in asset["Final Output"] &&
+                  "formula" in asset["Final Output"] && (
                     <a
-                      href={asset["Final Output"]}
+                      href={extractLinkFromFormula(asset["Final Output"].formula)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 text-center"
@@ -239,9 +243,9 @@ export default function AssetTabs({ modelName }: { modelName: string }) {
                       View Output
                     </a>
                   )}
-                {asset["PSD File"] && typeof asset["PSD File"] === "string" && (
+                {asset["PSD File"] && typeof asset["PSD File"] === "object" && "value" in asset["PSD File"] && "formula" in asset["PSD File"] && (
                   <a
-                    href={asset["PSD File"]}
+                    href={extractLinkFromFormula(asset["PSD File"].formula)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-200 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 text-center"
