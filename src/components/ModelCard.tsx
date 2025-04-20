@@ -1,13 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { extractDriveId } from "@/lib/utils";
+import { cn, extractDriveId } from "@/lib/utils";
 import React, { useEffect, useState } from "react";
 
 interface ModelCardProps {
   model: {
     name: string;
     profile: string;
+    status: string;
   };
   setSelectedModel: (name: string) => void;
 }
@@ -77,8 +78,12 @@ const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
 
       {/* Status Indicator */}
       <div className="absolute top-3 right-3 flex items-center bg-gray-900/70 rounded-full px-2 py-1 backdrop-blur-sm">
-        <div className="h-2 w-2 rounded-full bg-green-500 mr-1"></div>
-        <span className="text-xs font-medium text-white">Active</span>
+        <div
+          className={cn("h-2 w-2 rounded-full bg-green-500 mr-1", {
+            "bg-red-500": model.status === "Dropped",
+          })}
+        ></div>
+        <span className="text-xs font-medium text-white">{model.status}</span>
       </div>
     </div>
   );
