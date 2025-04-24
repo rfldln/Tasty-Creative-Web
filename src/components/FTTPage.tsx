@@ -898,7 +898,7 @@ export default function LiveFlyer() {
                   />
                 </div>
               </div>
-              <div className=" flex gap-2 items-center relative">
+              {/* <div className=" flex gap-2 items-center relative">
                 <label
                   className={cn(
                     "relative inline-flex items-center cursor-pointer",
@@ -926,7 +926,7 @@ export default function LiveFlyer() {
                 <h1 className="text-sm text-gray-300 font-medium mb-0">
                   Custom Flyer
                 </h1>
-              </div>
+              </div> */}
             </div>
 
             {formData.customRequest && (
