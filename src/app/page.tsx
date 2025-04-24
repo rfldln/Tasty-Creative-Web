@@ -34,7 +34,8 @@ import {
   MoreHorizontal,
   ExternalLink,
   FileText,
-  UsersRound
+  UsersRound,
+  CircleDollarSign
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -98,6 +99,7 @@ import LiveFlyer from '@/components/LiveFlyer';
 import { useRouter, useSearchParams } from 'next/navigation';
 import VIPFlyer from '@/components/VIPFlyer';
 import ModelPage from './models/page';
+import FTTPage from '@/components/FTTPage';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -1077,7 +1079,7 @@ const TastyCreative = () => {
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
         <Tabs defaultValue={tabValue} className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-7 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
+          <TabsList className="grid grid-cols-8 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="calendar"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
@@ -1105,6 +1107,13 @@ const TastyCreative = () => {
             >
               <div className="sm:mr-1">🎮</div>
               <span className="hidden sm:inline">Game</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="ftt"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
+            >
+              <CircleDollarSign />
+              <span className="hidden sm:inline">FTT</span>
             </TabsTrigger>
             <TabsTrigger
               value="image"
@@ -2563,6 +2572,10 @@ const TastyCreative = () => {
 
           <TabsContent value="model">
             <ModelPage />
+          </TabsContent>
+
+          <TabsContent value="ftt">
+            <FTTPage />
           </TabsContent>
         </Tabs>
       </div>
