@@ -968,7 +968,7 @@ export default function LiveFlyer() {
                   <span>
                     {isLoading || isFetchingImage
                       ? "Generating..."
-                      : "Generate Live Flyer"}
+                      : "Generate FTT Flyer"}
                   </span>
                 )}
               </button>
@@ -1318,7 +1318,7 @@ export default function LiveFlyer() {
                     </div>
                   </>
                 )}
-                <div className="mt-2 col-span-2">
+                {/* <div className="mt-2 col-span-2">
                   <button
                     type="button"
                     onClick={handleCreateEventSubmit}
@@ -1436,7 +1436,7 @@ export default function LiveFlyer() {
                       </div>
                     </div>
                   )}
-                </div>
+                </div> */}
               </>
             )
           )}
