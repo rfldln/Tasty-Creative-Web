@@ -834,12 +834,15 @@ export default function LiveFlyer() {
                 <label htmlFor="tip" className="text-sm font-medium mb-1">
                   Tip:
                 </label>
-                <div className="flex gap-2 w-[100px]">
+                <div className="flex gap-2 w-[100px] relative items-center">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">
+                    $
+                  </span>
                   <input
                     type="number"
                     id="tip"
                     name="tip"
-                    className="border-0 bg-black/50 text-gray-400  rounded-md p-2 flex-1 w-[50px] "
+                    className="border-0 pl-5 bg-black/50 text-gray-400 rounded-md p-2 flex-1 w-[50px]"
                     value={formData.tip}
                     onChange={handleInputChange}
                     required
@@ -853,17 +856,20 @@ export default function LiveFlyer() {
                 <label htmlFor="gets" className="text-sm font-medium mb-1">
                   Gets:
                 </label>
-                <div className="flex gap-2 w-[100px]">
+                <div className="flex gap-2 w-[100px] relative items-center">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">
+                    $
+                  </span>
                   <input
                     type="number"
                     id="gets"
                     name="gets"
-                    className="border-0 bg-black/50 text-gray-400  rounded-md p-2 flex-1 w-[50px] "
+                    className="border-0 pl-5 bg-black/50 text-gray-400 rounded-md p-2 flex-1 w-[50px]"
                     value={formData.gets}
                     onChange={handleInputChange}
                     required
                     disabled={isLoading || isFetchingImage}
-                    max={999}
+                    max={99}
                     min={1}
                   />
                 </div>
