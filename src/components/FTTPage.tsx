@@ -1120,7 +1120,7 @@ export default function LiveFlyer() {
           <div>
             <h1 className="text-bold">Preview</h1>
             <p className="text-sm text-gray-400 mb-2">
-              Live flyer preview will appear here
+              FTT flyer preview will appear here
             </p>
           </div>
           {formData.customRequest === true && requestSent ? (
