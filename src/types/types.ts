@@ -19,6 +19,8 @@ type ModelFormData = {
   templatePosition?: string;
   options?: string[];
   header?: string;
+  tip?: number;
+  gets?: number;
 };
 
 type ModelsDropdownProps = {
