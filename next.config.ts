@@ -20,6 +20,28 @@ const nextConfig = {
       },
     ],
   },
+  // Enable CORS for local development
+  async headers() {
+    return [
+      {
+        source: "/api/notifications",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*", // Allow all origins (you can adjust this for stricter control)
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, PUT, DELETE",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type, x-api-key",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
