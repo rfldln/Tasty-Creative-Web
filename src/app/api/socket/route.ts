@@ -20,7 +20,7 @@ const socketHandler = (req: NextRequest, res: NextApiResponseServerIO) => {
       cors: {
         origin:
           process.env.NODE_ENV === "production"
-            ? ["https://yourdomain.com"] // Update with your domain
+            ? ["https://tasty-creative-web.vercel.app"] // Update with your domain
             : ["http://localhost:3000"],
         methods: ["GET", "POST"],
         credentials: true,

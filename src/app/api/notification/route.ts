@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     
     // Validate the API key (recommended for security)
     const apiKey = request.headers.get('x-api-key');
-    if (apiKey !== process.env.NOTIFICATION_API_KEY) {
+    if (apiKey !== "pogiko123") {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
