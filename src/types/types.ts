@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 type ModelFormData = {
@@ -55,7 +56,7 @@ type FolderInfo = {
 type Model = {
   name: string;
   profile: string;
-  status: string
+  status: string;
 };
 
 type ModelCardProps = {

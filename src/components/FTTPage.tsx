@@ -848,7 +848,7 @@ export default function LiveFlyer() {
                     required
                     disabled={isLoading || isFetchingImage}
                     max={99}
-                    min={1}
+                    min={10}
                   />
                 </div>
               </div>
@@ -869,8 +869,8 @@ export default function LiveFlyer() {
                     onChange={handleInputChange}
                     required
                     disabled={isLoading || isFetchingImage}
-                    max={99}
-                    min={1}
+                    max={999}
+                    min={100}
                   />
                 </div>
               </div>
