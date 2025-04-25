@@ -13,7 +13,7 @@ export default function NotificationListener() {
     const socketInit = async () => {
       const socketUrl =
         process.env.NODE_ENV === "production"
-          ? "wss://yourdomain.com" // Update with your domain
+          ? "wss://tasty-creative-web.vercel.app/" // Update with your domain
           : "ws://localhost:3000";
 
       const socketIo = io(socketUrl, {
