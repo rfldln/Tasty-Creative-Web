@@ -14,7 +14,7 @@ export default function LiveFlyer() {
   const router = useRouter();
 
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get("tab") || "live";
+  const tabValue = searchParams.get("tab") || "ftt";
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -26,7 +26,7 @@ export default function LiveFlyer() {
 
         if (!data.authenticated) {
           // Get the current tab from URL or default to 'live'
-          const currentTab = tabValue || "live";
+          const currentTab = tabValue || "ftt";
 
           // Include the current tab in the auth request
           const authRes = await fetch(
@@ -95,8 +95,8 @@ export default function LiveFlyer() {
     customRequest: false,
     customDetails: "",
     type: "FTT",
-    tip: 1,
-    gets: 1,
+    tip: 10,
+    gets: 100,
   });
 
   useEffect(() => {
