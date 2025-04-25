@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Tasty Creative",
   description: "Admin dashboard for Tasty Creative",
+  icons: {
+    icon: "/kiss.png",
+  },
 };
 
 export default function RootLayout({
