@@ -2,50 +2,40 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import io, { Socket } from "socket.io-client";
+
+type NotificationData = {
+  message: string;
+  timestamp: string;
+  category?: string;
+  priority?: string;
+};
 
 export default function NotificationListener() {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
-  const [socket, setSocket] = useState< typeof Socket | null>(null);
 
   useEffect(() => {
-    // Connect to socket server
-    const socketInit = async () => {
-      const socketUrl =
-        process.env.NODE_ENV === "production"
-          ? "wss://tasty-creative-web.vercel.app/" // Update with your domain
-          : "ws://localhost:3000";
+    let intervalId: NodeJS.Timeout;
 
-      const socketIo = io(socketUrl, {
-        path: "/api/socket",
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
-
-      socketIo.on("connect", () => {
-        console.log("Connected to Socket.io server");
-      });
-
-      socketIo.on("notification", (data: NotificationData) => {
-        console.log("New notification:", data);
-        setNotifications((prev) => [data, ...prev].slice(0, 10)); // Keep the last 10 notifications
-      });
-
-      socketIo.on("disconnect", () => {
-        console.log("Disconnected from Socket.io server");
-      });
-
-      setSocket(socketIo);
-    };
-
-    socketInit();
-
-    // Cleanup on unmount
-    return () => {
-      if (socket) {
-        socket.disconnect();
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch("/api/notifications");
+        if (res.ok) {
+          const data = await res.json();
+          setNotifications(data.notifications || []);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
       }
     };
+
+    // Initial fetch
+    fetchNotifications();
+
+    // Poll every 5 seconds (you can adjust this)
+    intervalId = setInterval(fetchNotifications, 5000);
+
+    // Cleanup
+    return () => clearInterval(intervalId);
   }, []);
 
   return (
