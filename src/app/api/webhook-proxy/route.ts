@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 // const webhookUrl = process.env.WEBHOOK_URL!;
 const webhookUrl =
-  "https://unique-stunning-manatee.ngrok-free.app/webhook/8891f352-4735-4daf-9b0f-bf691c59d1a0";
+  "https://n8n.tastycreative.xyz/webhook/8891f352-4735-4daf-9b0f-bf691c59d1a0";
 // const discordWebhookUrl = process.env.DISCORD_BOT_WEBHOOK_URL!;
 const discordWebhookUrl =
-  "https://unique-stunning-manatee.ngrok-free.app/webhook/6dc27650-f328-4b37-912b-006882d69a65";
+  "https://n8n.tastycreative.xyz/webhook/6dc27650-f328-4b37-912b-006882d69a65";
 // const vipWebhookUrl = process.env.VIP_WEBHOOK_URL!;
 const vipWebhookUrl =
-  "https://unique-stunning-manatee.ngrok-free.app/webhook/fc87dd15-0df9-4ee1-8947-2a82d961fed4";
+  "https://n8n.tastycreative.xyz/webhook/fc87dd15-0df9-4ee1-8947-2a82d961fed4";
 const fttWebhookUrl =
-  "https://unique-stunning-manatee.ngrok-free.app/webhook/4713ce33-501e-49b0-a6c6-38a907e1651b";
+  "https://n8n.tastycreative.xyz/webhook/4713ce33-501e-49b0-a6c6-38a907e1651b";
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
