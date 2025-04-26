@@ -66,22 +66,23 @@ export default function VideoFrameCropper({
     console.log(file);
   
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    const isHEIC = fileExtension === "heic" || fileExtension === "heif";
+    // const isHEIC = fileExtension === "heic" || fileExtension === "heif";
   
-    if (isHEIC) {
-      try {
-        const blob = await heic2any({
-          blob: file,
-          toType: "image/jpeg",
-          quality: 0.9,
-        }) as Blob;
+    // if (isHEIC) {
+    //   try {
+    //     const blob = await heic2any({
+    //       blob: file,
+    //       toType: "image/jpeg",
+    //       quality: 0.9,
+    //     }) as Blob;
   
-        const objectUrl = URL.createObjectURL(blob);
-        setCapturedFrame(objectUrl);
-      } catch (error) {
-        console.error("Error converting HEIC/HEIF file:", error);
-      }
-    } else if (file.type.startsWith("image/")) {
+    //     const objectUrl = URL.createObjectURL(blob);
+    //     setCapturedFrame(objectUrl);
+    //   } catch (error) {
+    //     console.error("Error converting HEIC/HEIF file:", error);
+    //   }
+    // } else 
+    if (file.type.startsWith("image/")) {
       const objectUrl = URL.createObjectURL(file);
       setCapturedFrame(objectUrl);
     } else if (file.type.startsWith("video/")) {
