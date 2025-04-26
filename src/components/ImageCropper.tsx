@@ -31,6 +31,8 @@ interface ImageCropperProps {
   model?: string;
   customRequest?: boolean;
   setFormData?: React.Dispatch<React.SetStateAction<ModelFormData>>;
+  className?: string;
+  id?: string;
 }
 
 export default function ImageCropper({
@@ -39,6 +41,8 @@ export default function ImageCropper({
   model,
   customRequest,
   setFormData,
+  className,
+  id = "default",
 }: ImageCropperProps) {
   // Image cropping states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -130,32 +134,54 @@ export default function ImageCropper({
     try {
       startListTransition(async () => {
         setIsGooglePickerLoading(true);
-        // If a model is selected, try to find its folder
-        let url = "/api/google-drive/list";
-        if (model) {
-          url += `?folderName=${model}`;
-        }
 
-        const response = await fetch(url);
+        try {
+          // Step 1: Start from root or model folder
+          let url = "/api/google-drive/list";
+          if (model) {
+            url += `?folderName=${model}`;
+          }
 
-        // if (!response.ok) {
-        //   if (response.status === 401) {
-        //     setIsAuthenticated(false);
-        //     handleGoogleDriveAuth();
-        //     return;
-        //   }
-        //   throw new Error("Failed to fetch Google Drive files");
-        // }
+          const response = await fetch(url);
+          const initialData = await response.json();
 
-        const data = await response.json();
+          if (id !== "default") {
+            // Step 2: If not default, get parent of the found folder
+            const parentId = initialData.parentFolder.id;
 
-        if (data.files) {
-          setGoogleFiles(data.files);
-          setCurrentFolder(data.currentFolder || null);
-          setParentFolder(data.parentFolder || null);
-          setShowFilePicker(true);
-        } else {
-          alert("No images found in the selected folder");
+            if (!parentId) {
+              throw new Error("Parent folder not found");
+            }
+
+            const parentResponse = await fetch(
+              `/api/google-drive/list?folderId=${parentId}`
+            );
+            if (!parentResponse.ok) {
+              throw new Error("Failed to fetch parent folder files");
+            }
+
+            const parentData = await parentResponse.json();
+
+            setGoogleFiles(parentData.files);
+            setCurrentFolder(parentData.currentFolder || null);
+            setParentFolder(parentData.parentFolder || null);
+            setShowFilePicker(true);
+          } else {
+            // Default view
+            if (initialData.files) {
+              setGoogleFiles(initialData.files);
+              setCurrentFolder(initialData.currentFolder || null);
+              setParentFolder(initialData.parentFolder || null);
+              setShowFilePicker(true);
+            } else {
+              alert("No images found in the selected folder");
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching drive files:", error);
+          alert("Failed to load Google Drive files");
+        } finally {
+          setIsGooglePickerLoading(false);
         }
       });
     } catch (error) {
@@ -319,9 +345,8 @@ export default function ImageCropper({
     onCropComplete(croppedImageUrl);
   }, [completedCrop, onCropComplete]);
 
-  console.log(customRequest, "custom");
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className={cn("flex flex-col gap-2 w-full", className)}>
       <label className="block text-sm font-medium">
         {isCustomImage ? "Upload" : "Download"}{" "}
         {!customRequest ? "and Crop Image" : "Image to be sent"}
@@ -329,14 +354,14 @@ export default function ImageCropper({
       <div className="flex gap-2 ">
         <input
           type="checkbox"
-          id="customImage"
+          id={id}
           className="accent-purple-600 cursor-pointer"
           checked={isCustomImage}
           onChange={(e) => {
             setIsCustomImage(e.target.checked);
           }}
         />
-        <label htmlFor="customImage" className="cursor-pointer">
+        <label htmlFor={id} className="cursor-pointer">
           Custom Image
         </label>
       </div>
@@ -407,7 +432,8 @@ export default function ImageCropper({
         <div className="flex flex-col w-full items-center gap-4">
           {!customRequest && (
             <p className="text-xs text-gray-300">
-              Crop area will maintain a 4:5 ratio (1080x1350px)
+              Crop area will maintain a {id === "default" ? "4:5" : "1:2"} ratio{" "}
+              {id === "default" ? "(1080x1350px)" : "(500x1000px)"}
             </p>
           )}
 
@@ -432,7 +458,7 @@ export default function ImageCropper({
                   ref={imageRef}
                   src={selectedImage ?? ""}
                   alt="Selected"
-                  className="max-h-96 max-w-full"
+                  className="h-[500px] max-w-full"
                   onLoad={onImageLoad}
                 />
               </ReactCrop>
@@ -452,7 +478,10 @@ export default function ImageCropper({
 
               <div className="text-sm text-gray-300">
                 {imageSize.width > 0 && (
-                  <span>Selected area will be exported at 1080×1350px</span>
+                  <span>
+                    Selected area will be exported at{" "}
+                    {id === "default" ? "1080x1350px" : "500x1000px"}
+                  </span>
                 )}
               </div>
             </div>

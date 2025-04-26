@@ -1,25 +1,19 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import {
-  AudioWaveform,
-  Bot,
-  Command,
-  GalleryVerticalEnd,
-} from "lucide-react"
+import * as React from "react";
+import { AudioWaveform, Bot, Command, GalleryVerticalEnd } from "lucide-react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavMain } from "@/components/nav-main";
+import { NavProjects } from "@/components/nav-projects";
+import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const data = {
-
   // teams: [
   //   {
   //     name: "Acme Inc",
@@ -42,6 +36,7 @@ const data = {
       title: "Models",
       url: "#",
       icon: Bot,
+      isActive: true,
       items: [
         {
           title: "Active",
@@ -58,10 +53,8 @@ const data = {
       ],
     },
   ],
-  projects: [
-   
-  ],
-}
+  projects: [],
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -78,5 +71,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter> */}
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
