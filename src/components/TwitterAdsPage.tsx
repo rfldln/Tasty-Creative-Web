@@ -4,21 +4,22 @@ import { useRef, useState } from "react";
 import ImageCropper from "./ImageCropper";
 import Image from "next/image";
 import ModelsDropdown from "./ModelsDropdown";
+import VideoFrameCropper from "./VideoFrameCropper";
+import { ClientSideFFmpeg } from "./FFmpegComponent";
+import { blobUrlToBase64 } from "@/lib/utils";
 
 const TwitterAdsPage = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingImage, setIsFetchingImage] = useState(false);
   const [webhookData, setWebhookData] = useState<WebhookResponse | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [useFrame, setUseFrame] = useState(true);
+  const [combinedVideoUrl, setCombinedVideoUrl] = useState("");
 
   const [formData, setFormData] = useState<ModelFormData>({
     croppedImageLeft: null,
     croppedImageRight: null,
-    templatePosition: "LEFT",
-    type: "VIP",
-    options: ["NSFW", "Custom", "Calls"],
-    customImage: true,
-    noOfTemplate: 1,
   });
 
   const handleCropCompleteLeft = (croppedImage: string) => {
@@ -181,6 +182,33 @@ const TwitterAdsPage = () => {
     }
   };
 
+  async function uploadVideo(model: string, videoBlobUrl: string) {
+    const videoBase64 = await blobUrlToBase64(videoBlobUrl);
+
+    const res = await fetch("/api/google-drive/upload-for-approval", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        videoBase64,
+      }),
+    });
+
+    const data = await res.json();
+    console.log("Uploaded:", data);
+  }
+
+  const downloadCombinedVideo = () => {
+    if (!combinedVideoUrl) return;
+
+    const a = document.createElement("a");
+    a.href = combinedVideoUrl;
+    a.download = "combined-media.mp4";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900/60 to-black/60 text-white p-6 rounded-lg">
       <canvas ref={canvasRef} className="hidden" />
@@ -227,13 +255,22 @@ const TwitterAdsPage = () => {
             <h2 className="text-xl font-semibold mb-4 text-purple-400">
               Right Panel (Video/Image)
             </h2>
-            <ImageCropper
+            {/* <ImageCropper
               id="right-panel"
               onCropComplete={handleCropCompleteRight}
               aspectRatio={1 / 2}
               model={formData.model}
               customRequest={formData.customRequest}
               setFormData={setFormData}
+            /> */}
+            <VideoFrameCropper
+              onCropComplete={handleCropCompleteRight}
+              videoUrl={videoUrl || ""}
+              setVideoUrl={setVideoUrl}
+              useFrame={useFrame}
+              setUseFrame={setUseFrame}
+              model={formData.model??""}
+        
             />
           </div>
         </div>
@@ -282,7 +319,7 @@ const TwitterAdsPage = () => {
                 </div>
               )}
 
-              {formData.croppedImageRight ? (
+              {formData.croppedImageRight && useFrame ? (
                 <div className="w-1/2 h-full relative group">
                   <div className="absolute w-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
                     <img
@@ -301,6 +338,17 @@ const TwitterAdsPage = () => {
                     unoptimized
                   />
                 </div>
+              ) : !useFrame && videoUrl ? (
+                <div className="w-1/2 h-full relative group">
+                  <video
+                    src={videoUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  ></video>
+                </div>
               ) : (
                 <div className="w-1/2 h-full bg-gray-800 flex items-center justify-center">
                   <div className="text-gray-500 text-center px-4">
@@ -318,13 +366,27 @@ const TwitterAdsPage = () => {
                 </div>
               )}
             </div>
+            {/* Add the client-side only MediaCombiner component */}
+          {!useFrame && (
+              <ClientSideFFmpeg
+              croppedImageLeft={formData.croppedImageLeft ?? ""}
+              videoUrl={videoUrl ?? ""}
+              combinedVideoUrl={combinedVideoUrl}
+              setCombinedVideoUrl={setCombinedVideoUrl}
+            />
+          )}
           </div>
 
           <div className="mt-6  justify-center flex gap-4">
             <div className="w-full flex justify-end">
               <button
+                disabled={
+                  (!formData.croppedImageLeft || !formData.croppedImageRight ) && !combinedVideoUrl
+                }
                 className="px-8 py-4 bg-gradient-to-r from--600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/20 flex items-center gap-2 transform hover:-translate-y-1"
-                onClick={downloadPreview}
+                onClick={
+                  combinedVideoUrl ? downloadCombinedVideo : downloadPreview
+                }
               >
                 <svg
                   className="w-5 h-5"
@@ -340,13 +402,22 @@ const TwitterAdsPage = () => {
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   ></path>
                 </svg>
-                Download Your Collage
+                {combinedVideoUrl
+                  ? "Download Your Video"
+                  : "Download Your Collage"}
               </button>
             </div>
             <div className="w-full">
               <button
+                disabled={
+                  (!formData.croppedImageLeft || !formData.croppedImageRight ) && !combinedVideoUrl
+                }
                 className="px-8 py-4 bg-gradient-to-r from-purple-600 to-purpled-600 hover:from-purple-500 hover:to-blue-500 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/20 flex items-center gap-2 transform hover:-translate-y-1"
-                onClick={uploadPreview}
+                onClick={
+                  combinedVideoUrl
+                    ? () => uploadVideo(formData.model ?? "", combinedVideoUrl)
+                    : uploadPreview
+                }
               >
                 <svg
                   className="w-5 h-5"
@@ -357,16 +428,16 @@ const TwitterAdsPage = () => {
                   <path
                     d="M12 4V16M12 4L8 8M12 4L16 8"
                     stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
                   <path
                     d="M3 17V18C3 19.6569 4.34315 21 6 21H18C19.6569 21 21 19.6569 21 18V17"
                     stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
                 </svg>
                 Upload for Approval
