@@ -22,6 +22,8 @@ type ModelFormData = {
   header?: string;
   tip?: number;
   gets?: number;
+  croppedImageLeft?: string | null;
+  croppedImageRight?: string | null;
 };
 
 type ModelsDropdownProps = {
