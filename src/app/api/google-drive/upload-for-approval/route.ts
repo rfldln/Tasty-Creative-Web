@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const drive = google.drive({ version: "v3", auth: oauth2Client });
 
   const formData = await req.json();
-  const { model, imageBase64 } = formData;
+  const { model, imageBase64, videoBase64 } = formData; // ✅ added videoBase64
 
   const parentFolderId = "1DtsejmJr3k-1ToMgQ1DLgfe3EA36gbMb";
 
@@ -62,23 +62,47 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "'For Approval✅' folder ID not found" }, { status: 404 });
     }
 
-    // 3. Upload image
-    const buffer = Buffer.from(imageBase64.split(",")[1], "base64");
-    const stream = Readable.from(buffer); // ✅ wrap buffer in stream
+    const responses = [];
 
-    const uploadRes = await drive.files.create({
-      requestBody: {
-        name: `${model}_collage.jpg`,
-        mimeType: "image/jpeg",
-        parents: [approvalFolderId],
-      },
-      media: {
-        mimeType: "image/jpeg",
-        body: stream, // ✅ proper stream input
-      },
-    });
+    // 3. Upload image if exists
+    if (imageBase64) {
+      const buffer = Buffer.from(imageBase64.split(",")[1], "base64");
+      const stream = Readable.from(buffer);
 
-    return NextResponse.json({ success: true, fileId: uploadRes.data.id });
+      const imageUpload = await drive.files.create({
+        requestBody: {
+          name: `${model}_collage.jpg`,
+          mimeType: "image/jpeg",
+          parents: [approvalFolderId],
+        },
+        media: {
+          mimeType: "image/jpeg",
+          body: stream,
+        },
+      });
+      responses.push({ type: "image", id: imageUpload.data.id });
+    }
+
+    // 4. Upload video if exists
+    if (videoBase64) {
+      const buffer = Buffer.from(videoBase64.split(",")[1], "base64");
+      const stream = Readable.from(buffer);
+
+      const videoUpload = await drive.files.create({
+        requestBody: {
+          name: `${model}_collage_video.mp4`,
+          mimeType: "video/mp4",
+          parents: [approvalFolderId],
+        },
+        media: {
+          mimeType: "video/mp4",
+          body: stream,
+        },
+      });
+      responses.push({ type: "video", id: videoUpload.data.id });
+    }
+
+    return NextResponse.json({ success: true, uploads: responses });
   } catch (err) {
     console.error("Upload error:", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

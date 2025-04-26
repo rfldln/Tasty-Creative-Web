@@ -47,6 +47,23 @@ export const extractLinkFromFormula = (formula: string): string => {
   return match ? match[1] : "";
 };
 
+export async function blobUrlToBase64(blobUrl: string) {
+  const response = await fetch(blobUrl);
+  const blob = await response.blob();
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error("Failed to convert to base64"));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 
 export const emailData = {
   to: "kentjohnliloc@gmail.com,txl.tasty@gmail.com",
