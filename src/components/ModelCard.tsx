@@ -2,6 +2,7 @@
 "use client";
 
 import { cn, extractDriveId } from "@/lib/utils";
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
 interface ModelCardProps {
@@ -18,6 +19,15 @@ const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
   const thumbnailUrl = fileId
     ? `https://lh3.googleusercontent.com/d/${fileId}`
     : null;
+
+    function fixGoogleImageUrl(url:string) {
+      if (url.includes("/d/")) {
+        const id = url.split("/d/")[1].split("/")[0];
+        return `https://drive.google.com/uc?export=view&id=${id}`;
+      }
+      return url;
+    }
+    
 
   const [imgSrc, setImgSrc] = useState(thumbnailUrl || "/model.png");
 
@@ -39,13 +49,16 @@ const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
       {/* Card Image Section */}
       <div className="h-[220px] overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-40 z-10"></div>
-        <img
-          src={imgSrc}
+        <Image
+          src={fixGoogleImageUrl(imgSrc)}
           alt={model.name}
           onError={() => setImgSrc("/model.png")}
           className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${
             isFallback ? "opacity-60 " : ""
           }`}
+          width={300}
+          height={300}
+          loading="lazy"
         />
       </div>
 
