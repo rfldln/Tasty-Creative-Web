@@ -102,6 +102,7 @@ import VIPFlyer from '@/components/VIPFlyer';
 import ModelPage from './models/page';
 import FTTPage from '@/components/FTTPage';
 import TwitterAdsPage from '@/components/TwitterAdsPage';
+import LaunchPrepDetails from '@/components/LaunchPrepDetails';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -214,17 +215,20 @@ const TastyCreative = () => {
   const { user, logout } = useAuth();
 
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get('tab') || "calendar";
+  const tabValue = searchParams.get('tab') || "dashboard";
   const router = useRouter();
 
   const [displayName, setDisplayName] = useState("Admin");
- const [activeTab, setActiveTab] = useState(tabValue || 'calendar');
+ const [activeTab, setActiveTab] = useState(tabValue || 'dashboard');
   const [isPaid, setIsPaid] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState("");
   const [promptText, setPromptText] = useState("");
   const [generationStatus, setGenerationStatus] = useState("");
   const [outputFormat, setOutputFormat] = useState("png");
   const [comfyModel, setComfyModel] = useState("realistic");
+
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  
 
   // Voice tab states
   const [voiceText, setVoiceText] = useState("");
@@ -309,6 +313,34 @@ const TastyCreative = () => {
 
    
   };
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch("/api/notifications");
+        if (res.ok) {
+          const data = await res.json();
+          console.log(data, "data");
+          console.log("Fetched notifications:", data.notifications);
+          setNotifications(data.notifications || []);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+
+    // Initial fetch
+    fetchNotifications();
+
+    // Poll every 5 seconds (you can adjust this)
+    // eslint-disable-next-line prefer-const
+    intervalId = setInterval(fetchNotifications, 5000);
+
+    // Cleanup
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Initialize the voice parameters cache
   useEffect(() => {
@@ -1083,11 +1115,11 @@ const TastyCreative = () => {
         <Tabs defaultValue={tabValue} className="w-full" onValueChange={handleTabChange}>
           <TabsList className="grid grid-cols-9 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
-              value="calendar"
+              value="dashboard"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
             >
               <CalendarIcon size={16} className="sm:mr-1" />
-              <span className="hidden sm:inline">Calendar</span>
+              <span className="hidden sm:inline">Dashboard</span>
             </TabsTrigger>
             <TabsTrigger
               value="live"
@@ -1148,11 +1180,23 @@ const TastyCreative = () => {
           </TabsList>
 
           {/* Calendar Tab */}
-          <TabsContent value="calendar">
+          <TabsContent value="dashboard">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Calendar Controls */}
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 {/* Calendar Header */}
+                {notifications.map((notif, index) => (
+                  <div key={index} className='px-5'>
+                     <LaunchPrepDetails
+                      modelDataLoading={false} // Replace with actual loading state if needed
+                      selectedModelData={notif.editedData} // Assuming this is the data you want to show
+                      timestamp={notif.timestamp} // Assuming this is the timestamp you want to show
+                      editedBy={notif.editedBy} // Assuming this is the editor's name you want to show
+                      className='bg-black/20 dark'
+                      />
+                  </div>
+                  ))}
+                
                 <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <CardTitle className="text-white">Calendar</CardTitle>

@@ -2,8 +2,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LaunchPrepDetails from "./LaunchPrepDetails";
 
 type NotificationData = {
+  editedBy: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  editedData(editedData: any): unknown;
   message: string;
   timestamp: string;
   category?: string;
@@ -21,6 +25,8 @@ export default function NotificationListener() {
         const res = await fetch("/api/notifications");
         if (res.ok) {
           const data = await res.json();
+          console.log(data, "data");
+          console.log("Fetched notifications:", data.notifications);
           setNotifications(data.notifications || []);
         }
       } catch (error) {
@@ -32,6 +38,7 @@ export default function NotificationListener() {
     fetchNotifications();
 
     // Poll every 5 seconds (you can adjust this)
+    // eslint-disable-next-line prefer-const
     intervalId = setInterval(fetchNotifications, 5000);
 
     // Cleanup
@@ -44,18 +51,17 @@ export default function NotificationListener() {
       {notifications.length === 0 ? (
         <p>No notifications yet</p>
       ) : (
-        <ul>
+        <>
           {notifications.map((notif, index) => (
-            <li key={index} className="notification-item">
-              <div className="notification-content">
-                <p className="notification-message">{notif.message}</p>
-                <small className="notification-time">
-                  {new Date(notif.timestamp).toLocaleTimeString()}
-                </small>
-              </div>
-            </li>
+            <LaunchPrepDetails
+              key={index}
+              modelDataLoading={false} // Replace with actual loading state if needed
+              selectedModelData={notif.editedData} // Assuming this is the data you want to show
+              timestamp={notif.timestamp} // Assuming this is the timestamp you want to show
+              editedBy={notif.editedBy} // Assuming this is the editor's name you want to show
+            />
           ))}
-        </ul>
+        </>
       )}
     </div>
   );

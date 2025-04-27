@@ -1,28 +1,28 @@
 "use client";
 import React, { useEffect, useState, useMemo } from "react";
-import { Checkbox } from "./ui/checkbox";
 import { cn } from "@/lib/utils";
-import CountUp from "react-countup";
-import { Input } from "./ui/input"; 
+import { Input } from "./ui/input";
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
-import { prepFields } from "@/lib/lib";
+import LaunchPrepDetails from "./LaunchPrepDetails";
 
 const LaunchPrep = () => {
-  const [animatedWidth, setAnimatedWidth] = useState(0);
   interface OnBoardingModel {
     Model: string;
     [key: string]: string; // Allow other dynamic fields
   }
 
-  const [onBoardingModels, setOnBoardingModels] = useState<OnBoardingModel[]>([]);
+  const [onBoardingModels, setOnBoardingModels] = useState<OnBoardingModel[]>(
+    []
+  );
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [modelDataLoading, setModelDataLoading] = useState(false);
-  const [selectedModelData, setSelectedModelData] = useState<OnBoardingModel | null>(null);
+  const [selectedModelData, setSelectedModelData] =
+    useState<OnBoardingModel | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  
+
   const ITEMS_PER_PAGE = viewMode === "grid" ? 15 : 10;
 
   // Fetch all models initially
@@ -54,14 +54,16 @@ const LaunchPrep = () => {
       setModelDataLoading(true);
       try {
         // Fetch fresh data for the selected model
-        const res = await fetch(`/api/google/onboarding?model=${encodeURIComponent(selectedModel)}`);
+        const res = await fetch(
+          `/api/google/onboarding?model=${encodeURIComponent(selectedModel)}`
+        );
         const data = await res.json();
-        
+
         // Find the selected model in the returned data
-        const modelData = Array.isArray(data) 
+        const modelData = Array.isArray(data)
           ? data.find((model: OnBoardingModel) => model.Model === selectedModel)
           : data;
-          
+
         setSelectedModelData(modelData || null);
       } catch (err) {
         console.error("Failed to fetch model data:", err);
@@ -74,40 +76,19 @@ const LaunchPrep = () => {
     fetchModelData();
   }, [selectedModel]);
 
-  const prepItems = selectedModelData
-    ? prepFields.map((field) => ({
-        item: field,
-        status: selectedModelData[field] === "TRUE" ? "Done" : "Pending",
-      }))
-    : [];
-
-  const completedCount = prepItems.filter(
-    (item) => item.status === "Done"
-  ).length;
-  const totalCount = prepItems.length;
-  const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setAnimatedWidth(completionRate);
-    }, 200);
-
-    return () => clearTimeout(timeout);
-  }, [completionRate]);
-
   const handleModelSelect = (modelName: string) => {
     setSelectedModel(modelName);
   };
 
   // Filter and paginate models
   const filteredModels = useMemo(() => {
-    return onBoardingModels.filter(model => 
+    return onBoardingModels.filter((model) =>
       model.Model.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [onBoardingModels, searchQuery]);
 
   const totalPages = Math.ceil(filteredModels.length / ITEMS_PER_PAGE);
-  
+
   const paginatedModels = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredModels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -144,7 +125,7 @@ const LaunchPrep = () => {
       <div className="w-full bg-black/5 rounded-md p-3 sm:p-4 mb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
           <h2 className="text-lg font-medium">Onboarding Clients</h2>
-          
+
           <div className="flex gap-2 w-full sm:w-auto">
             {/* Search Input */}
             <div className="relative flex-grow sm:w-60">
@@ -156,7 +137,7 @@ const LaunchPrep = () => {
                 className="pl-8 h-9"
               />
               {searchQuery && (
-                <button 
+                <button
                   onClick={() => setSearchQuery("")}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
@@ -164,15 +145,15 @@ const LaunchPrep = () => {
                 </button>
               )}
             </div>
-            
+
             {/* View Toggle */}
             <div className="flex rounded-md overflow-hidden border">
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
                   "px-2 py-1 text-xs font-medium",
-                  viewMode === "grid" 
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100" 
+                  viewMode === "grid"
+                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
                     : "bg-white dark:bg-gray-800"
                 )}
               >
@@ -182,8 +163,8 @@ const LaunchPrep = () => {
                 onClick={() => setViewMode("list")}
                 className={cn(
                   "px-2 py-1 text-xs font-medium",
-                  viewMode === "list" 
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100" 
+                  viewMode === "list"
+                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
                     : "bg-white dark:bg-gray-800"
                 )}
               >
@@ -192,7 +173,7 @@ const LaunchPrep = () => {
             </div>
           </div>
         </div>
-        
+
         {loading ? (
           <div className="flex items-center justify-center h-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -200,7 +181,7 @@ const LaunchPrep = () => {
         ) : filteredModels.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-gray-500 mb-2">No clients match your search</p>
-            <button 
+            <button
               onClick={() => setSearchQuery("")}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
@@ -212,7 +193,7 @@ const LaunchPrep = () => {
             {/* Grid View */}
             {viewMode === "grid" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                {paginatedModels.map((model,index) => (
+                {paginatedModels.map((model, index) => (
                   <div
                     key={index}
                     onClick={() => handleModelSelect(model.Model)}
@@ -258,9 +239,7 @@ const LaunchPrep = () => {
                           {model.Model.substring(0, 2).toUpperCase()}
                         </span>
                       </div>
-                      <span className="font-medium">
-                        {model.Model}
-                      </span>
+                      <span className="font-medium">{model.Model}</span>
                       {selectedModel === model.Model && (
                         <span className="ml-auto text-xs py-1 px-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
                           Selected
@@ -276,7 +255,12 @@ const LaunchPrep = () => {
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-gray-500">
-                  Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredModels.length)} of {filteredModels.length} clients
+                  Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
+                  {Math.min(
+                    currentPage * ITEMS_PER_PAGE,
+                    filteredModels.length
+                  )}{" "}
+                  of {filteredModels.length} clients
                 </span>
                 <div className="flex items-center space-x-2">
                   <button
@@ -304,73 +288,11 @@ const LaunchPrep = () => {
       </div>
 
       {/* Launch Prep Details Area */}
-      <div className="w-full bg-black/10 dark:bg-black/40 rounded-md p-3 sm:p-4 transition-all duration-300">
-        {modelDataLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-              <p className="text-sm text-gray-500">Loading latest data...</p>
-            </div>
-          </div>
-        ) : selectedModelData ? (
-          <>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-              <h1 className="text-lg sm:text-xl font-semibold flex items-center flex-wrap gap-2">
-                <span>{selectedModel}</span>
-                <span className="text-xs py-1 px-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
-                  <CountUp end={completionRate}/>% Complete
-                </span>
-              </h1>
-              <div className="w-full sm:w-auto sm:min-w-40 md:min-w-60">
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  <CountUp end={completedCount} /> of {totalCount} tasks completed
-                </p>
-                <div className="bg-gray-300 dark:bg-gray-700 h-2 sm:h-3 rounded-md">
-                  <div
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 h-full rounded-md transition-all duration-500"
-                    style={{ width: `${animatedWidth}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <hr className="mb-4 opacity-30" />
-            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {prepItems.map((item, index) => (
-                <div 
-                  key={index} 
-                  className={cn(
-                    "flex items-center space-x-2 p-2 rounded-md", 
-                    item.status === "Done" ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"
-                  )}
-                >
-                  <Checkbox
-                    id={`item-${index}`}
-                    className={cn("w-4 h-4 sm:w-5 sm:h-5", {
-                      "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500": item.status === "Done",
-                      "border-red-400": item.status === "Pending"
-                    })}
-                    disabled
-                    checked={item.status === "Done"}
-                  />
-                  <label
-                    htmlFor={`item-${index}`}
-                    className={cn("text-sm sm:text-base font-medium leading-none", {
-                      "text-red-600 dark:text-red-400": item.status === "Pending",
-                      "text-green-600 dark:text-green-500": item.status === "Done",
-                    })}
-                  >
-                    {item.item}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-40">
-            <p className="text-gray-500 italic">Select a client to view details</p>
-          </div>
-        )}
-      </div>
+      <LaunchPrepDetails
+        selectedModel={selectedModel ?? ""}
+        selectedModelData={selectedModelData}
+        modelDataLoading={modelDataLoading}
+      />
     </div>
   );
 };
