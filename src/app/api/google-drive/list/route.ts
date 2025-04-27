@@ -9,8 +9,9 @@ export async function GET(request: NextRequest) {
   const folderId =
     searchParams.get("folderId") || process.env.GOOGLE_DRIVE_BASE_FOLDER_ID!;
   const modelName = searchParams.get("folderName");
-
-  console.log("Search Params - folderId:", folderId, "modelName:", modelName);
+  const includeVideos = searchParams.get("includeVideos") === "true";
+console.log(searchParams.toString(), 'searchparams');
+  console.log("Search Params - folderId:", folderId, "modelName:", modelName, "includeVideos:", includeVideos);
 
   const cookieStore = await cookies();
   const tokensCookie = cookieStore.get("google_auth_tokens");
@@ -146,9 +147,38 @@ export async function GET(request: NextRequest) {
 
     console.log("Target folder details:", targetFolder);
 
-    // List contents of the target folder
+    // Build the query for listing files - DIRECTLY in the current folder only
+    // Ensure we always query for the parent to be the current folder ID specifically
+    let fileQuery = `'${targetFolder.id}' in parents`;
+    
+    // Filter by type (always include folders and images)
+    let typeQuery = `(mimeType = 'application/vnd.google-apps.folder' or mimeType contains 'image/')`;
+    
+    // Add video files if includeVideos is true
+    if (includeVideos) {
+      typeQuery += ` or mimeType = 'video/quicktime' or mimeType = 'video/mov'`;
+      
+      // Add extension-based search for .MOV files
+      typeQuery += ` or (name contains '.MOV' or name contains '.mov')`;
+      
+      // Include other common video formats
+      typeQuery += ` or mimeType = 'video/mp4' or mimeType = 'video/x-m4v'`;
+      typeQuery += ` or mimeType = 'video/x-msvideo' or mimeType = 'video/x-ms-wmv'`;
+      typeQuery += ` or mimeType = 'video/webm' or mimeType = 'video/3gpp'`;
+      typeQuery += ` or mimeType = 'video/mpeg' or mimeType = 'video/ogg'`;
+      
+      // Catch-all for any other video types
+      typeQuery += ` or mimeType contains 'video/'`;
+    }
+    
+    // Combine the parent restriction with the type filters
+    fileQuery = `${fileQuery} and (${typeQuery})`;
+    
+    console.log("File query:", fileQuery);
+
+    // List contents of the target folder ONLY (no recursion)
     const listResponse = await drive.files.list({
-      q: `'${targetFolder.id}' in parents and (mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder')`,
+      q: fileQuery,
       spaces: "drive",
       fields:
         "files(id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink, thumbnailLink)",
@@ -159,18 +189,33 @@ export async function GET(request: NextRequest) {
       orderBy: "folder,name",
     });
 
-    const files = (listResponse.data.files || []).map((file) => ({
-      id: file.id!,
-      name: file.name!,
-      isFolder: file.mimeType === "application/vnd.google-apps.folder",
-      size: file.size ? parseInt(file.size) : null,
-      createdAt: file.createdTime,
-      modifiedAt: file.modifiedTime,
-      mimeType: file.mimeType,
-      webViewLink: file.webViewLink,
-      thumbnailLink: file.thumbnailLink,
-      parents: file.parents,
-    }));
+    const files = (listResponse.data.files || []).map((file) => {
+      // Check if file is a video based on mimeType or file extension
+      const isVideo = file.mimeType?.includes("video/") || 
+                      file.name?.toLowerCase().endsWith('.mov') ||
+                      file.name?.toLowerCase().endsWith('.mp4') ||
+                      file.name?.toLowerCase().endsWith('.avi') ||
+                      file.name?.toLowerCase().endsWith('.wmv') ||
+                      file.name?.toLowerCase().endsWith('.webm') ||
+                      file.name?.toLowerCase().endsWith('.mpeg') ||
+                      file.name?.toLowerCase().endsWith('.mpg') ||
+                      file.name?.toLowerCase().endsWith('.3gp') ||
+                      false;
+      
+      return {
+        id: file.id!,
+        name: file.name!,
+        isFolder: file.mimeType === "application/vnd.google-apps.folder",
+        isVideo: isVideo,
+        size: file.size ? parseInt(file.size) : null,
+        createdAt: file.createdTime,
+        modifiedAt: file.modifiedTime,
+        mimeType: file.mimeType,
+        webViewLink: file.webViewLink,
+        thumbnailLink: file.thumbnailLink,
+        parents: file.parents,
+      };
+    });
 
     console.log("Files in folder:", files);
 

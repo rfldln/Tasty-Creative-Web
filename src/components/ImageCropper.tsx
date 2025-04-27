@@ -64,7 +64,7 @@ export default function ImageCropper({
   const [isGooglePickerLoading, setIsGooglePickerLoading] = useState(false);
   const [isDownloading, startDownloadTransition] = useTransition();
   const [isListing, startListTransition] = useTransition();
-  
+
   const [isCustomImage, setIsCustomImage] = useState(false);
 
   useEffect(() => {
@@ -444,7 +444,7 @@ export default function ImageCropper({
                 ref={imageRef}
                 src={selectedImage ?? ""}
                 alt="Selected"
-                className="max-h-96 max-w-full"
+                className="w-full object-contain max-h-96"
                 onLoad={onImageLoad}
               />
             ) : (
@@ -453,13 +453,13 @@ export default function ImageCropper({
                 onChange={(c) => setCrop(c)}
                 onComplete={(c) => setCompletedCrop(c)}
                 aspect={aspectRatio}
-                minWidth={100} // Prevent tiny crops
+                minWidth={100}
               >
                 <img
                   ref={imageRef}
                   src={selectedImage ?? ""}
                   alt="Selected"
-                  className="h-[500px] max-w-full"
+                  className="w-full object-contain max-h-96"
                   onLoad={onImageLoad}
                 />
               </ReactCrop>
@@ -467,22 +467,65 @@ export default function ImageCropper({
           </div>
 
           {!customRequest && (
-            <div className="flex w-full items-center gap-4">
+            <div className="flex flex-wrap w-full items-center gap-4 pt-3">
               <button
                 type="button"
                 onClick={generateCroppedImage}
-                className="px-4 py-2  bg-purple-500 text-white rounded-md hover:bg-blue-700"
+                className={`px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-purple-200 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2 ${
+                  !completedCrop ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 disabled={!completedCrop}
               >
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M8 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H8M8 6C7.44772 6 7 6.44772 7 7V17C7 17.5523 7.44772 18 8 18M8 6V18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M4 8V16"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M12 11L16 11"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
                 Apply Crop
               </button>
 
-              <div className="text-sm text-gray-300">
+              <div className="text-sm text-gray-500 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
                 {imageSize.width > 0 && (
-                  <span>
-                    Selected area will be exported at{" "}
-                    {id === "default" ? "1080x1350px" : "500x1000px"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4 text-blue-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span>
+                      Selected area will be exported at{" "}
+                      {id === "default" ? "1080x1350px" : "500x1000px"}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -522,7 +565,7 @@ export default function ImageCropper({
                   ></path>
                 </svg>
                 <span className="text-sm text-gray-500">
-                  Downloading Image...
+                  Downloading File...
                 </span>
               </div>
             )}

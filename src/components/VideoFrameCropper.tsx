@@ -10,6 +10,7 @@ import ReactCrop, {
   PixelCrop,
 } from "react-image-crop";
 import heic2any from "heic2any";
+import GoogleDrivePicker from "./GoogleDrivePicker";
 
 type VideoFrameCropperProps = {
   onCropComplete: (croppedImage: string) => void;
@@ -40,34 +41,15 @@ export default function VideoFrameCropper({
 
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
 
-  // Google Drive states
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [googleFiles, setGoogleFiles] = useState<GoogleDriveFile[]>([]);
-  const [currentFolder, setCurrentFolder] = useState<GoogleDriveFile | null>(
-    null
-  );
-  const [parentFolder, setParentFolder] = useState<GoogleDriveFile | null>(
-    null
-  );
-  const [showFilePicker, setShowFilePicker] = useState(false);
-  const [isGooglePickerLoading, setIsGooglePickerLoading] = useState(false);
-  const [isDownloading, startDownloadTransition] = useTransition();
-  const [isListing, startListTransition] = useTransition();
-
-  const handleGoogleDriveSelect = async () => {
-    const url = await openGoogleDriveVideoPicker();
-    setVideoUrl(url);
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-  
+
     console.log(file);
-  
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+    const fileExtension = file.name.split(".").pop()?.toLowerCase();
     // const isHEIC = fileExtension === "heic" || fileExtension === "heif";
-  
+
     // if (isHEIC) {
     //   try {
     //     const blob = await heic2any({
@@ -75,13 +57,13 @@ export default function VideoFrameCropper({
     //       toType: "image/jpeg",
     //       quality: 0.9,
     //     }) as Blob;
-  
+
     //     const objectUrl = URL.createObjectURL(blob);
     //     setCapturedFrame(objectUrl);
     //   } catch (error) {
     //     console.error("Error converting HEIC/HEIF file:", error);
     //   }
-    // } else 
+    // } else
     if (file.type.startsWith("image/")) {
       const objectUrl = URL.createObjectURL(file);
       setCapturedFrame(objectUrl);
@@ -221,36 +203,14 @@ export default function VideoFrameCropper({
               </label>
             </div>
           ) : (
-            <button
-              type="button"
-              disabled={!model}
-              onClick={handleGoogleDriveSelect}
-              className="px-4 w-full py-2 bg-black/60 text-white rounded-lg
-            flex items-center justify-center gap-2"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
-                <line x1="16" y1="5" x2="22" y2="5"></line>
-                <line x1="16" y1="5" x2="12" y2="9"></line>
-              </svg>
-              {isAuthenticated && !isListing
-                ? model
-                  ? `Select from ${model} folder`
-                  : "Select a Model First"
-                : isListing
-                ? "Opening folder..."
-                : "Connecting to Google Drive"}
-            </button>
+            <GoogleDrivePicker
+              id={"right-panel"}
+              model={model??""}
+              setSelectedImage={setCapturedFrame}
+              setCrop={setCrop}
+              setVideoUrl={setVideoUrl}
+              
+            />
           )}
         </div>
       </div>
@@ -323,11 +283,12 @@ export default function VideoFrameCropper({
       <canvas ref={canvasRef} className="hidden" />
 
       {capturedFrame && (useFrame || isCustomInput) && (
-        <div className="space-y-5 bg-black/60 p-5 rounded-xl shadow-md ">
-          <h3 className="text-lg font-semibold text-gray-800">Crop Image</h3>
-
+        <div className="flex flex-col w-full items-center gap-4">
+          <p className="text-xs text-gray-300">
+            Crop area will maintain a 1:2 (500x1000px)
+          </p>
           <div className="flex flex-col md:flex-row gap-6 items-start">
-            <div className="flex-1 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div className="border border-gray-300 rounded-lg overflow-hidden">
               <ReactCrop
                 crop={crop}
                 onChange={(c) => setCrop(c)}
@@ -340,13 +301,12 @@ export default function VideoFrameCropper({
                   ref={imageRef}
                   src={capturedFrame}
                   alt="Selected frame"
-                  className="h-[500px] max-w-full rounded"
+                  className="w-full object-contain max-h-96 rounded"
                   onLoad={onImageLoad}
                 />
               </ReactCrop>
             </div>
           </div>
-
           <div className="flex flex-wrap w-full items-center gap-4 pt-3">
             <button
               type="button"
@@ -410,9 +370,4 @@ export default function VideoFrameCropper({
       )}
     </div>
   );
-}
-
-// Replace with actual Google Drive picker logic
-async function openGoogleDriveVideoPicker(): Promise<string> {
-  return "https://drive.google.com/uc?export=download&id=YOUR_VIDEO_ID";
 }

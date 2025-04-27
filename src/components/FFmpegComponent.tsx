@@ -94,12 +94,24 @@ const FFmpegComponent = ({
       ffmpeg.FS("writeFile", "input_image.png", imageData);
       ffmpeg.FS("writeFile", "input_video.mp4", videoData);
 
-      // Run FFmpeg command to combine image and video
+      // Generate palette from the video
+      await ffmpeg.run(
+        "-i",
+        "input_video.mp4",
+        "-vf",
+        "fps=60,scale=500:-1:flags=lanczos,palettegen",
+        "-y",
+        "palette.png"
+      );
+
+      // Now use the generated palette to create the GIF
       await ffmpeg.run(
         "-i",
         "input_image.png",
         "-i",
         "input_video.mp4",
+        "-i",
+        "palette.png", // Use the palette
         "-filter_complex",
         `
           [0:v]scale=500:1000[img];
@@ -108,22 +120,18 @@ const FFmpegComponent = ({
           [bg][img]overlay=0:0[bg_with_img];
           [bg_with_img][vid]overlay=W/2:0
         `.replace(/\s+/g, ""),
-        "-c:v",
-        "libx264",
-        "-preset",
-        "fast",
-        "-crf",
-        "23",
+        "-r",
+        "60", // Set framerate for gif
         "-y",
-        "output.mp4"
+        "output.gif"
       );
 
       // Read the output file
-      const data = ffmpeg.FS("readFile", "output.mp4");
+      const data = ffmpeg.FS("readFile", "output.gif");
 
       // Create a blob URL
       const blob = new Blob([new Uint8Array(data.buffer)], {
-        type: "video/mp4",
+        type: "image/gif",
       });
       const url = URL.createObjectURL(blob);
 
@@ -132,10 +140,11 @@ const FFmpegComponent = ({
       // Cleanup - unlink files to free memory
       ffmpeg.FS("unlink", "input_image.png");
       ffmpeg.FS("unlink", "input_video.mp4");
-      ffmpeg.FS("unlink", "output.mp4");
+      ffmpeg.FS("unlink", "palette.png"); // Don't forget to unlink the palette
+      ffmpeg.FS("unlink", "output.gif");
     } catch (error) {
-      console.error("Error processing video:", error);
-      setError("Failed to process video. Please try again.");
+      console.error("Error processing gif:", error);
+      setError("Failed to process gif. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -163,12 +172,10 @@ const FFmpegComponent = ({
       {combinedVideoUrl && (
         <div className="mt-4">
           <p className="mb-2">Generated:</p>
-          <video
+          <img
             src={combinedVideoUrl}
-            controls
-            className="max-w-full h-auto rounded"
-            width={1000}
-            height={1000}
+            alt="Generated GIF"
+            className="w-full h-full object-cover"
           />
         </div>
       )}
