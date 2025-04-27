@@ -440,12 +440,15 @@ export default function ImageCropper({
 
           <div className="border border-gray-300 rounded-lg overflow-hidden">
             {customRequest ? (
-              <img
+              <Image
                 ref={imageRef}
                 src={selectedImage ?? ""}
                 alt="Selected"
                 className="w-full object-contain max-h-96"
                 onLoad={onImageLoad}
+                loading="lazy"
+                width={imageSize.width}
+                height={imageSize.height}
               />
             ) : (
               <ReactCrop
@@ -455,12 +458,15 @@ export default function ImageCropper({
                 aspect={aspectRatio}
                 minWidth={100}
               >
-                <img
+                <Image
                   ref={imageRef}
                   src={selectedImage ?? ""}
                   alt="Selected"
                   className="w-full object-contain max-h-96"
                   onLoad={onImageLoad}
+                  loading="lazy"
+                  width={imageSize.width}
+                  height={imageSize.height}
                 />
               </ReactCrop>
             )}

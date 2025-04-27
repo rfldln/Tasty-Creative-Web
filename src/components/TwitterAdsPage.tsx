@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useTransition } from "react";
 
 import { useRef, useState } from "react";
 import ImageCropper from "./ImageCropper";
@@ -6,7 +6,7 @@ import Image from "next/image";
 import ModelsDropdown from "./ModelsDropdown";
 import VideoFrameCropper from "./VideoFrameCropper";
 import { ClientSideFFmpeg } from "./FFmpegComponent";
-import { blobUrlToBase64 } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const TwitterAdsPage = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -16,6 +16,9 @@ const TwitterAdsPage = () => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [useFrame, setUseFrame] = useState(true);
   const [combinedVideoUrl, setCombinedVideoUrl] = useState("");
+  const [result, setResult] = useState<string | null>(null);
+  const [urlLink, setUrlLink] = useState<string | null>(null);
+  const [isUploading, startUploadingTransition] = useTransition();
 
   const [formData, setFormData] = useState<ModelFormData>({
     croppedImageLeft: null,
@@ -168,18 +171,25 @@ const TwitterAdsPage = () => {
       formDataToUpload.append("model", formData.model ?? "");
       formDataToUpload.append("image", blob, `${formData.model}_collage.jpg`);
 
-      const res = await fetch("/api/google-drive/upload-for-approval", {
-        method: "POST",
-        body: formDataToUpload,
-      });
+      startUploadingTransition(async () => {
+        const res = await fetch("/api/google-drive/upload-for-approval", {
+          method: "POST",
+          body: formDataToUpload,
+        });
 
-      const result = await res.json();
-      if (res.ok) {
-        alert("Upload successful!");
-        console.log("Uploaded file ID:", result.uploads);
-      } else {
-        alert(`Upload failed: ${result.error}`);
-      }
+        const result = await res.json();
+        if (res.ok) {
+          // Set the result to successful and set the URL link
+          const successResult = "Upload File Success"; // You can store or display this as needed
+          const urlLink = result.uploads[0]?.link; // Assuming the first upload result has the link
+
+          // You can now set these values in your application state or UI
+          setResult(successResult); // Set result to "successful"
+          setUrlLink(urlLink); // Set the URL link to the webViewLink
+        } else {
+          setResult(`Upload failed: ${result.error}`);
+        }
+      });
     } catch (err) {
       console.error("Upload error:", err);
       alert("Something went wrong during upload.");
@@ -202,24 +212,25 @@ const TwitterAdsPage = () => {
       formData.append("model", model);
       formData.append("gif", gifBlob, `${model}_collage.gif`); // Add filename
 
-      // Make the POST request to the API for upload
-      const res = await fetch("/api/google-drive/upload-for-approval", {
-        method: "POST",
-        body: formData, // Send FormData, no JSON
+      startUploadingTransition(async () => {
+        const res = await fetch("/api/google-drive/upload-for-approval", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          // Set the result to successful and set the URL link
+          const successResult = "Upload File Success"; // You can store or display this as needed
+          const urlLink = result.uploads[0]?.link; // Assuming the first upload result has the link
+
+          // You can now set these values in your application state or UI
+          setResult(successResult); // Set result to "successful"
+          setUrlLink(urlLink); // Set the URL link to the webViewLink
+        } else {
+          setResult(`Upload failed: ${result.error}`);
+        }
       });
-
-      // Check if the upload was successful
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Upload failed:", errorData.error || "Unknown error");
-        alert(`Upload failed: ${errorData.error || "Unknown error"}`);
-        return;
-      }
-
-      // If the upload is successful
-      const data = await res.json();
-      console.log("Uploaded:", data);
-      alert("Upload successful!");
     } catch (err) {
       console.error("Upload error:", err);
       alert("Something went wrong during upload.");
@@ -452,31 +463,78 @@ const TwitterAdsPage = () => {
                     : uploadPreview
                 }
               >
-                <svg
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 4V16M12 4L8 8M12 4L16 8"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M3 17V18C3 19.6569 4.34315 21 6 21H18C19.6569 21 21 19.6569 21 18V17"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Upload for Approval
+                {isUploading ? (
+                  <>
+                    <svg
+                      className="w-5 h-5 mr-2 animate-spin text-blue-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 4V16M12 4L8 8M12 4L16 8"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M3 17V18C3 19.6569 4.34315 21 6 21H18C19.6569 21 21 19.6569 21 18V17"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span>Upload for Approval</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
+          {result && (
+            <div
+              className={cn(`mt-6 text-center  font-semibold `, {
+                " text-green-500 ": result === "Upload File Success",
+                " text-red-500": result !== "Upload File Success",
+              })}
+            >
+              <p className="text-lg mb-2">{result}</p>
+              {urlLink && (
+                <a
+                  href={urlLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-2 text-blue-600 hover:text-blue-800 underline transition-colors duration-200"
+                >
+                  Click here to view your collage
+                </a>
+              )}
+            </div>
+          )}
 
           <p className="text-gray-400 text-center mt-4 text-sm">
             Your collage will be saved in high resolution with your custom
