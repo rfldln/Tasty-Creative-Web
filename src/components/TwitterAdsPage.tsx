@@ -317,7 +317,6 @@ const TwitterAdsPage = () => {
                     className="w-full h-full"
                     width={500}
                     height={1000}
-                    unoptimized
                   />
                 </div>
               ) : (
@@ -362,7 +361,6 @@ const TwitterAdsPage = () => {
                     className="w-full h-full"
                     width={500}
                     height={1000}
-                    unoptimized
                   />
                 </div>
               ) : !useFrame && videoUrl ? (
@@ -408,12 +406,16 @@ const TwitterAdsPage = () => {
             <div className="w-full flex justify-end">
               <button
                 disabled={
-                  (!formData.croppedImageLeft || !formData.croppedImageRight) &&
-                  !combinedVideoUrl || !formData.model
+                  ((!formData.croppedImageLeft ||
+                    !formData.croppedImageRight) &&
+                    !combinedVideoUrl) ||
+                  !formData.model
                 }
                 className="px-8 py-4 bg-gradient-to-r from--600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/20 flex items-center gap-2 transform hover:-translate-y-1"
                 onClick={
-                  !useFrame && combinedVideoUrl ? downloadCombinedVideo : downloadPreview
+                  !useFrame && combinedVideoUrl
+                    ? downloadCombinedVideo
+                    : downloadPreview
                 }
               >
                 <svg
@@ -438,8 +440,10 @@ const TwitterAdsPage = () => {
             <div className="w-full">
               <button
                 disabled={
-                  (!formData.croppedImageLeft || !formData.croppedImageRight) &&
-                  !combinedVideoUrl || !formData.model
+                  ((!formData.croppedImageLeft ||
+                    !formData.croppedImageRight) &&
+                    !combinedVideoUrl) ||
+                  !formData.model
                 }
                 className="px-8 py-4 bg-gradient-to-r from-purple-600 to-purpled-600 hover:from-purple-500 hover:to-blue-500 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/20 flex items-center gap-2 transform hover:-translate-y-1"
                 onClick={

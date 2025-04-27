@@ -583,7 +583,6 @@ export default function FlyerGenerator() {
                               className="max-h-full max-w-full object-contain z-10"
                               width={1080}
                               height={1350}
-                              unoptimized
                             />
                           )}
 
@@ -594,7 +593,6 @@ export default function FlyerGenerator() {
                             className="absolute top-0 left-0 max-h-full max-w-full object-contain z-20"
                             width={1080}
                             height={1350}
-                            unoptimized
                           />
 
                           {/* Image label */}
@@ -663,18 +661,14 @@ export default function FlyerGenerator() {
                     ) : webhookData?.thumbnail && webhookData?.webViewLink ? (
                       <div className="flex items-center justify-center h-80 w-64 rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
                         <Link
-                          href={  
-                            webhookData?.webViewLink
-                          }
+                          href={webhookData?.webViewLink}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="h-full w-full flex items-center justify-center"
                           title="Click to view flyer"
                         >
                           <iframe
-                            src={convertToPreviewLink(
-                              webhookData?.webViewLink
-                            )}
+                            src={convertToPreviewLink(webhookData?.webViewLink)}
                             width={400}
                             height={400}
                             frameBorder="0"
@@ -692,7 +686,7 @@ export default function FlyerGenerator() {
                       </div>
                     )}
                   </div>
-                </> 
+                </>
               )}
 
               {(webhookData || history) && (
@@ -715,7 +709,6 @@ export default function FlyerGenerator() {
                               alt="Generated Flyer"
                               width={200}
                               height={200}
-                              unoptimized
                               className={cn(
                                 "object-contain max-h-full rounded-md max-w-full cursor-pointer",
                                 {

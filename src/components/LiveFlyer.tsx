@@ -791,7 +791,6 @@ export default function LiveFlyer() {
                               height={200}
                               className="w-full h-full object-contain"
                               loading="lazy"
-                              unoptimized
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -1132,7 +1131,6 @@ export default function LiveFlyer() {
                                 alt={file.name}
                                 className="max-h-full object-contain"
                                 loading="lazy"
-                                unoptimized
                               />
                             ) : (
                               <svg
@@ -1229,9 +1227,6 @@ export default function LiveFlyer() {
                           height={400}
                           className="object-contain max-h-full max-w-full"
                           loading="lazy"
-                          unoptimized={selectedImage.thumbnailLink
-                            .toLocaleLowerCase()
-                            .endsWith(".heic")}
                         />
                       ) : (
                         <iframe
@@ -1357,7 +1352,6 @@ export default function LiveFlyer() {
                                 alt="Generated Flyer"
                                 width={200}
                                 height={200}
-                                unoptimized
                                 className={cn(
                                   "object-contain max-h-full rounded-md max-w-full cursor-pointer",
                                   {

@@ -20,14 +20,13 @@ const ModelCard = ({ model, setSelectedModel }: ModelCardProps) => {
     ? `https://lh3.googleusercontent.com/d/${fileId}`
     : null;
 
-    function fixGoogleImageUrl(url:string) {
-      if (url.includes("/d/")) {
-        const id = url.split("/d/")[1].split("/")[0];
-        return `https://drive.google.com/uc?export=view&id=${id}`;
-      }
-      return url;
+  function fixGoogleImageUrl(url: string) {
+    if (url.includes("/d/")) {
+      const id = url.split("/d/")[1].split("/")[0];
+      return `https://drive.google.com/uc?export=view&id=${id}`;
     }
-    
+    return url;
+  }
 
   const [imgSrc, setImgSrc] = useState(thumbnailUrl || "/model.png");
 
