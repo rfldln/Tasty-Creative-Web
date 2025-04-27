@@ -64,9 +64,11 @@ export async function blobUrlToBase64(blobUrl: string) {
   });
 }
 
-export const formatRelativeTime = (timestamp) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const formatRelativeTime = (timestamp:any) => {
   const currentTime = new Date();
-  const timeDifference = currentTime - new Date(timestamp); // Difference in milliseconds
+  const parsedTimestamp = new Date(timestamp).getTime();
+  const timeDifference = currentTime.getTime() - parsedTimestamp; // Difference in milliseconds
 
   const seconds = Math.floor(timeDifference / 1000);
   const minutes = Math.floor(seconds / 60);
