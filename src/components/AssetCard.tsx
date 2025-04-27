@@ -4,6 +4,7 @@ import {
   getThumbnailUrl,
   extractLinkFromFormula,
 } from "@/lib/utils";
+import Image from "next/image";
 import React from "react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,22 +18,26 @@ const AssetCard = ({ asset, index }: any) => {
         <div className="h-48 bg-black flex items-center justify-center">
           {asset["Final Output"] &&
           typeof asset["Final Output"] === "string" ? (
-            <img
+            <Image
               src={
                 asset["Final Output"].includes("drive.google.com")
-                  ? extractUrlFromFormula(asset["Final Output"])
-                  : getThumbnailUrl(asset["Final Output"])
+                  ? extractUrlFromFormula(asset["Final Output"]) || "/fallback-image.png"
+                  : getThumbnailUrl(asset["Final Output"]) || "/fallback-image.png"
               }
               alt={`Asset ${asset["Request ID"]}`}
               className="max-h-full object-contain"
               loading="lazy"
+              width={300}
+              height={300}
             />
           ) : asset["Final Output"] &&
             typeof asset["Final Output"] === "object" ? (
-            <img
+            <Image
               src={extractUrlFromFormula(asset["Final Output"].formula)}
               alt={`Asset ${asset["Request ID"]}`}
               className="max-h-full object-contain"
+              width={300}
+              height={300}
               loading="lazy"
             />
           ) : (
