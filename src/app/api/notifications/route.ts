@@ -1,9 +1,8 @@
-// src/app/api/notifications/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 const VALID_API_KEY = "pogiko123";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let notifications: any[] = []; // temp in-memory store
+let notifications: any[] = []; // Temp in-memory store
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,8 +15,7 @@ export async function POST(req: NextRequest) {
     const timestamp = new Date().toISOString();
 
     const notification = { message, ...data, timestamp };
-    notifications.unshift(notification); // Add to the top
-    notifications = notifications.slice(0, 10); // Limit to last 10
+    notifications = [notification]; // Keep only the latest notification
 
     console.log("Received notification:", notification);
 
