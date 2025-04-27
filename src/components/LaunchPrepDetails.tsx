@@ -1,4 +1,4 @@
-import { cn, formatRelativeTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 import React, { useEffect, useState } from "react";
 import CountUp from "react-countup";
@@ -46,6 +46,34 @@ const LaunchPrepDetails = ({
 
     return () => clearTimeout(timeout);
   }, [completionRate]);
+
+
+  
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ const formatRelativeTime = (timestamp:any) => {
+  const currentTime = new Date();
+  const parsedTimestamp = new Date(timestamp).getTime();
+  const timeDifference = currentTime.getTime() - parsedTimestamp; // Difference in milliseconds
+
+  const seconds = Math.floor(timeDifference / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  // Use the relative time formatter
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+  if (days > 0) {
+    return rtf.format(-days, 'day');
+  } else if (hours > 0) {
+    return rtf.format(-hours, 'hour');
+  } else if (minutes > 0) {
+    return rtf.format(-minutes, 'minute');
+  } else {
+    return rtf.format(-seconds, 'second');
+  }
+};
+
   return (
     <div className={cn("w-full bg-black/10 dark:bg-black/40 rounded-md p-3 sm:p-4 transition-all duration-300",className)}>
       {modelDataLoading ? (
