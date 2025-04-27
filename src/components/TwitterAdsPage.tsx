@@ -6,7 +6,7 @@ import Image from "next/image";
 import ModelsDropdown from "./ModelsDropdown";
 import VideoFrameCropper from "./VideoFrameCropper";
 import { ClientSideFFmpeg } from "./FFmpegComponent";
-import {  cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const TwitterAdsPage = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -517,15 +517,10 @@ const TwitterAdsPage = () => {
           </div>
           {result && (
             <div
-              className={cn(
-                `mt-6 text-center  font-semibold p-4 rounded-lg shadow-sm border border-gray-200 bg-gray-50 transition-all duration-300 transform hover:shadow-md`,
-                {
-                  "bg-green-50 text-green-500 border-green-200":
-                    result === "Upload File Success",
-                  "bg-red-50 text-red-500 border-red-200":
-                    result !== "Upload File Success",
-                }
-              )}
+              className={cn(`mt-6 text-center  font-semibold `, {
+                " text-green-500 ": result === "Upload File Success",
+                " text-red-500": result !== "Upload File Success",
+              })}
             >
               <p className="text-lg mb-2">{result}</p>
               {urlLink && (
@@ -535,7 +530,7 @@ const TwitterAdsPage = () => {
                   rel="noopener noreferrer"
                   className="inline-block mt-2 text-blue-600 hover:text-blue-800 underline transition-colors duration-200"
                 >
-                  {urlLink}
+                  Click here to view your collage
                 </a>
               )}
             </div>
