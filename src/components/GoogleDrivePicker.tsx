@@ -369,7 +369,6 @@ const GoogleDrivePicker = ({
                             alt={file.name}
                             className="max-h-full object-contain"
                             loading="lazy"
-                            unoptimized
                           />
                         ) : (
                           <svg

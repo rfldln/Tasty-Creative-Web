@@ -148,7 +148,6 @@ const VIPReceiver = () => {
                         className="max-h-full max-w-full object-contain z-10"
                         width={1080}
                         height={1350}
-                        unoptimized
                       />
                     )}
 
@@ -159,7 +158,6 @@ const VIPReceiver = () => {
                       className="absolute top-0 left-0 max-h-full max-w-full object-contain z-20"
                       width={1080}
                       height={1350}
-                      unoptimized
                     />
 
                     {/* Image label */}
@@ -276,7 +274,6 @@ const VIPReceiver = () => {
                         alt="Generated Flyer"
                         width={200}
                         height={200}
-                        unoptimized
                         className={cn(
                           "object-contain max-h-full rounded-md max-w-full cursor-pointer",
                           {
