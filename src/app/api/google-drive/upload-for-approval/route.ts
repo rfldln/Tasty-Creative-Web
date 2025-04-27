@@ -73,7 +73,17 @@ export async function POST(req: Request) {
         },
       });
 
-      responses.push({ type: "image", id: imageUpload.data.id });
+      // Get file link after upload
+      const imageLinkResponse = await drive.files.get({
+        fileId: imageUpload.data.id ?? "",
+        fields: "webViewLink", // or "webContentLink" for media file
+      });
+
+      responses.push({
+        type: "image",
+        id: imageUpload.data.id,
+        link: imageLinkResponse.data.webViewLink, // Return the link
+      });
     }
 
     // 4. Upload gif
@@ -92,7 +102,17 @@ export async function POST(req: Request) {
         },
       });
 
-      responses.push({ type: "gif", id: gifUpload.data.id });
+      // Get file link after upload
+      const gifLink = await drive.files.get({
+        fileId: gifUpload.data.id ?? "",
+        fields: "webViewLink", // or "webContentLink" for media file
+      });
+
+      responses.push({
+        type: "gif",
+        id: gifUpload.data.id,
+        link: gifLink.data.webViewLink, // Return the link
+      });
     }
 
     return NextResponse.json({ success: true, uploads: responses });

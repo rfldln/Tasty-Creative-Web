@@ -35,7 +35,8 @@ import {
   ExternalLink,
   FileText,
   UsersRound,
-  CircleDollarSign
+  CircleDollarSign,
+  Twitter
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -1120,7 +1121,7 @@ const TastyCreative = () => {
               value="twitter"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <CircleDollarSign />
+              <Twitter />
               <span className="hidden sm:inline">Twitter Ads</span>
             </TabsTrigger>
             <TabsTrigger
