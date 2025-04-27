@@ -134,11 +134,11 @@ const TwitterAdsPage = () => {
 
     if (!ctx) return;
 
-    // Draw both panels
+    // Draw left and right images
     ctx.drawImage(leftImage, 0, 0, width / 2, height);
     ctx.drawImage(rightImage, width / 2, 0, width / 2, height);
 
-    // Draw play button on right side
+    // Draw play button on right half
     const playButtonWidth = width / 2 - 160;
     const playButtonHeight =
       playButtonWidth * (playButton.height / playButton.width);
@@ -153,26 +153,30 @@ const TwitterAdsPage = () => {
       playButtonHeight
     );
 
-    // Convert canvas to Base64
-    const imageBase64 = canvas.toDataURL("image/jpeg", 0.95);
-
-    // Upload to API
+    // Convert canvas to Blob (NOT Base64)
     try {
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95);
+      });
+
+      if (!blob) {
+        alert("Failed to generate image blob.");
+        return;
+      }
+
+      const formDataToUpload = new FormData();
+      formDataToUpload.append("model", formData.model ?? "");
+      formDataToUpload.append("image", blob, `${formData.model}_collage.jpg`);
+
       const res = await fetch("/api/google-drive/upload-for-approval", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: formData.model,
-          imageBase64,
-        }),
+        body: formDataToUpload,
       });
 
       const result = await res.json();
       if (res.ok) {
         alert("Upload successful!");
-        console.log("Uploaded file ID:", result.fileId);
+        console.log("Uploaded file ID:", result.uploads);
       } else {
         alert(`Upload failed: ${result.error}`);
       }
@@ -182,20 +186,44 @@ const TwitterAdsPage = () => {
     }
   };
 
-  async function uploadVideo(model: string, videoBlobUrl: string) {
-    const videoBase64 = await blobUrlToBase64(videoBlobUrl);
+  async function uploadGif(model: string, gifBlobUrl: string) {
+    debugger;
+    try {
+      // Fetch the Blob from the blob URL
+      const response = await fetch(gifBlobUrl);
+      if (!response.ok) {
+        throw new Error("Failed to fetch the blob from the blob URL");
+      }
 
-    const res = await fetch("/api/google-drive/upload-for-approval", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        videoBase64,
-      }),
-    });
+      const gifBlob = await response.blob(); // Get the actual blob object
 
-    const data = await res.json();
-    console.log("Uploaded:", data);
+      // Prepare FormData for the upload
+      const formData = new FormData();
+      formData.append("model", model);
+      formData.append("gif", gifBlob, `${model}_collage.gif`); // Add filename
+
+      // Make the POST request to the API for upload
+      const res = await fetch("/api/google-drive/upload-for-approval", {
+        method: "POST",
+        body: formData, // Send FormData, no JSON
+      });
+
+      // Check if the upload was successful
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Upload failed:", errorData.error || "Unknown error");
+        alert(`Upload failed: ${errorData.error || "Unknown error"}`);
+        return;
+      }
+
+      // If the upload is successful
+      const data = await res.json();
+      console.log("Uploaded:", data);
+      alert("Upload successful!");
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Something went wrong during upload.");
+    }
   }
 
   const downloadCombinedVideo = () => {
@@ -203,7 +231,7 @@ const TwitterAdsPage = () => {
 
     const a = document.createElement("a");
     a.href = combinedVideoUrl;
-    a.download = "combined-media.mp4";
+    a.download = "combined-media.gif"; // ✅ change .mp4 to .gif
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -269,8 +297,7 @@ const TwitterAdsPage = () => {
               setVideoUrl={setVideoUrl}
               useFrame={useFrame}
               setUseFrame={setUseFrame}
-              model={formData.model??""}
-        
+              model={formData.model ?? ""}
             />
           </div>
         </div>
@@ -367,25 +394,26 @@ const TwitterAdsPage = () => {
               )}
             </div>
             {/* Add the client-side only MediaCombiner component */}
-          {!useFrame && (
+            {!useFrame && (
               <ClientSideFFmpeg
-              croppedImageLeft={formData.croppedImageLeft ?? ""}
-              videoUrl={videoUrl ?? ""}
-              combinedVideoUrl={combinedVideoUrl}
-              setCombinedVideoUrl={setCombinedVideoUrl}
-            />
-          )}
+                croppedImageLeft={formData.croppedImageLeft ?? ""}
+                videoUrl={videoUrl ?? ""}
+                combinedVideoUrl={combinedVideoUrl}
+                setCombinedVideoUrl={setCombinedVideoUrl}
+              />
+            )}
           </div>
 
           <div className="mt-6  justify-center flex gap-4">
             <div className="w-full flex justify-end">
               <button
                 disabled={
-                  (!formData.croppedImageLeft || !formData.croppedImageRight ) && !combinedVideoUrl
+                  (!formData.croppedImageLeft || !formData.croppedImageRight) &&
+                  !combinedVideoUrl || !formData.model
                 }
                 className="px-8 py-4 bg-gradient-to-r from--600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/20 flex items-center gap-2 transform hover:-translate-y-1"
                 onClick={
-                  combinedVideoUrl ? downloadCombinedVideo : downloadPreview
+                  !useFrame && combinedVideoUrl ? downloadCombinedVideo : downloadPreview
                 }
               >
                 <svg
@@ -410,12 +438,13 @@ const TwitterAdsPage = () => {
             <div className="w-full">
               <button
                 disabled={
-                  (!formData.croppedImageLeft || !formData.croppedImageRight ) && !combinedVideoUrl
+                  (!formData.croppedImageLeft || !formData.croppedImageRight) &&
+                  !combinedVideoUrl || !formData.model
                 }
                 className="px-8 py-4 bg-gradient-to-r from-purple-600 to-purpled-600 hover:from-purple-500 hover:to-blue-500 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/20 flex items-center gap-2 transform hover:-translate-y-1"
                 onClick={
-                  combinedVideoUrl
-                    ? () => uploadVideo(formData.model ?? "", combinedVideoUrl)
+                  !useFrame && combinedVideoUrl
+                    ? () => uploadGif(formData.model ?? "", combinedVideoUrl)
                     : uploadPreview
                 }
               >
