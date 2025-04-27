@@ -64,31 +64,6 @@ export async function blobUrlToBase64(blobUrl: string) {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const formatRelativeTime = (timestamp:any) => {
-  const currentTime = new Date();
-  const parsedTimestamp = new Date(timestamp).getTime();
-  const timeDifference = currentTime.getTime() - parsedTimestamp; // Difference in milliseconds
-
-  const seconds = Math.floor(timeDifference / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  // Use the relative time formatter
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-
-  if (days > 0) {
-    return rtf.format(-days, 'day');
-  } else if (hours > 0) {
-    return rtf.format(-hours, 'hour');
-  } else if (minutes > 0) {
-    return rtf.format(-minutes, 'minute');
-  } else {
-    return rtf.format(-seconds, 'second');
-  }
-};
-
 
 
 export const emailData = {
