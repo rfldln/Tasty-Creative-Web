@@ -5,6 +5,7 @@ import { DISPLAY_FIELDS } from "@/lib/lib";
 import React, { useEffect, useState, useRef } from "react";
 import ModelAssets from "./ModelAssets";
 import { extractDriveId } from "@/lib/utils";
+import Image from "next/image";
 
 interface ModelDetails {
   [key: string]: string;
@@ -74,6 +75,12 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
   const thumbnailUrl = fileId
     ? `https://lh3.googleusercontent.com/d/${fileId}`
     : null;
+
+  const [imgSrc, setImgSrc] = useState(thumbnailUrl || "/model.png");
+
+  useEffect(() => {
+    setImgSrc(thumbnailUrl || "/model.png");
+  }, [thumbnailUrl]);
   const modelName = modelDetails?.["Client Name"] || "";
 
   if (loading) {
@@ -108,14 +115,13 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
             className="md:w-1/3 overflow-hidden rounded-lg shadow-md relative"
           >
             {thumbnailUrl ? (
-              <img
-                src={thumbnailUrl || "/model.png"}
+              <Image
+                src={imgSrc}
                 alt={modelName}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.onerror = null;
-                  target.src = "/model.png";
-                }}
+                onError={() => setImgSrc("/model.png")}
+                width={300}
+                height={300}
+                loading="lazy"
                 className="w-full h-full object-cover object-top rounded-lg absolute inset-0 hover:scale-105 duration-300 transition-all"
               />
             ) : (
