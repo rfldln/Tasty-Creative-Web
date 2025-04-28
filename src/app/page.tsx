@@ -1114,7 +1114,7 @@ const TastyCreative = () => {
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
         <Tabs defaultValue={tabValue} className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-5 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
+          <TabsList className="grid grid-cols-4 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="dashboard"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
@@ -1157,13 +1157,13 @@ const TastyCreative = () => {
               <Twitter />
               <span className="hidden sm:inline">Twitter Ads</span>
             </TabsTrigger> */}
-            <TabsTrigger
+            {/* <TabsTrigger
               value="image"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
               <Image size={16} className="sm:mr-1" />
               <span className="hidden sm:inline">AI Image</span>
-            </TabsTrigger>
+            </TabsTrigger> */}
             <TabsTrigger
               value="voice"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
