@@ -1,13 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Server as SocketIOServer } from 'socket.io';
-import { Server as NetServer } from 'http';
-import { NextApiResponse } from 'next';
+import { Server as SocketIOServer } from "socket.io";
+import { Server as NetServer } from "http";
+import { NextApiResponse } from "next";
 
 declare global {
   interface NotificationData {
     message: string;
     timestamp: string;
-    [key: string]: any;
+    editedBy: string;
+    editedData: {
+      [key: string]: string; // Assuming editedData contains key-value pairs where keys are strings and values are strings
+    };
+    model: string;
+    row: string;
+    sheet: string;
   }
 
   interface NotificationPayload {
@@ -33,7 +39,7 @@ declare global {
     message: string;
     data?: {
       category?: string;
-      priority?: 'low' | 'normal' | 'high';
+      priority?: "low" | "normal" | "high";
       [key: string]: any;
     };
   }

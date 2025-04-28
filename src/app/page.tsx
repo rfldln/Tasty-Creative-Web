@@ -227,8 +227,8 @@ const TastyCreative = () => {
   const [outputFormat, setOutputFormat] = useState("png");
   const [comfyModel, setComfyModel] = useState("realistic");
 
-  const [notifications, setNotifications] = useState<NotificationData[]>([]);
-  
+  const [notifications, setNotifications] = useState<NotificationData>();
+  console.log(notifications, 'notifications')
 
   // Voice tab states
   const [voiceText, setVoiceText] = useState("");
@@ -322,9 +322,7 @@ const TastyCreative = () => {
         const res = await fetch("/api/notifications");
         if (res.ok) {
           const data = await res.json();
-          console.log(data, "data");
-          console.log("Fetched notifications:", data.notifications);
-          setNotifications(data.notifications || []);
+          setNotifications(data.notification || []);
         }
       } catch (error) {
         console.error("Error fetching notifications:", error);
@@ -353,6 +351,7 @@ const TastyCreative = () => {
       setDisplayName(user);
     }
   }, [user]);
+
 
   // Update the effect that initializes Google Calendar
   useEffect(() => {
@@ -1185,18 +1184,15 @@ const TastyCreative = () => {
               {/* Calendar Controls */}
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 {/* Calendar Header */}
-                {notifications.map((notif, index) => (
-                  <div key={index} className='px-5'>
-                     <LaunchPrepDetails
-                      modelDataLoading={false} // Replace with actual loading state if needed
-                      selectedModelData={notif.editedData} // Assuming this is the data you want to show
-                      timestamp={notif.timestamp} // Assuming this is the timestamp you want to show
-                      editedBy={notif.editedBy} // Assuming this is the editor's name you want to show
-                      className='bg-black/20 dark'
-                      />
-                  </div>
-                  ))}
-                
+               {notifications && (
+                 <LaunchPrepDetails
+                  modelDataLoading={false} // Replace with actual loading state if needed
+                  selectedModelData={notifications.editedData} // Passing the `editedData` from the notificationsication
+                  timestamp={notifications.timestamp} // Passing the timestamp
+                  editedBy={notifications.editedBy} // Passing the editor's name
+                  className="bg-black/20 dark"
+                />
+               )}
                 <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <CardTitle className="text-white">Calendar</CardTitle>
