@@ -1229,16 +1229,16 @@ export default function LiveFlyer() {
                           loading="lazy"
                         />
                       ) : (
-                        <iframe
-                          src={convertToPreviewLink(
-                            selectedImage.webViewLink ?? ""
+                        <Image
+                          src={selectedImage.thumbnailLink.replace(
+                            /=s\d+$/,
+                            "=s800"
                           )}
+                          alt={selectedImage.name}
                           width={400}
                           height={400}
-                          frameBorder="0"
-                          allowFullScreen
-                          title="Live Flyer Preview"
-                          className="object-contain max-h-full max-w-full rounded-md"
+                          className="object-contain max-h-full max-w-full"
+                          loading="lazy"
                         />
                       )}
                     </div>
@@ -1313,7 +1313,7 @@ export default function LiveFlyer() {
                         className="h-full w-full flex items-center justify-center"
                         title="Click to view flyer"
                       >
-                        <iframe
+                        {/* <iframe
                           src={convertToPreviewLink(webhookData.webViewLink)}
                           width={400}
                           height={400}
@@ -1321,6 +1321,17 @@ export default function LiveFlyer() {
                           allowFullScreen
                           title="Live Flyer Preview"
                           className="object-contain max-h-full max-w-full rounded-md"
+                        /> */}
+                         <Image
+                          src={webhookData.thumbnailLink.replace(
+                            /=s\d+$/,
+                            "=s800"
+                          )}
+                          alt={"Generated Flyer"}
+                          width={400}
+                          height={400}
+                          className="object-contain max-h-full max-w-full"
+                          loading="lazy"
                         />
                       </Link>
                     </div>
