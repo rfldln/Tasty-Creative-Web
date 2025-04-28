@@ -667,7 +667,7 @@ export default function FlyerGenerator() {
                           className="h-full w-full flex items-center justify-center"
                           title="Click to view flyer"
                         >
-                          <iframe
+                          {/* <iframe
                             src={convertToPreviewLink(webhookData?.webViewLink)}
                             width={400}
                             height={400}
@@ -675,6 +675,17 @@ export default function FlyerGenerator() {
                             allowFullScreen
                             title="Live Flyer Preview"
                             className="object-contain max-h-full max-w-full rounded-md"
+                          /> */}
+                          <Image
+                            src={webhookData.thumbnail.replace(
+                              /=s\d+$/,
+                              "=s800"
+                            )}
+                            alt={"Generated Flyer"}
+                            width={400}
+                            height={400}
+                            className="object-contain max-h-full max-w-full"
+                            loading="lazy"
                           />
                         </Link>
                       </div>

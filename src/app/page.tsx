@@ -317,6 +317,7 @@ const TastyCreative = () => {
   };
 
   useEffect(() => {
+  if (tabValue === "dashboard" || tabValue==="" )  {
     let intervalId: NodeJS.Timeout;
 
     const fetchNotifications = async () => {
@@ -340,6 +341,7 @@ const TastyCreative = () => {
 
     // Cleanup
     return () => clearInterval(intervalId);
+    }
   }, []);
 
   // Initialize the voice parameters cache
