@@ -8,12 +8,10 @@ export async function GET() {
     const tokensCookie = cookieStore.get("google_auth_tokens");
 
     if (!tokensCookie) {
-      console.log("Authentication error: No tokens found in cookies.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const tokens = JSON.parse(tokensCookie.value);
-    console.log("Parsed tokens:", tokens);
 
     // Setup OAuth2 client
     const oauth2Client = new google.auth.OAuth2(
@@ -28,7 +26,6 @@ export async function GET() {
       expiry_date: tokens.expiry_date,
     });
 
-    console.log("OAuth2 client set up successfully.");
 
     // Setup Sheets API client
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
@@ -36,8 +33,6 @@ export async function GET() {
     // Define spreadsheet and range
     const spreadsheetId = "1Ad_I-Eq11NWKT1jqPB9Bw6L1jVKBHHLqR4ZBLBT9XtU"; // Your Google Sheets ID
     const range = "Notifications!A2:G2"; // Range to get the latest notification
-
-    console.log("Fetching data from Google Sheets...");
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range,
@@ -45,7 +40,6 @@ export async function GET() {
 
     const data = response.data;
 
-    console.log("Data received from Google Sheets:", data);
 
     if (!data.values || data.values.length === 0) {
       console.log("No notifications found.");
@@ -53,7 +47,6 @@ export async function GET() {
     }
 
     const notification = data.values[0];
-    console.log("Notification data:", notification);
 
     return NextResponse.json({
       notification: {
