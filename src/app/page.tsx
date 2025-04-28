@@ -36,7 +36,8 @@ import {
   FileText,
   UsersRound,
   CircleDollarSign,
-  Twitter
+  Twitter,
+  PencilRuler
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -103,6 +104,7 @@ import ModelPage from './models/page';
 import FTTPage from '@/components/FTTPage';
 import TwitterAdsPage from '@/components/TwitterAdsPage';
 import LaunchPrepDetails from '@/components/LaunchPrepDetails';
+import GenerationTab from '@/components/GenerationTab';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -1112,7 +1114,7 @@ const TastyCreative = () => {
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
         <Tabs defaultValue={tabValue} className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-9 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
+          <TabsList className="grid grid-cols-4 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="dashboard"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
@@ -1121,13 +1123,13 @@ const TastyCreative = () => {
               <span className="hidden sm:inline">Dashboard</span>
             </TabsTrigger>
             <TabsTrigger
-              value="live"
+              value="generate"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
-              <Video size={16} className="sm:mr-1" />
-              <span className="hidden sm:inline">Live</span>
+              <PencilRuler />
+              <span className="hidden sm:inline">Generate</span>
             </TabsTrigger>
-            <TabsTrigger
+            {/* <TabsTrigger
               value="vip"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
@@ -1154,14 +1156,14 @@ const TastyCreative = () => {
             >
               <Twitter />
               <span className="hidden sm:inline">Twitter Ads</span>
-            </TabsTrigger>
-            <TabsTrigger
+            </TabsTrigger> */}
+            {/* <TabsTrigger
               value="image"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
               <Image size={16} className="sm:mr-1" />
               <span className="hidden sm:inline">AI Image</span>
-            </TabsTrigger>
+            </TabsTrigger> */}
             <TabsTrigger
               value="voice"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
@@ -1751,8 +1753,9 @@ const TastyCreative = () => {
           </TabsContent>
 
           {/* Other tabs content remains the same */}
-          <TabsContent value="live">
-            <LiveFlyer />
+          <TabsContent value="generate">
+            {/* <LiveFlyer /> */}
+            <GenerationTab />
           </TabsContent>
 
           {/* New AI Image Tab with ComfyUI */}

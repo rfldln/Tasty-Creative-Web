@@ -337,12 +337,12 @@ export default function FlyerGenerator() {
   }, [response]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6  text-white min-h-screen">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6  text-white min-h-screen">
       {response?.error === "Invalid JSON response from webhook" ? (
         <ServerOffline />
       ) : (
         <>
-          <div className="bg-black/20 border border-white/10 p-6 rounded-lg">
+          <div className="bg-black/20 border col-span-1 border-white/10 p-6 rounded-lg">
             <h1 className="text-2xl font-bold mb-2">VIP Flyer Generation</h1>
             <p className="text-gray-300 mb-6">
               Create promotional materials for VIP subscription benefits
@@ -529,7 +529,7 @@ export default function FlyerGenerator() {
             </form>
           </div>
 
-          <div className="bg-black/20 border border-white/10 p-6 rounded-lg">
+          <div className="bg-black/20 border col-span-2 border-white/10 p-6 rounded-lg">
             <div className="flex flex-col gap-4 sticky top-8">
               <div>
                 <h1 className="font-bold text-xl">Preview</h1>
