@@ -1268,7 +1268,7 @@ export default function FTTFlyer() {
                           className="object-contain max-h-full max-w-full rounded-md"
                         /> */}
                         <Image
-                          src={webhookData.thumbnailLink.replace(
+                          src={webhookData.thumbnail.replace(
                             /=s\d+$/,
                             "=s800"
                           )}
