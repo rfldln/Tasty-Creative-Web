@@ -249,7 +249,7 @@ const TwitterAdsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900/60 to-black/60 text-white p-6 rounded-lg">
+    <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
       <canvas ref={canvasRef} className="hidden" />
 
       <div className="max-w-5xl mx-auto">

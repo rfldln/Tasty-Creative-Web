@@ -10,7 +10,7 @@ import ModelsDropdown from "./ModelsDropdown";
 import { DateTime } from "luxon";
 import ServerOffline from "./ServerOffline";
 
-export default function LiveFlyer() {
+export default function FTTFlyer() {
   const router = useRouter();
 
   const searchParams = useSearchParams();
@@ -581,8 +581,8 @@ export default function LiveFlyer() {
       {response?.error === "Invalid JSON response from webhook" && (
         <ServerOffline />
       )}
-      <div className="flex gap-4">
-        <div className="flex flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex col-span-1 flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
           <div>
             <h1 className="text-2xl font-bold text-start">
               FTT Flyer Generation
@@ -1120,7 +1120,7 @@ export default function LiveFlyer() {
           )}
         </div>
 
-        <div className="flex flex-col gap-4 shadow-md justify-between  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
+        <div className="flex col-span-2 flex-col gap-4 shadow-md justify-between  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
           <div>
             <h1 className="text-bold">Preview</h1>
             <p className="text-sm text-gray-400 mb-2">
