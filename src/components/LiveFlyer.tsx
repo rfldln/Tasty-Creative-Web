@@ -18,6 +18,7 @@ import {
 } from "./ui/select";
 import { DateTime } from "luxon";
 import ServerOffline from "./ServerOffline";
+import ImageCropper from "./ImageCropper";
 
 export default function LiveFlyer() {
   const router = useRouter();
@@ -585,6 +586,13 @@ export default function LiveFlyer() {
     stopChecking();
   };
 
+  const handleCropComplete = (croppedImage: string) => {
+    setFormData({
+      ...formData,
+      croppedImage,
+    });
+  };
+
   return (
     <div className="flex flex-col gap-5">
       {response?.error === "Invalid JSON response from webhook" && (
@@ -610,7 +618,16 @@ export default function LiveFlyer() {
                 webhookData={webhookData}
               />
             </div>
-
+            <div className="col-span-2">
+              <ImageCropper
+                onCropComplete={handleCropComplete}
+                aspectRatio={4 / 5} // For 1080:1350 aspect ratio
+                model={formData.model}
+                customRequest={formData.customRequest}
+                setFormData={setFormData}
+              />
+            </div>
+            {/* 
             {formData.model && (
               <div className="col-span-2">
                 <div className="flex flex-col">
@@ -836,7 +853,7 @@ export default function LiveFlyer() {
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
             <div className="col-span-2 flex gap-2 items-center">
               <label
                 className={cn(
@@ -1217,38 +1234,41 @@ export default function LiveFlyer() {
             response?.error != "Invalid JSON response from webhook" && (
               <>
                 <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
-                  {selectedImage && selectedImage.thumbnailLink ? (
-                    <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] border bg-black/40 rounded-md border-black">
-                      {isCustomImage ? (
+                  <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {formData.croppedImage ? (
+                      <div className="relative w-full h-full">
+                        {/* Cropped image */}
+                        {formData.croppedImage && (
+                          <Image
+                            src={formData.croppedImage}
+                            alt="Cropped preview"
+                            className="max-h-full max-w-full object-contain z-10"
+                            width={1080}
+                            height={1350}
+                          />
+                        )}
+
+                        {/* Template image */}
                         <Image
-                          src={selectedImage.thumbnailLink}
-                          alt={selectedImage.name}
-                          width={400}
-                          height={400}
-                          className="object-contain max-h-full max-w-full"
-                          loading="lazy"
+                          src={`/templates/live_placeholder.png`}
+                          alt="Template"
+                          className="absolute top-0 left-0 max-h-full max-w-full object-contain z-20"
+                          width={1080}
+                          height={1350}
                         />
-                      ) : (
-                        <Image
-                          src={selectedImage.thumbnailLink.replace(
-                            /=s\d+$/,
-                            "=s800"
-                          )}
-                          alt={selectedImage.name}
-                          width={400}
-                          height={400}
-                          className="object-contain max-h-full max-w-full"
-                          loading="lazy"
-                        />
-                      )}
-                    </div>
-                  ) : (
-                    <div className="h-[250px] w-full lg:w-[250px] bg-black/60 flex items-center justify-center border border-gradient-to-r border-purple-400 rounded-md">
-                      <span className="text-sm text-gray-500 text-center px-2">
-                        {selectedImage?.name || "No image selected"}
-                      </span>
-                    </div>
-                  )}
+                        <div className="w-full h-10  left-0 flex items-center justify-center bottom-14 absolute bg-black/40 text-white font-bold  max-h-full max-w-full object-contain z-20">
+                          <p>PLACEHOLDER ONLY</p>
+                        </div>
+
+                        {/* Image label */}
+                        <div className="absolute z-30 bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                          1080x1350
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500">No image selected</p>
+                    )}
+                  </div>
 
                   <div className="flex items-center justify-center rotate-90 lg:rotate-0">
                     <svg
@@ -1267,8 +1287,9 @@ export default function LiveFlyer() {
                     </svg>
                   </div>
 
+                  {/* Flyer Image */}
                   {isFetchingImage ? (
-                    <div className="w-full relative overflow-hidden lg:w-[250px] h-[250px] flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded-md bg-black/40">
+                    <div className=" relative overflow-hidden h-80 w-64 flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded-md bg-black/40">
                       <div className="flex flex-col items-center justify-center">
                         <svg
                           className="animate-spin h-8 w-8 text-purple-500 mb-2"
@@ -1302,26 +1323,24 @@ export default function LiveFlyer() {
                         </button>
                       </div>
                     </div>
-                  ) : webhookData &&
-                    webhookData.thumbnail &&
-                    webhookData.webViewLink ? (
-                    <div className="flex items-center justify-center h-[250px] w-full lg:w-[250px] rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
+                  ) : webhookData?.thumbnail && webhookData?.webViewLink ? (
+                    <div className="flex items-center justify-center h-80 w-64 rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
                       <Link
-                        href={webhookData.webViewLink}
+                        href={webhookData?.webViewLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="h-full w-full flex items-center justify-center"
                         title="Click to view flyer"
                       >
                         {/* <iframe
-                          src={convertToPreviewLink(webhookData.webViewLink)}
-                          width={400}
-                          height={400}
-                          frameBorder="0"
-                          allowFullScreen
-                          title="Live Flyer Preview"
-                          className="object-contain max-h-full max-w-full rounded-md"
-                        /> */}
+                            src={convertToPreviewLink(webhookData?.webViewLink)}
+                            width={400}
+                            height={400}
+                            frameBorder="0"
+                            allowFullScreen
+                            title="Live Flyer Preview"
+                            className="object-contain max-h-full max-w-full rounded-md"
+                          /> */}
                         <Image
                           src={webhookData.thumbnail.replace(/=s\d+$/, "=s800")}
                           alt={"Generated Flyer"}
@@ -1333,7 +1352,7 @@ export default function LiveFlyer() {
                       </Link>
                     </div>
                   ) : (
-                    <div className="h-[250px] w-full lg:w-[250px] bg-black/60 flex items-center justify-center  border border-gradient-to-r border-purple-400 rounded-md">
+                    <div className="h-80 w-64 bg-black/60 flex items-center justify-center  border border-gradient-to-r border-purple-400 rounded-md">
                       <span className="text-sm text-gray-500 text-center px-2">
                         Flyer not yet generated
                       </span>
