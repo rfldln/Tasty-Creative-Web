@@ -11,7 +11,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { access_token, refresh_token } = JSON.parse(decodeURIComponent(authTokensCookie));
+  const { access_token, refresh_token } = JSON.parse(
+    decodeURIComponent(authTokensCookie)
+  );
 
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -23,7 +25,13 @@ export async function POST(req: Request) {
   const drive = google.drive({ version: "v3", auth: oauth2Client });
 
   const formData = await req.formData();
-  const model = formData.get("model") as string;
+  let model = formData.get("model") as string;
+
+  if (model === "Victoria (V)") {
+    model = "V";
+  } else if (model === "Tita") {
+    model = "Tita Sahara";
+  }
 
   const image = formData.get("image") as File | null;
   const gif = formData.get("gif") as File | null;
@@ -38,7 +46,10 @@ export async function POST(req: Request) {
     });
 
     if (!modelFolder.data.files?.length) {
-      return NextResponse.json({ error: "Model folder not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Model folder not found" },
+        { status: 404 }
+      );
     }
 
     const modelFolderId = modelFolder.data.files?.[0]?.id;
@@ -50,7 +61,10 @@ export async function POST(req: Request) {
     });
 
     if (!approvalFolder.data.files?.length) {
-      return NextResponse.json({ error: "'For Approval✅' folder not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "'For Approval✅' folder not found" },
+        { status: 404 }
+      );
     }
 
     const approvalFolderId = approvalFolder.data.files?.[0]?.id;
