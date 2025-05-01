@@ -1,5 +1,5 @@
 "use client";
-import { cn, convertToPreviewLink, emailData } from "@/lib/utils";
+import { cn, emailData } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
@@ -14,7 +14,7 @@ export default function FTTFlyer() {
   const router = useRouter();
 
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get("tab") || "ftt";
+  const tabValue = searchParams?.get("tab") || "ftt";
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -37,7 +37,7 @@ export default function FTTFlyer() {
           if (authData.authUrl) {
             // Append the tab parameter to the auth URL
             const authUrlWithTab = new URL(authData.authUrl);
-            authUrlWithTab.searchParams.set(
+            authUrlWithTab.searchParams?.set(
               "state",
               JSON.stringify({ tab: currentTab })
             );
@@ -1268,10 +1268,7 @@ export default function FTTFlyer() {
                           className="object-contain max-h-full max-w-full rounded-md"
                         /> */}
                         <Image
-                          src={webhookData.thumbnail.replace(
-                            /=s\d+$/,
-                            "=s800"
-                          )}
+                          src={webhookData.thumbnail.replace(/=s\d+$/, "=s800")}
                           alt={"Generated Flyer"}
                           width={400}
                           height={400}

@@ -7,11 +7,18 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams;
   const folderId =
-    searchParams.get("folderId") || process.env.GOOGLE_DRIVE_BASE_FOLDER_ID!;
-  const modelName = searchParams.get("folderName");
-  const includeVideos = searchParams.get("includeVideos") === "true";
-console.log(searchParams.toString(), 'searchparams');
-  console.log("Search Params - folderId:", folderId, "modelName:", modelName, "includeVideos:", includeVideos);
+    searchParams?.get("folderId") || process.env.GOOGLE_DRIVE_BASE_FOLDER_ID!;
+  const modelName = searchParams?.get("folderName");
+  const includeVideos = searchParams?.get("includeVideos") === "true";
+  console.log(searchParams?.toString(), "searchparams");
+  console.log(
+    "Search Params - folderId:",
+    folderId,
+    "modelName:",
+    modelName,
+    "includeVideos:",
+    includeVideos
+  );
 
   const cookieStore = await cookies();
   const tokensCookie = cookieStore.get("google_auth_tokens");
@@ -62,7 +69,9 @@ console.log(searchParams.toString(), 'searchparams');
     // If modelName is provided, search for it within current folder
     let targetFolder = currentFolder;
     if (modelName && modelName !== currentFolder.name) {
-      console.log(`Searching for folder "${modelName}" inside "${currentFolder.name}"`);
+      console.log(
+        `Searching for folder "${modelName}" inside "${currentFolder.name}"`
+      );
 
       const searchResponse = await drive.files.list({
         q: `name = '${modelName}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder'`,
@@ -78,9 +87,14 @@ console.log(searchParams.toString(), 'searchparams');
       console.log("Matching folders found:", matchingFolders);
 
       if (matchingFolders.length === 0) {
-        console.log(`No folder found matching "${modelName}" in the current folder.`);
+        console.log(
+          `No folder found matching "${modelName}" in the current folder.`
+        );
         return NextResponse.json(
-          { error: `No folder found matching "${modelName}" in current folder`, currentFolder },
+          {
+            error: `No folder found matching "${modelName}" in current folder`,
+            currentFolder,
+          },
           { status: 404 }
         );
       }
@@ -150,30 +164,30 @@ console.log(searchParams.toString(), 'searchparams');
     // Build the query for listing files - DIRECTLY in the current folder only
     // Ensure we always query for the parent to be the current folder ID specifically
     let fileQuery = `'${targetFolder.id}' in parents`;
-    
+
     // Filter by type (always include folders and images)
     let typeQuery = `(mimeType = 'application/vnd.google-apps.folder' or mimeType contains 'image/')`;
-    
+
     // Add video files if includeVideos is true
     if (includeVideos) {
       typeQuery += ` or mimeType = 'video/quicktime' or mimeType = 'video/mov'`;
-      
+
       // Add extension-based search for .MOV files
       typeQuery += ` or (name contains '.MOV' or name contains '.mov')`;
-      
+
       // Include other common video formats
       typeQuery += ` or mimeType = 'video/mp4' or mimeType = 'video/x-m4v'`;
       typeQuery += ` or mimeType = 'video/x-msvideo' or mimeType = 'video/x-ms-wmv'`;
       typeQuery += ` or mimeType = 'video/webm' or mimeType = 'video/3gpp'`;
       typeQuery += ` or mimeType = 'video/mpeg' or mimeType = 'video/ogg'`;
-      
+
       // Catch-all for any other video types
       typeQuery += ` or mimeType contains 'video/'`;
     }
-    
+
     // Combine the parent restriction with the type filters
     fileQuery = `${fileQuery} and (${typeQuery})`;
-    
+
     console.log("File query:", fileQuery);
 
     // List contents of the target folder ONLY (no recursion)
@@ -191,17 +205,18 @@ console.log(searchParams.toString(), 'searchparams');
 
     const files = (listResponse.data.files || []).map((file) => {
       // Check if file is a video based on mimeType or file extension
-      const isVideo = file.mimeType?.includes("video/") || 
-                      file.name?.toLowerCase().endsWith('.mov') ||
-                      file.name?.toLowerCase().endsWith('.mp4') ||
-                      file.name?.toLowerCase().endsWith('.avi') ||
-                      file.name?.toLowerCase().endsWith('.wmv') ||
-                      file.name?.toLowerCase().endsWith('.webm') ||
-                      file.name?.toLowerCase().endsWith('.mpeg') ||
-                      file.name?.toLowerCase().endsWith('.mpg') ||
-                      file.name?.toLowerCase().endsWith('.3gp') ||
-                      false;
-      
+      const isVideo =
+        file.mimeType?.includes("video/") ||
+        file.name?.toLowerCase().endsWith(".mov") ||
+        file.name?.toLowerCase().endsWith(".mp4") ||
+        file.name?.toLowerCase().endsWith(".avi") ||
+        file.name?.toLowerCase().endsWith(".wmv") ||
+        file.name?.toLowerCase().endsWith(".webm") ||
+        file.name?.toLowerCase().endsWith(".mpeg") ||
+        file.name?.toLowerCase().endsWith(".mpg") ||
+        file.name?.toLowerCase().endsWith(".3gp") ||
+        false;
+
       return {
         id: file.id!,
         name: file.name!,

@@ -23,7 +23,7 @@ export default function LiveFlyer() {
   const router = useRouter();
 
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get("tab") || "live";
+  const tabValue = searchParams?.get("tab") || "live";
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -46,7 +46,7 @@ export default function LiveFlyer() {
           if (authData.authUrl) {
             // Append the tab parameter to the auth URL
             const authUrlWithTab = new URL(authData.authUrl);
-            authUrlWithTab.searchParams.set(
+            authUrlWithTab.searchParams?.set(
               "state",
               JSON.stringify({ tab: currentTab })
             );
@@ -1322,11 +1322,8 @@ export default function LiveFlyer() {
                           title="Live Flyer Preview"
                           className="object-contain max-h-full max-w-full rounded-md"
                         /> */}
-                         <Image
-                          src={webhookData.thumbnail.replace(
-                            /=s\d+$/,
-                            "=s800"
-                          )}
+                        <Image
+                          src={webhookData.thumbnail.replace(/=s\d+$/, "=s800")}
                           alt={"Generated Flyer"}
                           width={400}
                           height={400}

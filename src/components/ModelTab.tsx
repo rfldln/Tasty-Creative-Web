@@ -19,7 +19,7 @@ const ModelTab = () => {
   const router = useRouter();
 
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get("tab") || "model";
+  const tabValue = searchParams?.get("tab") || "model";
 
   const [hash, setHash] = useState<string>("");
   const [allModels, setAllModels] = useState<Model[]>([]);
@@ -46,7 +46,7 @@ const ModelTab = () => {
           if (authData.authUrl) {
             // Append the tab parameter to the auth URL
             const authUrlWithTab = new URL(authData.authUrl);
-            authUrlWithTab.searchParams.set(
+            authUrlWithTab.searchParams?.set(
               "state",
               JSON.stringify({ tab: currentTab })
             );

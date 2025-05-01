@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
+  const id = searchParams?.get("id");
 
   if (!id) {
     return new NextResponse("Missing file id", { status: 400 });
@@ -15,11 +15,14 @@ export async function GET(request: Request) {
     const response = await fetch(fileUrl);
 
     if (!response.ok) {
-      return new NextResponse(`Failed to fetch file: ${response.statusText}`, { status: 500 });
+      return new NextResponse(`Failed to fetch file: ${response.statusText}`, {
+        status: 500,
+      });
     }
 
     const blob = await response.blob();
-    const contentType = response.headers.get("Content-Type") || "application/octet-stream";
+    const contentType =
+      response.headers.get("Content-Type") || "application/octet-stream";
 
     return new NextResponse(blob, {
       headers: {

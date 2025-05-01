@@ -3,8 +3,8 @@ import { google } from "googleapis";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const code = searchParams.get("code");
-  const state = searchParams.get("state");
+  const code = searchParams?.get("code");
+  const state = searchParams?.get("state");
 
   let tab = "live"; // default tab
   try {
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const userData = JSON.stringify(userProfile);
 
     const redirectUrl = new URL("/", request.url);
-    redirectUrl.searchParams.set("tab", tab);
+    redirectUrl.searchParams?.set("tab", tab);
 
     const response = NextResponse.redirect(redirectUrl);
 

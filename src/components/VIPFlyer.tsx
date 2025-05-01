@@ -16,8 +16,8 @@ export default function FlyerGenerator() {
   const router = useRouter();
 
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get("tab") || "vip";
-  const reqId = searchParams.get("reqId") || null;
+  const tabValue = searchParams?.get("tab") || "vip";
+  const reqId = searchParams?.get("reqId") || null;
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingImage, setIsFetchingImage] = useState(false);
 
@@ -135,7 +135,7 @@ export default function FlyerGenerator() {
           if (authData.authUrl) {
             // Append the tab parameter to the auth URL
             const authUrlWithTab = new URL(authData.authUrl);
-            authUrlWithTab.searchParams.set(
+            authUrlWithTab.searchParams?.set(
               "state",
               JSON.stringify({ tab: currentTab })
             );

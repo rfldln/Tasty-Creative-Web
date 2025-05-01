@@ -26,10 +26,13 @@ const FIELDS = [
 
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
-  const modelName = searchParams.get("name");
+  const modelName = searchParams?.get("name");
 
   if (!modelName) {
-    return NextResponse.json({ error: "Model name is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Model name is required" },
+      { status: 400 }
+    );
   }
 
   const cookieStore = await cookies();
@@ -50,9 +53,14 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     oauth2Client.setCredentials(tokens);
 
-    const sheets: sheets_v4.Sheets = google.sheets({ version: "v4", auth: oauth2Client });
+    const sheets: sheets_v4.Sheets = google.sheets({
+      version: "v4",
+      auth: oauth2Client,
+    });
 
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+    });
 
     const firstSheetTitle = spreadsheet.data.sheets?.[0]?.properties?.title;
     if (!firstSheetTitle) {
@@ -87,12 +95,16 @@ export async function GET(req: Request): Promise<NextResponse> {
     const result: Record<string, string> = {};
     FIELDS.forEach((field) => {
       const index = headerIndexes[field];
-      result[field] = index !== -1 && modelRow ? modelRow[index]?.trim() ?? "" : "";
+      result[field] =
+        index !== -1 && modelRow ? modelRow[index]?.trim() ?? "" : "";
     });
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error("❌ Error fetching model details:", error);
-    return NextResponse.json({ error: "Failed to fetch model details" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch model details" },
+      { status: 500 }
+    );
   }
 }

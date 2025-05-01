@@ -217,7 +217,7 @@ const TastyCreative = () => {
   const { user, logout } = useAuth();
 
   const searchParams = useSearchParams();
-  const tabValue = searchParams.get('tab') || "dashboard";
+  const tabValue = searchParams?.get('tab') || "dashboard";
   const router = useRouter();
 
   const [displayName, setDisplayName] = useState("Admin");
@@ -307,7 +307,7 @@ const TastyCreative = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
 
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || "");
     
     params.set('tab', value);
     
