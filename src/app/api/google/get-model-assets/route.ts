@@ -13,7 +13,7 @@ const SHEETS = ["Live Gen Tracker", "VIP Gen Tracker"];
 
 export async function GET(req: Request): Promise<NextResponse> {
   const url = new URL(req.url);
-  const modelName = url.searchParams.get("model")?.trim();
+  const modelName = url.searchParams?.get("model")?.trim();
 
   console.log("🔍 Model name received:", modelName);
 

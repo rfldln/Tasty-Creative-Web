@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const requestId = searchParams.get("requestId");
+  const requestId = searchParams?.get("requestId");
 
   if (!requestId) {
     return NextResponse.json({ error: "Missing requestId" }, { status: 400 });
