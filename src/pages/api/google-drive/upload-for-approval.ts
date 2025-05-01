@@ -1,13 +1,14 @@
 import { google } from "googleapis";
 import { NextApiRequest, NextApiResponse } from "next";
 import { parseCookies } from "nookies";
-import * as formidableLib from "formidable";
-import fs from "fs";
+import busboy from "busboy";
 
-// Disable the default body parser to handle file uploads
+// Disable the default body parser
 export const config = {
   api: {
     bodyParser: false,
+    // Increase the limit if you're on a paid Vercel plan
+    maxDuration: 60, // 60 seconds timeout
   },
 };
 
@@ -23,139 +24,148 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const { access_token, refresh_token } = JSON.parse(
-    decodeURIComponent(authTokensCookie)
-  );
+  try {
+    const { access_token, refresh_token } = JSON.parse(
+      decodeURIComponent(authTokensCookie)
+    );
 
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  );
-  oauth2Client.setCredentials({ access_token, refresh_token });
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+    oauth2Client.setCredentials({ access_token, refresh_token });
 
-  const drive = google.drive({ version: "v3", auth: oauth2Client });
+    const drive = google.drive({ version: "v3", auth: oauth2Client });
+    const parentFolderId = "1DtsejmJr3k-1ToMgQ1DLgfe3EA36gbMb";
+    
+    // Process the request using busboy for streaming
+    const bb = busboy({ headers: req.headers });
+    
+    let model = "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filePromises: any[] = [];
+    const fileMetadata: Record<string, { filename: string; mimeType: string }> = {};
 
-  // Parse form data
-  const form = formidableLib.default({
-    maxFileSize: 100 * 1024 * 1024, // 100MB limit
-    keepExtensions: true,
-  });
-  
-  return new Promise((resolve) => {
-    form.parse(req, async (err, fields, files) => {
-      if (err) {
-        res.status(500).json({ error: "Failed to parse form" });
-        return resolve(true);
-      }
-      
-      try {
-        let model = Array.isArray(fields.model) ? fields.model[0] : fields.model || "";
-
+    // Handle form fields
+    bb.on('field', (fieldname, val) => {
+      if (fieldname === 'model') {
+        model = val;
         if (model === "Victoria (V)") {
           model = "V";
         } else if (model === "Tita") {
           model = "Tita Sahara";
         }
-
-        const image = Array.isArray(files.image) ? files.image[0] : files.image;
-        const gif = Array.isArray(files.gif) ? files.gif[0] : files.gif;
-
-        const parentFolderId = "1DtsejmJr3k-1ToMgQ1DLgfe3EA36gbMb";
-
-        // 1. Find model folder
-        const modelFolder = await drive.files.list({
-          q: `'${parentFolderId}' in parents and name = '${model}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-          fields: "files(id, name)",
-        });
-
-        if (!modelFolder.data.files?.length) {
-          res.status(404).json({ error: "Model folder not found" });
-          return resolve(true);
-        }
-
-        const modelFolderId = modelFolder.data.files[0].id;
-
-        // 2. Find 'For Approval✅' subfolder
-        const approvalFolder = await drive.files.list({
-          q: `'${modelFolderId}' in parents and name = 'For Approval✅' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-          fields: "files(id, name)",
-        });
-
-        if (!approvalFolder.data.files?.length) {
-          res.status(404).json({ error: "'For Approval✅' folder not found" });
-          return resolve(true);
-        }
-
-        const approvalFolderId = approvalFolder.data.files[0].id;
-
-        const responses = [];
-
-        // 3. Upload image
-        if (image) {
-          const stream = fs.createReadStream(image.filepath);
-
-          const imageUpload = await drive.files.create({
-            requestBody: {
-              name: `${model}_collage.jpg`,
-              mimeType: "image/jpeg",
-              parents: approvalFolderId ? [approvalFolderId] : [],
-            },
-            media: {
-              mimeType: "image/jpeg",
-              body: stream,
-            },
-          });
-
-          // Get file link after upload
-          const imageLinkResponse = await drive.files.get({
-            fileId: imageUpload.data.id ?? "",
-            fields: "webViewLink", // or "webContentLink" for media file
-          });
-
-          responses.push({
-            type: "image",
-            id: imageUpload.data.id,
-            link: imageLinkResponse.data.webViewLink, // Return the link
-          });
-        }
-
-        // 4. Upload gif
-        if (gif) {
-          const stream = fs.createReadStream(gif.filepath);
-
-          const gifUpload = await drive.files.create({
-            requestBody: {
-              name: `${model}_collage.gif`,
-              mimeType: "image/gif",
-              parents: approvalFolderId ? [approvalFolderId] : [],
-            },
-            media: {
-              mimeType: "image/gif",
-              body: stream,
-            },
-          });
-
-          // Get file link after upload
-          const gifLink = await drive.files.get({
-            fileId: gifUpload.data.id ?? "",
-            fields: "webViewLink", // or "webContentLink" for media file
-          });
-
-          responses.push({
-            type: "gif",
-            id: gifUpload.data.id,
-            link: gifLink.data.webViewLink, // Return the link
-          });
-        }
-
-        res.status(200).json({ success: true, uploads: responses });
-        return resolve(true);
-      } catch (err) {
-        console.error("Upload error:", err);
-        res.status(500).json({ error: "Upload failed" });
-        return resolve(true);
       }
     });
-  });
+
+    // Handle file uploads
+    bb.on('file', (fieldname, fileStream, { filename, mimeType }) => {
+      if (!filename) return;
+      
+      // Store file metadata for later use
+      fileMetadata[fieldname] = { filename, mimeType };
+      
+      // Create a promise for each file upload that will resolve when the upload is complete
+      const filePromise = new Promise(async (resolve, reject) => {
+        try {
+          // First get the target folder IDs
+          const modelFolder = await drive.files.list({
+            q: `'${parentFolderId}' in parents and name = '${model}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+            fields: "files(id, name)",
+          });
+  
+          if (!modelFolder.data.files?.length) {
+            reject(new Error("Model folder not found"));
+            return;
+          }
+  
+          const modelFolderId = modelFolder.data.files[0].id;
+  
+          const approvalFolder = await drive.files.list({
+            q: `'${modelFolderId}' in parents and name = 'For Approval✅' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+            fields: "files(id, name)",
+          });
+  
+          if (!approvalFolder.data.files?.length) {
+            reject(new Error("'For Approval✅' folder not found"));
+            return;
+          }
+  
+          const approvalFolderId = approvalFolder.data.files[0].id;
+  
+          // Generate appropriate filenames based on the field
+          let uploadFileName = `${model}_collage`;
+          if (fieldname === 'image') {
+            uploadFileName += '.jpg';
+          } else if (fieldname === 'gif') {
+            uploadFileName += '.gif';
+          }
+  
+          // Upload the file to Google Drive
+          if (!fileMetadata[fieldname]?.mimeType || !approvalFolderId) {
+            throw new Error("Invalid file metadata or folder ID");
+          }
+
+          const fileUpload = await drive.files.create({
+            requestBody: {
+              name: uploadFileName,
+              mimeType: fileMetadata[fieldname].mimeType,
+              parents: [approvalFolderId],
+            },
+            media: {
+              mimeType: fileMetadata[fieldname].mimeType,
+              body: fileStream,
+            },
+          });
+  
+          // Get file link
+          const fileLink = await drive.files.get({
+            fileId: fileUpload.data.id as string,
+            fields: "webViewLink",
+          });
+  
+          resolve({
+            type: fieldname,
+            id: fileUpload.data.id,
+            link: fileLink.data.webViewLink,
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
+  
+      filePromises.push(filePromise);
+    });
+
+    // Handle errors during parsing
+    bb.on('error', (error) => {
+      console.error('Busboy error:', error);
+      res.status(500).json({ error: 'File upload error' });
+    });
+
+    // Handle the end of the request
+    bb.on('close', async () => {
+      try {
+        // Wait for all file uploads to complete
+        const responses = await Promise.all(filePromises);
+        res.status(200).json({ success: true, uploads: responses });
+      } catch (error) {
+        console.error('Upload error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+        res.status(500).json({ error: errorMessage });
+      }
+    });
+
+    // Pipe the request into busboy
+    if (req.socket) {
+      req.pipe(bb);
+    } else {
+      // If req.socket is not available, handle the case (e.g., in local testing)
+      res.status(500).json({ error: 'Server configuration error' });
+    }
+  } catch (err) {
+    console.error("Server error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 }
