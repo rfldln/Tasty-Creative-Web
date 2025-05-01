@@ -203,29 +203,30 @@ const TwitterAdsPage = () => {
       if (!response.ok) {
         throw new Error("Failed to fetch the blob from the blob URL");
       }
-
+  
       const gifBlob = await response.blob(); // Get the actual blob object
-
+  
       // Prepare FormData for the upload
       const formData = new FormData();
       formData.append("model", model);
       formData.append("gif", gifBlob, `${model}_collage.gif`); // Add filename
-
+  
+      // 🔁 Replace this with your actual n8n webhook URL
+      const webhookUrl = "https://n8n.tastycreative.xyz/webhook/8977d651-7cc1-4bd5-a67e-4f08d4da28c6";
+  
       startUploadingTransition(async () => {
-        const res = await fetch("/api/google-drive/upload-for-approval", {
+        const res = await fetch(webhookUrl, {
           method: "POST",
           body: formData,
         });
-
+  
         const result = await res.json();
         if (res.ok) {
-          // Set the result to successful and set the URL link
-          const successResult = "Upload File Success"; // You can store or display this as needed
-          const urlLink = result.uploads[0]?.link; // Assuming the first upload result has the link
-
-          // You can now set these values in your application state or UI
-          setResult(successResult); // Set result to "successful"
-          setUrlLink(urlLink); // Set the URL link to the webViewLink
+          const successResult = "Upload File Success";
+          const urlLink = result.uploads?.[0]?.link || "";
+  
+          setResult(successResult);
+          setUrlLink(urlLink);
         } else {
           setResult(`Upload failed: ${result.error}`);
         }
@@ -235,6 +236,7 @@ const TwitterAdsPage = () => {
       alert("Something went wrong during upload.");
     }
   }
+  
 
   const downloadCombinedVideo = () => {
     if (!combinedVideoUrl) return;
