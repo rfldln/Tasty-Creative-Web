@@ -103,7 +103,7 @@ export default function LiveFlyer() {
     time: "",
     timezone: "",
     paid: false,
-    customImage: false,
+    customImage: true,
     imageId: "",
     noOfTemplate: 1,
     customRequest: false,
@@ -254,12 +254,12 @@ export default function LiveFlyer() {
     setItemReceived(0);
 
     // Validate form data
-    const result = liveFlyerValidation.safeParse(formData);
-    if (!result.success) {
-      setError(JSON.stringify(result.error.format()));
-      setIsLoading(false);
-      return;
-    }
+    // const result = liveFlyerValidation.safeParse(formData);
+    // if (!result.success) {
+    //   setError(JSON.stringify(result.error.format()));
+    //   setIsLoading(false);
+    //   return;
+    // }
 
     const requestId = uuidv4(); // Generate unique ID
     const webhookUrl =
@@ -286,6 +286,7 @@ export default function LiveFlyer() {
       formDataToSend.append("customDetails", formData.customDetails || "");
       formDataToSend.append("type", formData.type || "");
       formDataToSend.append("header", formData.header || "");
+      formDataToSend.append("croppedImage", formData.croppedImage || "");
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
