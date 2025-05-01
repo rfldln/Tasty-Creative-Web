@@ -197,7 +197,6 @@ const TwitterAdsPage = () => {
   };
 
   async function uploadGif(model: string, gifBlobUrl: string) {
-    debugger;
     try {
       // Fetch the Blob from the blob URL
       const response = await fetch(gifBlobUrl);
