@@ -364,41 +364,47 @@ const TastyCreative = () => {
   // Update the effect that initializes Google Calendar
   useEffect(() => {
 
-    const loadCalendarEventsForMonth = async () => {
-      if (activeTab === 'dashboard') {
-        console.log(`Month changed to ${selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}, loading events...`);
+   const loadCalendarEventsForMonth = async () => {
+  if (activeTab === 'dashboard') {
+    console.log(`Month changed to ${selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}, loading events...`);
 
-        // Clear events first to avoid stale data being displayed
-        setCalendarEvents([]);
-        setIsCalendarLoading(true);
-        setCalendarError('');
+    // Clear events first to avoid stale data being displayed
+    setCalendarEvents([]);
+    setIsCalendarLoading(true);
+    setCalendarError('');
 
-        const startDate = new Date(selectedDate);
-        startDate.setDate(1); // First day of month
-        startDate.setHours(0, 0, 0, 0); // Start of day
+    const startDate = new Date(selectedDate);
+    startDate.setDate(1); // First day of month
+    startDate.setHours(0, 0, 0, 0); // Start of day
 
-        const endDate = new Date(selectedDate);
-        endDate.setMonth(endDate.getMonth() + 1);
-        endDate.setDate(0); // Last day of month
-        endDate.setHours(23, 59, 59, 999); // End of day
+    const endDate = new Date(selectedDate);
+    endDate.setMonth(endDate.getMonth() + 1);
+    endDate.setDate(0); // Last day of month
+    endDate.setHours(23, 59, 59, 999); // End of day
 
-        console.log(`Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+    console.log(`Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
 
-        try {
-          // Always use the public calendar API without checking authentication
-          const events = await getPublicCalendarEvents(startDate, endDate);
-          console.log(`Received ${events.length} events from public API`);
+    try {
+      // Always use the public calendar API without checking authentication
+      const events = await getPublicCalendarEvents(startDate, endDate);
+      console.log(`Received ${events.length} events from public API`);
 
-          // Update state with events
-          setCalendarEvents(events);
-        } catch (error) {
-          console.error('Error loading calendar events:', error);
-          setCalendarError('Failed to load events from calendar.');
-        } finally {
-          setIsCalendarLoading(false);
-        }
-      }
-    };
+      // Filter out events that have "Call" in the title
+      const filteredEvents = events.filter(event => 
+        !event.summary?.toLowerCase().includes('call')
+      );
+
+      // Update state with filtered events
+      setCalendarEvents(filteredEvents);
+    } catch (error) {
+      console.error('Error loading calendar events:', error);
+      setCalendarError('Failed to load events from calendar.');
+    } finally {
+      setIsCalendarLoading(false);
+    }
+  }
+};
+
 
     loadCalendarEventsForMonth();
   }, [selectedDate, activeTab]);
