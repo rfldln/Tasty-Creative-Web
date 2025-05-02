@@ -363,8 +363,9 @@ const TastyCreative = () => {
 
   // Update the effect that initializes Google Calendar
   useEffect(() => {
+
     const loadCalendarEventsForMonth = async () => {
-      if (activeTab === 'calendar') {
+      if (activeTab === 'dashboard') {
         console.log(`Month changed to ${selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}, loading events...`);
 
         // Clear events first to avoid stale data being displayed
@@ -602,6 +603,7 @@ const TastyCreative = () => {
 
   // Update the loadCalendarEvents function to handle the new auth flow with better debugging
   const loadCalendarEvents = async () => {
+    debugger;
     try {
       setIsCalendarLoading(true);
       setCalendarError('');
