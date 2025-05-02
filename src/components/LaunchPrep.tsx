@@ -4,8 +4,10 @@ import { cn } from "@/lib/utils";
 import { Input } from "./ui/input";
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import LaunchPrepDetails from "./LaunchPrepDetails";
+import { useSearchParams } from "next/navigation";
 
 const LaunchPrep = () => {
+  const searchParams = useSearchParams();
   interface OnBoardingModel {
     Model: string;
     [key: string]: string; // Allow other dynamic fields
@@ -14,7 +16,8 @@ const LaunchPrep = () => {
   const [onBoardingModels, setOnBoardingModels] = useState<OnBoardingModel[]>(
     []
   );
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+
+  const [selectedModel, setSelectedModel] = useState<string | null>(null)
   const [loading, setLoading] = useState(true);
   const [modelDataLoading, setModelDataLoading] = useState(false);
   const [selectedModelData, setSelectedModelData] =
@@ -24,6 +27,13 @@ const LaunchPrep = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const ITEMS_PER_PAGE = viewMode === "grid" ? 15 : 10;
+
+  useEffect(() => {
+    const model = searchParams?.get('model');
+    if (model) {
+      setSelectedModel(model);
+    }
+  }, [searchParams]);
 
   // Fetch all models initially
   useEffect(() => {
