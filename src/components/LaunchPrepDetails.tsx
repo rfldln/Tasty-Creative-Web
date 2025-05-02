@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import React, { useEffect, useState } from "react";
 import CountUp from "react-countup";
 import { Checkbox } from "./ui/checkbox";
-import { prepFields } from "@/lib/lib";
 
 type LaunchPrepDetailsProps = {
   modelDataLoading: boolean;
@@ -25,11 +24,15 @@ const LaunchPrepDetails = ({
 }: LaunchPrepDetailsProps) => {
   const [animatedWidth, setAnimatedWidth] = useState(0);
 
+  console.log("selectedModelData", selectedModelData);
+
   const prepItems = selectedModelData
-    ? prepFields.map((field) => ({
-        item: field,
-        status: selectedModelData[field] === "TRUE" ? "Done" : "Pending",
-      }))
+    ? Object.entries(selectedModelData)
+        .filter(([key]) => key !== "Model" && key !== "Status")
+        .map(([key, value]) => ({
+          item: key,
+          status: value === "TRUE" ? "Done" : "Pending",
+        }))
     : [];
 
   const completedCount = prepItems.filter(
@@ -47,35 +50,38 @@ const LaunchPrepDetails = ({
     return () => clearTimeout(timeout);
   }, [completionRate]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formatRelativeTime = (timestamp: any) => {
+    const currentTime = new Date();
+    const parsedTimestamp = new Date(timestamp).getTime();
+    const timeDifference = currentTime.getTime() - parsedTimestamp; // Difference in milliseconds
 
-  
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
- const formatRelativeTime = (timestamp:any) => {
-  const currentTime = new Date();
-  const parsedTimestamp = new Date(timestamp).getTime();
-  const timeDifference = currentTime.getTime() - parsedTimestamp; // Difference in milliseconds
+    const seconds = Math.floor(timeDifference / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
 
-  const seconds = Math.floor(timeDifference / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
+    // Use the relative time formatter
+    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
-  // Use the relative time formatter
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-
-  if (days > 0) {
-    return rtf.format(-days, 'day');
-  } else if (hours > 0) {
-    return rtf.format(-hours, 'hour');
-  } else if (minutes > 0) {
-    return rtf.format(-minutes, 'minute');
-  } else {
-    return rtf.format(-seconds, 'second');
-  }
-};
+    if (days > 0) {
+      return rtf.format(-days, "day");
+    } else if (hours > 0) {
+      return rtf.format(-hours, "hour");
+    } else if (minutes > 0) {
+      return rtf.format(-minutes, "minute");
+    } else {
+      return rtf.format(-seconds, "second");
+    }
+  };
 
   return (
-    <div className={cn("w-full bg-black/10 dark:bg-black/40 rounded-md p-3 sm:p-4 transition-all duration-300",className)}>
+    <div
+      className={cn(
+        "w-full bg-black/10 dark:bg-black/40 rounded-md p-3 sm:p-4 transition-all duration-300",
+        className
+      )}
+    >
       {modelDataLoading ? (
         <div className="flex items-center justify-center h-40">
           <div className="flex flex-col items-center">

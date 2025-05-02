@@ -37,7 +37,9 @@ import {
   UsersRound,
   CircleDollarSign,
   Twitter,
-  PencilRuler
+  PencilRuler,
+  Clapperboard,
+  MessageSquareText
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -105,6 +107,8 @@ import FTTPage from '@/components/FTTPage';
 import TwitterAdsPage from '@/components/TwitterAdsPage';
 import LaunchPrepDetails from '@/components/LaunchPrepDetails';
 import GenerationTab from '@/components/GenerationTab';
+import ChattingTab from '@/components/ChattingTab';
+import OnboardingTab from '@/components/OnboardingTab';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -1116,7 +1120,7 @@ const TastyCreative = () => {
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
         <Tabs defaultValue={tabValue} className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-4 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
+          <TabsList className="grid grid-cols-6 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="dashboard"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
@@ -1179,6 +1183,20 @@ const TastyCreative = () => {
             >
               <UsersRound size={16} className="sm:mr-1" />
               <span className="hidden sm:inline">Models</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="onboarding"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
+            >
+              <Clapperboard size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">Onboarding</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="chatting"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
+            >
+              <MessageSquareText size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">Chatting</span>
             </TabsTrigger>
           </TabsList>
 
@@ -2634,6 +2652,14 @@ const TastyCreative = () => {
 
           <TabsContent value="twitter">
             <TwitterAdsPage />
+          </TabsContent>
+
+          <TabsContent value="chatting">
+            <ChattingTab  />
+          </TabsContent>
+
+          <TabsContent value="onboarding">
+            <OnboardingTab  />
           </TabsContent>
         </Tabs>
       </div>
