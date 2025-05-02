@@ -188,7 +188,11 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
                       </span>
                       <span className="text-white mt-1">
                         {key === "Profile Link" && value ? (
-                          <span>{client[0]?.chattingManagers}</span>
+                          <span>
+                            {client[0]?.chattingManagers
+                              ? client[0]?.chattingManagers
+                              : "-"}
+                          </span>
                         ) : (
                           value || "-"
                         )}
