@@ -5,6 +5,7 @@ import CountUp from "react-countup";
 import { Checkbox } from "./ui/checkbox";
 
 type LaunchPrepDetailsProps = {
+  dashboard?: boolean;
   modelDataLoading: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedModelData: any; // Replace with the actual type if known
@@ -12,6 +13,7 @@ type LaunchPrepDetailsProps = {
   timestamp?: string | null;
   editedBy?: string | null;
   className?: string;
+  triggerTabChange?: (value: string, model: string) => void;
 };
 
 const LaunchPrepDetails = ({
@@ -21,11 +23,10 @@ const LaunchPrepDetails = ({
   timestamp,
   editedBy,
   className,
+  dashboard = false,
+  triggerTabChange,
 }: LaunchPrepDetailsProps) => {
   const [animatedWidth, setAnimatedWidth] = useState(0);
-
-  console.log("selectedModelData", selectedModelData);
-
   const prepItems = selectedModelData
     ? Object.entries(selectedModelData)
         .filter(([key]) => key !== "Model" && key !== "Status")
@@ -105,6 +106,16 @@ const LaunchPrepDetails = ({
               <span className="text-xs py-1 px-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
                 <CountUp end={completionRate} />% Complete
               </span>
+              {dashboard && (
+                <div
+                  onClick={() =>
+                    triggerTabChange && triggerTabChange("onboarding", selectedModelData.Model)
+                  }
+                  className="underline cursor-pointer text-sm text-neutral-400"
+                >
+                  Click here for more details
+                </div>
+              )}
             </h1>
             <div className="w-full sm:w-auto sm:min-w-40 md:min-w-60">
               <p className="text-xs sm:text-sm text-muted-foreground">

@@ -221,8 +221,10 @@ const TastyCreative = () => {
   const { user, logout } = useAuth();
 
   const searchParams = useSearchParams();
-  const tabValue = searchParams?.get('tab') || "dashboard";
+  const [tabValue, setTabValue] = useState<string>(searchParams?.get('tab') || 'dashboard');
   const router = useRouter();
+
+  console.log(tabValue, 'tabValue')
 
   const [displayName, setDisplayName] = useState("Admin");
  const [activeTab, setActiveTab] = useState(tabValue || 'dashboard');
@@ -318,6 +320,12 @@ const TastyCreative = () => {
     router.replace(`?${params.toString()}`, { scroll: false });
 
    
+  };
+
+  const triggerTabChange = (tab: string, model: string) => {
+    setTabValue(tab);
+    window.history.pushState(null, '', `?tab=${tab}&model=${model}`);
+    window.location.reload();
   };
 
   useEffect(() => {
@@ -1078,6 +1086,7 @@ const TastyCreative = () => {
     return { thumbnailUrl, driveUrl };
   };
 
+  
   return (
     <div className="relative flex flex-col w-full min-h-screen text-white">
       {/* Space background */}
@@ -1215,13 +1224,17 @@ const TastyCreative = () => {
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 {/* Calendar Header */}
                {notifications && (
-                 <LaunchPrepDetails
-                  modelDataLoading={false} // Replace with actual loading state if needed
-                  selectedModelData={notifications.editedData} // Passing the `editedData` from the notificationsication
-                  timestamp={notifications.timestamp} // Passing the timestamp
-                  editedBy={notifications.editedBy} // Passing the editor's name
-                  className="bg-black/20 dark"
-                />
+                <div className='px-5'>
+                   <LaunchPrepDetails
+                    modelDataLoading={false} // Replace with actual loading state if needed
+                    selectedModelData={notifications.editedData} // Passing the `editedData` from the notificationsication
+                    timestamp={notifications.timestamp} // Passing the timestamp
+                    editedBy={notifications.editedBy} // Passing the editor's name
+                    className="bg-black/20 dark"
+                    dashboard={true} // Pass the dashboard prop to the component
+                    triggerTabChange={triggerTabChange} // Pass the handleTabChange function to the component
+                  />
+                </div>
                )}
                 <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
