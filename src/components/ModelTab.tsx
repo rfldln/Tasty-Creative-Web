@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import LaunchPrep from "./LaunchPrep";
 import { useRouter, useSearchParams } from "next/navigation";
 import ModelHero from "./ModelHero";
+import ChattingManagers from "./ChattingManagers";
 
 const ModelTab = () => {
   const router = useRouter();
@@ -120,6 +121,8 @@ const ModelTab = () => {
     if (hash === "#active-models") return "Active";
     if (hash === "#dropped-models") return "Dropped";
     if (hash === "#onboarding-models") return "Onboarding";
+    if (hash === "#chatting-managers-list") return "List";
+    if (hash === "#chatting-managers-manage") return "Manage";
     return "All Models"; // Default case if no hash is set
   };
   return (
@@ -132,7 +135,10 @@ const ModelTab = () => {
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink href="#" className="text-sm md:text-base">
-                  Models
+                  {hash === "#chatting-managers-list" ||
+                  hash === "#chatting-managers-manage"
+                    ? "Chatting Managers"
+                    : "Models"}
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
@@ -161,15 +167,22 @@ const ModelTab = () => {
         {/* Content Container */}
         <div
           className={`rounded-xl transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border border-gray-700/30 overflow-hidden ${
-            formattedHash() !== "Onboarding" && selectedModel
+            (formattedHash() !== "Onboarding" ||
+              formattedHash() === "List" ||
+              formattedHash() === "Manage") &&
+            selectedModel
               ? "h-auto"
-              : formattedHash() === "Onboarding"
+              : formattedHash() === "Onboarding" ||
+                formattedHash() === "List" ||
+                formattedHash() === "Manage"
               ? "h-auto"
               : "h-[60px]"
           }`}
         >
           {formattedHash() === "Onboarding" ? (
             <LaunchPrep />
+          ) : formattedHash() === "List" || formattedHash() === "Manage" ? (
+            <ChattingManagers hash={hash}/>
           ) : (
             <ModelHero selectedModel={selectedModel ?? null} />
           )}
@@ -187,7 +200,10 @@ const ModelTab = () => {
               </div>
             }
           >
-            {loadingModels && formattedHash() != "Onboarding" ? (
+            {loadingModels &&
+            formattedHash() !== "Onboarding" &&
+            formattedHash() !== "List" &&
+            formattedHash() !== "Manage" ? (
               <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {[...Array(4)].map((_, i) => (
                   <div
@@ -199,15 +215,18 @@ const ModelTab = () => {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                {models.map((model, index) => (
-                  <ModelCard
-                    key={index}
-                    model={model}
-                    setSelectedModel={setSelectedModel ?? (() => {})}
-                  />
-                ))}
-              </div>
+              formattedHash() !== "List" &&
+              formattedHash() !== "Manage" && (
+                <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                  {models.map((model, index) => (
+                    <ModelCard
+                      key={index}
+                      model={model}
+                      setSelectedModel={setSelectedModel ?? (() => {})}
+                    />
+                  ))}
+                </div>
+              )
             )}
           </Suspense>
         )}
