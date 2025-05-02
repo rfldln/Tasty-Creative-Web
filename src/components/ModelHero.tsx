@@ -21,6 +21,9 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
   // Refs for measuring and setting heights
   const detailsRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [client, setClient] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Effect to equalize heights
   useEffect(() => {
@@ -82,6 +85,40 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
     setImgSrc(thumbnailUrl || "/model.png");
   }, [thumbnailUrl]);
   const modelName = modelDetails?.["Client Name"] || "";
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          `/api/google/cmsheets?clientName=${modelName}`
+        );
+
+        if (response.status === 401) {
+          setError("You need to authenticate first");
+          setLoading(false);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setClient(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (modelName) {
+      setLoading(true);
+      fetchData();
+    } else {
+      setClient([]);
+    }
+  }, [modelName]);
 
   if (loading) {
     return (
@@ -151,28 +188,7 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
                       </span>
                       <span className="text-white mt-1">
                         {key === "Profile Link" && value ? (
-                          <a
-                            href={value}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
-                          >
-                            <span>View Profile</span>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
-                          </a>
+                          <span>{client[0]?.chattingManagers}</span>
                         ) : (
                           value || "-"
                         )}
