@@ -1,7 +1,7 @@
 // services/google-calendar-implementation.js
 
 // Load credentials from environment variables
-const API_KEY = "AIzaSyB3qd-MPRPLUc2YUD0k0KI7_ITG0KvhXeE";
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 // Validate required environment variables
