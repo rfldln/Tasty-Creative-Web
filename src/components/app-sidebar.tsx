@@ -52,6 +52,22 @@ const data = {
         },
       ],
     },
+    {
+      title: "Chatting Managers",
+      url: "#",
+      icon: Bot,
+      isActive: true,
+      items: [
+        {
+          title: "List",
+          url: "#chatting-managers-list",
+        },
+        {
+          title: "Manage",
+          url: "#chatting-managers-manage",
+        },
+      ],
+    },
   ],
   projects: [],
 };
