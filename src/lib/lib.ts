@@ -19,7 +19,7 @@ export const DISPLAY_FIELDS: { label: string; key: string }[] = [
   { label: "Instagram", key: "Main Instagram @" },
   { label: "Twitter", key: "Main Twitter @" },
   { label: "TikTok", key: "Main TikTok @" },
-  { label: "Profile Link", key: "Profile Link" },
+  { label: "Chatting Managers", key: "Profile Link" },
 ];
 
 export const prepFields = [
