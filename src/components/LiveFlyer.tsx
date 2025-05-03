@@ -19,6 +19,7 @@ import {
 import { DateTime } from "luxon";
 import ServerOffline from "./ServerOffline";
 import ImageCropper from "./ImageCropper";
+import LiveTemplates from "./LiveTemplates";
 
 export default function LiveFlyer() {
   const router = useRouter();
@@ -90,6 +91,10 @@ export default function LiveFlyer() {
   const [requestSent, setRequestSent] = useState(false);
   const [sheetLink, setSheetLink] = useState<string | null>(null);
   const [calendarLink, setCalendarLink] = useState<string | null>(null);
+  const [selectedTemplateImage, setSelectedTemplateImage] = useState<
+    string | null
+  >(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const [eventCreated, setEventCreated] = useState<{
     success: boolean;
@@ -287,6 +292,7 @@ export default function LiveFlyer() {
       formDataToSend.append("type", formData.type || "");
       formDataToSend.append("header", formData.header || "");
       formDataToSend.append("croppedImage", formData.croppedImage || "");
+      formDataToSend.append("selectedTemplate", selectedTemplate || "");
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
@@ -626,6 +632,12 @@ export default function LiveFlyer() {
                 model={formData.model}
                 customRequest={formData.customRequest}
                 setFormData={setFormData}
+              />
+            </div>
+            <div className="col-span-2">
+              <LiveTemplates
+                setSelectedTemplateImage={setSelectedTemplateImage}
+                setSelectedTemplate={setSelectedTemplate}
               />
             </div>
             {/* 
@@ -1030,11 +1042,19 @@ export default function LiveFlyer() {
               <button
                 type="submit"
                 className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
-                  isLoading || isFetchingImage || requestSent || !formData.croppedImage
+                  isLoading ||
+                  isFetchingImage ||
+                  requestSent ||
+                  !formData.croppedImage
                     ? "opacity-60 cursor-not-allowed"
                     : "opacity-100"
                 }`}
-                disabled={isLoading || isFetchingImage || requestSent || !formData.croppedImage}
+                disabled={
+                  isLoading ||
+                  isFetchingImage ||
+                  requestSent ||
+                  !formData.croppedImage
+                }
               >
                 {formData.customRequest ? (
                   <span>
@@ -1236,7 +1256,7 @@ export default function LiveFlyer() {
               <>
                 <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
                   <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {formData.croppedImage ? (
+                    {formData.croppedImage || selectedTemplateImage ? (
                       <div className="relative w-full h-full">
                         {/* Cropped image */}
                         {formData.croppedImage && (
@@ -1250,16 +1270,15 @@ export default function LiveFlyer() {
                         )}
 
                         {/* Template image */}
-                        <Image
-                          src={`/templates/live_placeholder.png`}
-                          alt="Template"
-                          className="absolute top-0 left-0 max-h-full max-w-full object-contain z-20"
-                          width={1080}
-                          height={1350}
-                        />
-                        <div className="w-full h-10  left-0 flex items-center justify-center bottom-14 absolute bg-black/40 text-white font-bold  max-h-full max-w-full object-contain z-20">
-                          <p>PLACEHOLDER ONLY</p>
-                        </div>
+                        {selectedTemplateImage && (
+                          <Image
+                            src={selectedTemplateImage}
+                            alt="Template"
+                            className="absolute top-0 left-0 max-h-full max-w-full object-contain z-20"
+                            width={1080}
+                            height={1350}
+                          />
+                        )}
 
                         {/* Image label */}
                         <div className="absolute z-30 bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
