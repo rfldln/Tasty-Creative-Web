@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { cookies } from "next/headers";
 // GET endpoint to read client data from the sheet
+// GET endpoint to read client data from the sheet
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const tab = searchParams?.get("tab") || "ONBOARDING";
-    const clientNameFilter = searchParams?.get("clientName");
+    const tab = searchParams.get("tab") || "ONBOARDING";
+    const clientNameFilter = searchParams.get("clientName");
+    const includeChatters = searchParams.get("includeChatters") === "true";
 
     const cookieStore = await cookies();
     const authTokensCookie = cookieStore.get("google_auth_tokens")?.value;
@@ -29,21 +31,33 @@ export async function GET(request: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
     const spreadsheetId = "1knNrNKtIABQZeGRPoYht5a9R84Wvzo3Q2RuohhrplW4";
 
-    // Only fetch columns A and H (CLIENTS and MANAGER)
-    const response = await sheets.spreadsheets.values.get({
+    // Use batchGet to get A, H, J columns only
+    const response = await sheets.spreadsheets.values.batchGet({
       spreadsheetId,
-      range: `${tab}!A2:H`, // Start from A2 to skip headers
+      ranges: [`${tab}!A2:A`, `${tab}!H2:H`, `${tab}!J2:J`],
     });
 
-    const rows = response.data.values;
-    if (!rows || rows.length === 0) {
-      return NextResponse.json([], { status: 200 });
-    }
+    const [clientsCol, managersCol, chattersCol] = response.data.valueRanges ?? [];
 
-    const clients = rows.map((row) => ({
-      clientName: row[0] || "",   // Column A (CLIENTS)
-      chattingManagers: row[7] || "", // Column H (MANAGER, which is index 7)
-    }));
+    const rowCount = Math.max(
+      clientsCol.values?.length || 0,
+      managersCol.values?.length || 0,
+      chattersCol.values?.length || 0
+    );
+
+    const clients = Array.from({ length: rowCount }, (_, i) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const client: any = {
+        clientName: clientsCol.values?.[i]?.[0] || "",
+        chattingManagers: managersCol.values?.[i]?.[0] || "",
+      };
+
+      if (includeChatters) {
+        client.chatters = chattersCol.values?.[i]?.[0] || "";
+      }
+
+      return client;
+    });
 
     if (clientNameFilter) {
       const match = clients.find(
@@ -62,7 +76,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
 
 // PUT endpoint to update a client's data
 // export async function PUT(request: NextRequest) {
