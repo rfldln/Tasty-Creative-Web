@@ -17,7 +17,7 @@ const ChattersList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   interface Chatter {
     name: string;
-    manager: string;
+    managers: string[]; // Changed from single manager to array of managers
     clients: string[];
   }
 
@@ -58,7 +58,7 @@ const ChattersList = () => {
     fetchModels();
   }, []);
 
-  // Process the data to create a flat list of unique chatters with their assigned clients
+  // Process the data to create a flat list of unique chatters with their assigned clients and managers
   interface ClientData {
     clientName: string;
     chattingManagers: string;
@@ -66,35 +66,60 @@ const ChattersList = () => {
   }
 
   const processChattersList = (data: ClientData[]) => {
-    // Use Map to track unique chatters with their assigned clients
+    // Use Map to track unique chatters with their assigned clients and managers
     const chattersMap = new Map();
+    
+    // Debug log to help identify the data structure
+    console.log("Processing client data:", data);
 
     data.forEach((client) => {
       if (!client.chatters) return;
 
-      const chattersArray = client.chatters
-        .split(",")
+      // Handle chatters field which might contain different formats
+      // Some entries might have newlines instead of commas
+      const rawChatters = client.chatters || "";
+      
+      // Handle both comma-separated lists and newline-separated lists
+      const chattersArray = rawChatters
+        .split(/[,\n]/) // Split by comma or newline
         .map((chatter) => chatter.trim())
         .filter((chatter) => chatter);
 
       chattersArray.forEach((chatterName) => {
-        // If chatter already exists, add this client to their clients list
-        if (chattersMap.has(chatterName)) {
-          const chatterData = chattersMap.get(chatterName);
+        // Normalize chatter name to handle case inconsistencies and multiple formats
+        const normalizedName = chatterName.trim();
+        
+        // Handle more complex chatter name formats (e.g., "Drey/Leo", "Michael A. ")
+        // We're keeping the original format for display but normalizing for map lookup
+        const displayName = normalizedName;
+        
+        // Get the manager for this client and handle empty managers
+        const manager = client.chattingManagers.trim();
+        
+        console.log(`Processing chatter: ${displayName} with manager: ${manager} for client: ${client.clientName}`);
+        
+        // If chatter already exists, update their data
+        if (chattersMap.has(normalizedName)) {
+          const chatterData = chattersMap.get(normalizedName);
+          
+          // Add this client if not already in the list
           if (!chatterData.clients.includes(client.clientName)) {
             chatterData.clients.push(client.clientName);
           }
-          // Update manager if it's different (in case of inconsistencies)
-          if (chatterData.manager !== client.chattingManagers) {
-            chatterData.manager = client.chattingManagers;
+          
+          // Add this manager if not already in the list and it's not empty
+          if (manager && !chatterData.managers.includes(manager)) {
+            chatterData.managers.push(manager);
+            console.log(`Added manager ${manager} to chatter ${displayName}`);
           }
         } else {
-          // Add new chatter
-          chattersMap.set(chatterName, {
-            name: chatterName,
-            manager: client.chattingManagers,
+          // Add new chatter with initial data
+          chattersMap.set(normalizedName, {
+            name: displayName,
+            managers: manager ? [manager] : [],
             clients: [client.clientName],
           });
+          console.log(`Created new chatter: ${displayName} with ${manager ? 'manager ' + manager : 'no manager'}`);
         }
       });
     });
@@ -226,10 +251,21 @@ const ChattersList = () => {
                   </div>
                 </TableCell>
                 <TableCell className="py-3">
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 text-purple-500 mr-2" />
-                    <span>{chatter.manager ? chatter.manager : "-"}</span>
-                  </div>
+                  {chatter.managers.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {chatter.managers.map((manager, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center px-2 py-1 rounded-md border text-xs font-medium "
+                        >
+                          <Users className="h-3 w-3 text-purple-500 mr-1" />
+                          {manager}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-slate-400">No manager assigned</span>
+                  )}
                 </TableCell>
                 <TableCell className="py-3">
                   {chatter.clients.length > 0 ? (
