@@ -14,6 +14,8 @@ import {
 } from "./ui/breadcrumb";
 import { ChattingSideBar } from "./chatting-sidebar";
 import ChattingManagersList from "./ChattingManagersList";
+import ChattersUnderModel from "./ChattersUnderModel";
+import ChattersList from "./ChattersList";
 
 const ChattingTab = () => {
   const [hash, setHash] = useState<string>("");
@@ -35,9 +37,17 @@ const ChattingTab = () => {
   if (hash === "#chatting-managers-list") {
     content = <ChattingManagersList />;
   }
+  if (hash === "#chatters-under-model") {
+    content = <ChattersUnderModel />;
+  }
+  if (hash === "#chatters-list") {
+    content = <ChattersList />;
+  }
 
   const formattedHash = () => {
     if (hash === "#chatting-managers-list") return "Chatting Managers List";
+    if (hash === "#chatters-under-model") return "Chatters Under Model";
+    if (hash === "#chatters-list") return "Chatters List";
 
     return ""; // Default case if no hash is set
   };

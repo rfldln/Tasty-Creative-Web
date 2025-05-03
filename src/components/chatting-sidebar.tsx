@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { AudioWaveform, Bot, Command, GalleryVerticalEnd } from "lucide-react";
+import { Users } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { Sidebar, SidebarContent, SidebarRail } from "@/components/ui/sidebar";
@@ -13,11 +13,21 @@ const data = {
     {
       title: "Chatting Managers",
       url: "#",
-      icon: Bot,
+      icon: Users,
       isActive: true,
       items: [
         { title: "List", url: "#chatting-managers-list" },
         { title: "Manage", url: "#chatting-managers-manage" },
+      ],
+    },
+    {
+      title: "Chatters",
+      url: "#",
+      icon: Users,
+      isActive: true,
+      items: [
+        { title: "Under Model", url: "#chatters-under-model" },
+        { title: "List", url: "#chatters-list" },
       ],
     },
   ],
