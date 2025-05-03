@@ -160,7 +160,10 @@ const ModelTab = () => {
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6 ">
         {/* Content Container */}
         <div
-          className={`rounded-xl h-[60px] transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border border-gray-700/30 overflow-hidden `}
+          className={cn(
+            `rounded-xl h-[60px] transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border border-gray-700/30 overflow-hidden `,
+            { "h-auto": selectedModel }
+          )}
         >
           <ModelHero selectedModel={selectedModel ?? null} />
         </div>
@@ -177,7 +180,7 @@ const ModelTab = () => {
               </div>
             }
           >
-            {loadingModels && formattedHash() != "Onboarding" ? (
+            {loadingModels ? (
               <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {[...Array(4)].map((_, i) => (
                   <div

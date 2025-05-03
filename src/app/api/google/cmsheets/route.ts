@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { cookies } from "next/headers";
-
-// GET endpoint to read all data from the sheet
+// GET endpoint to read client data from the sheet
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const tab = searchParams?.get("tab") || "Models";
+    const tab = searchParams?.get("tab") || "ONBOARDING";
     const clientNameFilter = searchParams?.get("clientName");
 
     const cookieStore = await cookies();
@@ -28,11 +27,12 @@ export async function GET(request: NextRequest) {
     oauth2Client.setCredentials({ access_token, refresh_token });
 
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
-    const spreadsheetId = "1FX5XKSn4Cfk2kx3yNQ7WxdGoPX9-GiRsEckilLM3fQk";
+    const spreadsheetId = "1knNrNKtIABQZeGRPoYht5a9R84Wvzo3Q2RuohhrplW4";
 
+    // Only fetch columns A and H (CLIENTS and MANAGER)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${tab}!A:C`,
+      range: `${tab}!A2:H`, // Start from A2 to skip headers
     });
 
     const rows = response.data.values;
@@ -40,13 +40,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([], { status: 200 });
     }
 
-    const [headers, ...dataRows] = rows;
-
-    const clients = dataRows.map((row, index) => ({
-      clientName: row[0] || "",
-      status: row[1] || "",
-      chattingManagers: row[2] || "",
-      rowIndex: index + 2,
+    const clients = rows.map((row) => ({
+      clientName: row[0] || "",   // Column A (CLIENTS)
+      chattingManagers: row[7] || "", // Column H (MANAGER, which is index 7)
     }));
 
     if (clientNameFilter) {
@@ -54,7 +50,6 @@ export async function GET(request: NextRequest) {
         (client) =>
           client.clientName.toLowerCase() === clientNameFilter.toLowerCase()
       );
-
       return NextResponse.json(match ? [match] : [], { status: 200 });
     }
 
@@ -68,101 +63,102 @@ export async function GET(request: NextRequest) {
   }
 }
 
+
 // PUT endpoint to update a client's data
-export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { originalClientName, clientName, status, chattingManagers } = body;
+// export async function PUT(request: NextRequest) {
+//   try {
+//     const body = await request.json();
+//     const { originalClientName, clientName, status, chattingManagers } = body;
 
-    console.log("PUT: Received payload:", body);
+//     console.log("PUT: Received payload:", body);
 
-    if (!originalClientName || !clientName || !status) {
-      console.warn("PUT: Missing required fields.");
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
+//     if (!originalClientName || !clientName || !status) {
+//       console.warn("PUT: Missing required fields.");
+//       return NextResponse.json(
+//         { error: "Missing required fields" },
+//         { status: 400 }
+//       );
+//     }
 
-    const cookieStore = await cookies();
-    const authTokensCookie = cookieStore.get("google_auth_tokens")?.value;
+//     const cookieStore = await cookies();
+//     const authTokensCookie = cookieStore.get("google_auth_tokens")?.value;
 
-    if (!authTokensCookie) {
-      console.warn("PUT: No auth token found in cookies.");
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+//     if (!authTokensCookie) {
+//       console.warn("PUT: No auth token found in cookies.");
+//       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+//     }
 
-    const { access_token, refresh_token } = JSON.parse(
-      decodeURIComponent(authTokensCookie)
-    );
-    console.log("PUT: Access token and refresh token loaded.");
+//     const { access_token, refresh_token } = JSON.parse(
+//       decodeURIComponent(authTokensCookie)
+//     );
+//     console.log("PUT: Access token and refresh token loaded.");
 
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
-    oauth2Client.setCredentials({ access_token, refresh_token });
+//     const oauth2Client = new google.auth.OAuth2(
+//       process.env.GOOGLE_CLIENT_ID,
+//       process.env.GOOGLE_CLIENT_SECRET,
+//       process.env.GOOGLE_REDIRECT_URI
+//     );
+//     oauth2Client.setCredentials({ access_token, refresh_token });
 
-    const sheets = google.sheets({ version: "v4", auth: oauth2Client });
+//     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
-    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-    const tab = "Models";
-    console.log("PUT: Using tab:", tab);
+//     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+//     const tab = "Models";
+//     console.log("PUT: Using tab:", tab);
 
-    const getAllResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${tab}!A:C`,
-    });
+//     const getAllResponse = await sheets.spreadsheets.values.get({
+//       spreadsheetId,
+//       range: `${tab}!A:C`,
+//     });
 
-    const rows = getAllResponse.data.values;
-    console.log(`PUT: ${rows?.length || 0} rows fetched from spreadsheet.`);
+//     const rows = getAllResponse.data.values;
+//     console.log(`PUT: ${rows?.length || 0} rows fetched from spreadsheet.`);
 
-    if (!rows || rows.length === 0) {
-      return NextResponse.json(
-        { error: "No data found in the sheet" },
-        { status: 404 }
-      );
-    }
+//     if (!rows || rows.length === 0) {
+//       return NextResponse.json(
+//         { error: "No data found in the sheet" },
+//         { status: 404 }
+//       );
+//     }
 
-    let rowIndex = -1;
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] === originalClientName) {
-        rowIndex = i + 1;
-        break;
-      }
-    }
+//     let rowIndex = -1;
+//     for (let i = 1; i < rows.length; i++) {
+//       if (rows[i][0] === originalClientName) {
+//         rowIndex = i + 1;
+//         break;
+//       }
+//     }
 
-    if (rowIndex === -1) {
-      console.warn("PUT: Client not found:", originalClientName);
-      return NextResponse.json({ error: "Client not found" }, { status: 404 });
-    }
+//     if (rowIndex === -1) {
+//       console.warn("PUT: Client not found:", originalClientName);
+//       return NextResponse.json({ error: "Client not found" }, { status: 404 });
+//     }
 
-    console.log(`PUT: Updating row ${rowIndex} with values:`, {
-      clientName,
-      status,
-      chattingManagers,
-    });
+//     console.log(`PUT: Updating row ${rowIndex} with values:`, {
+//       clientName,
+//       status,
+//       chattingManagers,
+//     });
 
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: `${tab}!A${rowIndex}:C${rowIndex}`,
-      valueInputOption: "RAW",
-      requestBody: {
-        values: [[clientName, status, chattingManagers]],
-      },
-    });
+//     await sheets.spreadsheets.values.update({
+//       spreadsheetId,
+//       range: `${tab}!A${rowIndex}:C${rowIndex}`,
+//       valueInputOption: "RAW",
+//       requestBody: {
+//         values: [[clientName, status, chattingManagers]],
+//       },
+//     });
 
-    console.log("PUT: Update successful.");
-    return NextResponse.json(
-      { success: true, message: "Client updated successfully" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("PUT: Error updating sheet data:", error);
-    return NextResponse.json(
-      { error: "Failed to update data in Google Sheet" },
-      { status: 500 }
-    );
-  }
-}
+//     console.log("PUT: Update successful.");
+//     return NextResponse.json(
+//       { success: true, message: "Client updated successfully" },
+//       { status: 200 }
+//     );
+//   } catch (error) {
+//     console.error("PUT: Error updating sheet data:", error);
+//     return NextResponse.json(
+//       { error: "Failed to update data in Google Sheet" },
+//       { status: 500 }
+//     );
+//   }
+// }
