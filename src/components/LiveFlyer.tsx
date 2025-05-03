@@ -1030,7 +1030,7 @@ export default function LiveFlyer() {
               <button
                 type="submit"
                 className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
-                  isLoading || isFetchingImage
+                  isLoading || isFetchingImage || requestSent || !formData.croppedImage
                     ? "opacity-60 cursor-not-allowed"
                     : "opacity-100"
                 }`}
