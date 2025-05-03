@@ -71,9 +71,9 @@ export default function LiveTemplates({
         const blob = await response.blob();
         const imageUrl = URL.createObjectURL(blob);
 
-        setSelectedTemplateImage(imageUrl); // Now using the actual image blob as the thumbnail/template
-        setSelectedTemplate(file.name); // Set the selected template name
-        handleClose(); // Close the modal after selecting a template
+        setSelectedTemplateImage(imageUrl);
+        setSelectedTemplate(file.name); 
+        handleClose(); 
       });
     } catch (error) {
       console.error("Failed to fetch thumbnail:", error);
