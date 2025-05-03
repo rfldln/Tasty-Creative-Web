@@ -5,6 +5,6 @@ export const liveFlyerValidation = z.object({
   date: z.string().min(1).default(""),
   time: z.string().min(1).default(""),
   timezone: z.string().min(1).default(""),
-  imageId: z.string().min(1).default(""),
+  croppedImage: z.string().min(1).default(""),
   paid: z.boolean(),
 });

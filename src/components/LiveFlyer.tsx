@@ -1034,7 +1034,7 @@ export default function LiveFlyer() {
                     ? "opacity-60 cursor-not-allowed"
                     : "opacity-100"
                 }`}
-                // disabled={isLoading || isFetchingImage || requestSent}
+                disabled={isLoading || isFetchingImage || requestSent || !formData.croppedImage}
               >
                 {formData.customRequest ? (
                   <span>
