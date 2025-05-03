@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Add this option to disable ESLint during builds
+  experimental: {
+    turbo: false,
+  },
   eslint: {
     // Only run ESLint on local development, not during production builds
     ignoreDuringBuilds: true,
