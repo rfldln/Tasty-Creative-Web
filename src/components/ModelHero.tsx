@@ -119,7 +119,7 @@ const ModelHero = ({ selectedModel }: ModelHeroProps) => {
       setClient([]);
     }
   }, [modelName]);
-
+console.log("Client data:", client);
   if (loading) {
     return (
       <div className="w-full h-64 rounded-xl flex items-center justify-center transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border border-gray-700/30 overflow-hidden">
