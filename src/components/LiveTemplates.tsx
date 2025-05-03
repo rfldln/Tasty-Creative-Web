@@ -14,7 +14,7 @@ interface DriveFile {
 
 export default function LiveTemplates({
   setSelectedTemplate,
-  setSelectedTemplateImage
+  setSelectedTemplateImage,
 }: {
   setSelectedTemplate: (template: string) => void;
   setSelectedTemplateImage: (templateImage: string) => void;
@@ -93,8 +93,23 @@ export default function LiveTemplates({
       <button
         type="button"
         onClick={handleViewTemplates}
-        className="bg-gray-800 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium"
+        className="bg-black/60 text-white px-6 py-2 rounded-lg font-medium w-full flex items-center justify-center gap-2"
       >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+          <line x1="16" y1="5" x2="22" y2="5"></line>
+          <line x1="16" y1="5" x2="12" y2="9"></line>
+        </svg>
         View Templates (optional)
       </button>
 

@@ -1045,7 +1045,8 @@ export default function LiveFlyer() {
                   isLoading ||
                   isFetchingImage ||
                   requestSent ||
-                  !formData.croppedImage
+                  formData.model === ""  ||
+                  formData.croppedImage === "" 
                     ? "opacity-60 cursor-not-allowed"
                     : "opacity-100"
                 }`}
@@ -1053,7 +1054,8 @@ export default function LiveFlyer() {
                   isLoading ||
                   isFetchingImage ||
                   requestSent ||
-                  !formData.croppedImage
+                  formData.model === "" ||
+                  formData.croppedImage === "" 
                 }
               >
                 {formData.customRequest ? (
