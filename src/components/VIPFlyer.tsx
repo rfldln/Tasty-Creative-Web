@@ -633,7 +633,7 @@ export default function FlyerGenerator() {
                 </div>
               ) : (
                 <>
-                  <div className="flex lg:flex-row flex-col justify-center items-center gap-4 ">
+                  <div className="flex lg:flex-row flex-col justify-center items-center gap-4 sticky top-8">
                     {/* Preview Image */}
                     <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                       {formData.croppedImage || formData.templatePosition ? (

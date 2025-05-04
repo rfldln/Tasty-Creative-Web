@@ -529,7 +529,7 @@ export default function ImageCropper({
                 Apply Crop
               </button>
 
-              <div className="text-sm text-gray-500 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+              <div className="text-sm text-gray-500 bg-black/40 px-4 py-2 rounded-lg border ">
                 {imageSize.width > 0 && (
                   <div className="flex items-center gap-2">
                     <svg
@@ -548,7 +548,7 @@ export default function ImageCropper({
                     </svg>
                     <span>
                       Selected area will be exported at{" "}
-                      {id === "default" ? "1080x1350px" : "500x1000px"}
+                      {id === "default" ? "1080x1350px" : "500x1000px"} ratio
                     </span>
                   </div>
                 )}

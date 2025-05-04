@@ -766,7 +766,7 @@ export default function LiveFlyer() {
           </form>
         </div>
 
-        <div className="flex col-span-2 flex-col gap-4 shadow-md justify-between  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
+        <div className="flex col-span-2 flex-col gap-4 shadow-md relative  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
           <div>
             <h1 className="text-bold">Preview</h1>
             <p className="text-sm text-gray-400 mb-2">
@@ -774,7 +774,7 @@ export default function LiveFlyer() {
             </p>
           </div>
           {formData.customRequest === true && requestSent ? (
-            <div className="flex items-center h-full justify-center w-full p-4">
+            <div className="flex  h-full  items-center justify-center w-full p-4">
               <div
                 className={cn(
                   " bg-opacity-50   border-opacity-50 rounded-lg p-4 text-center max-w-md w-full shadow-lg transition-all duration-300 ease-in-out",
@@ -807,8 +807,8 @@ export default function LiveFlyer() {
           ) : (
             response?.error != "Invalid JSON response from webhook" && (
               <>
-                <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
-                  <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="flex flex-col lg:flex-row justify-center gap-4 w-full md:sticky md:top-8">
+                  <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 ">
                     {formData.croppedImage || selectedTemplateImage ? (
                       <div className="relative w-full h-full">
                         {/* Cropped image */}
@@ -973,7 +973,7 @@ export default function LiveFlyer() {
                     </div>
                   </>
                 )}
-                <div className="mt-2 col-span-2">
+                <div className="mt-2 col-span-2 absolute bottom-6 w-full">
                   <button
                     type="button"
                     onClick={handleCreateEventSubmit}
