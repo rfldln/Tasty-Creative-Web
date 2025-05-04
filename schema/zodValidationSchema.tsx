@@ -8,3 +8,9 @@ export const liveFlyerValidation = z.object({
   croppedImage: z.string().min(1).default(""),
   noOfTemplates: z.number().min(1).default(1),
 });
+
+export const vipFlyerValidation = z.object({
+  model: z.string().min(1).default(""), // If it's a date, use z.string().datetime()
+  croppedImage: z.string().min(1).default(""),
+  templatePosition: z.string().min(1).default(""),
+});
