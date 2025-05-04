@@ -6,7 +6,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { liveFlyerValidation } from "../../schema/zodValidationSchema";
 
 const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   formData,
@@ -14,6 +16,8 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   isLoading,
   isFetchingImage,
   webhookData,
+  error,
+  setFieldErrors,
 }) => {
   const [models, setModels] = useState<Model[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
@@ -45,14 +49,32 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
 
       <Select
         value={formData.model}
-        onValueChange={(value) =>
-          setFormData((prev) => ({ ...prev, model: value }))
-        }
+        onValueChange={(value) => {
+          // Update form data first
+          setFormData((prev) => ({ ...prev, model: value }));
+
+          // Now validate the updated value
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fieldSchema = (liveFlyerValidation.shape as any)["model"];
+          if (fieldSchema) {
+            const result = fieldSchema.safeParse(value);
+
+            setFieldErrors?.((prev) => ({
+              ...prev,
+              model: result.success ? "" : result.error.errors[0].message,
+            }));
+          }
+        }}
         disabled={
           isLoading || isFetchingImage || !!webhookData || loadingModels
         }
       >
-        <SelectTrigger className="bg-black/60 cursor-pointer border-white/10 p-2 text-gray-400 rounded-lg w-full">
+        <SelectTrigger
+          className={cn(
+            "bg-black/60 cursor-pointer border-white/10 p-2 text-gray-400 rounded-lg w-full",
+            { "border-red-500 !text-red-500": error }
+          )}
+        >
           <SelectValue
             placeholder={loadingModels ? "Loading models..." : "Select Model"}
           />
@@ -69,6 +91,9 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
           ))}
         </SelectContent>
       </Select>
+      {error && (
+        <p className="text-red-500 text-[12px] mt-2 ">Select a Model!</p>
+      )}
     </div>
   );
 };

@@ -33,6 +33,7 @@ interface ImageCropperProps {
   setFormData?: React.Dispatch<React.SetStateAction<ModelFormData>>;
   className?: string;
   id?: string;
+  error?: string;
 }
 
 export default function ImageCropper({
@@ -43,6 +44,7 @@ export default function ImageCropper({
   setFormData,
   className,
   id = "default",
+  error,
 }: ImageCropperProps) {
   // Image cropping states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -262,7 +264,7 @@ export default function ImageCropper({
 
         setSelectedImage(imageUrl);
         setCrop(undefined); // Reset crop when new image is loaded
-        setFormData?.((prev) => ({...prev, croppedImage: imageUrl })); // Reset form data
+        setFormData?.((prev) => ({ ...prev, croppedImage: imageUrl })); // Reset form data
         setShowFilePicker(false);
       });
     } catch (error) {
@@ -307,7 +309,10 @@ export default function ImageCropper({
         setSelectedImage(reader.result as string);
         // Reset crop when new image is loaded
         setCrop(undefined);
-        setFormData?.((prev) => ({...prev, croppedImage: reader.result as string })); // Reset form data
+        setFormData?.((prev) => ({
+          ...prev,
+          croppedImage: reader.result as string,
+        })); // Reset form data
       });
       reader.readAsDataURL(e.target.files[0]);
     }
@@ -368,7 +373,7 @@ export default function ImageCropper({
           Custom Image
         </label>
       </div>
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col  ">
         {isCustomImage ? (
           <div className="w-full">
             <label className="px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2 cursor-pointer">
@@ -402,8 +407,10 @@ export default function ImageCropper({
             type="button"
             disabled={!model}
             onClick={handleGoogleDriveSelect}
-            className="px-4 w-full py-2 bg-black/60 text-white rounded-lg
-            flex items-center justify-center gap-2"
+            className={cn(
+              "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
+              { "border border-red-500 text-red-500": error }
+            )}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -428,6 +435,11 @@ export default function ImageCropper({
               ? "Opening folder..."
               : "Connecting to Google Drive"}
           </button>
+        )}
+        {error && (
+          <p className="text-red-500 text-[12px] mt-2 ">
+            {customRequest ? "Select a custom image!" : "Select an image!"}
+          </p>
         )}
       </div>
 

@@ -33,6 +33,8 @@ type ModelsDropdownProps = {
   isFetchingImage: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   webhookData?: any;
+  error?: string;
+  setFieldErrors?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 };
 
 type WebhookResponse = {
