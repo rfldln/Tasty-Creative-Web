@@ -64,7 +64,9 @@ export default function FlyerTemplates({
         setLoading(false);
       }
     };
-    fetchFiles();
+    if (type != "LIVE") {
+      fetchFiles();
+    }
   }, [type]);
 
   const handleViewTemplates = () => {
@@ -134,7 +136,7 @@ export default function FlyerTemplates({
           <line x1="16" y1="5" x2="22" y2="5"></line>
           <line x1="16" y1="5" x2="12" y2="9"></line>
         </svg>
-        View Templates (optional)
+        Select Templates (optional)
       </button>
 
       {isDownloading && (
@@ -170,7 +172,7 @@ export default function FlyerTemplates({
               {/* Header */}
               <div className="flex justify-between items-center mb-8 sticky top-0 bg-black/80 backdrop-blur-sm py-4 -mt-6 -mx-6 px-6">
                 <h2 className="text-2xl font-bold text-white">
-                  Drive Templates
+                  {type === "LIVE" ? "LIVE Flyer" : "VIP Flyer"} Templates
                 </h2>
                 <button
                   type="button"
