@@ -9,8 +9,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { POSITIONS } from "@/lib/lib";
 import { v4 as uuidv4 } from "uuid";
 import Link from "next/link";
-import { cn, convertToPreviewLink, emailData } from "@/lib/utils";
+import { cn, emailData } from "@/lib/utils";
 import ServerOffline from "./ServerOffline";
+import FlyerTemplates from "./FlyerTemplates";
 
 export default function FlyerGenerator() {
   const router = useRouter();
@@ -36,6 +37,10 @@ export default function FlyerGenerator() {
   const lastCheckTimestamp = useRef(0);
   const checkInterval = useRef<NodeJS.Timeout | null>(null);
   const [history, setHistory] = useState<WebhookResponse[]>([]);
+  const [selectedTemplateImage, setSelectedTemplateImage] = useState<
+    string | null
+  >(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const normalizeData = (rawData: any[] | null): WebhookResponse[] => {
     if (!Array.isArray(rawData)) return [];
@@ -200,6 +205,7 @@ export default function FlyerGenerator() {
         "templatePosition",
         formData.templatePosition || ""
       );
+      formDataToSend.append("selectedTemplate", selectedTemplate || "");
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
@@ -391,6 +397,14 @@ export default function FlyerGenerator() {
                   model={formData.model}
                   customRequest={formData.customRequest}
                   setFormData={setFormData}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <FlyerTemplates
+                  type={formData.templatePosition || ""}
+                  setSelectedTemplateImage={setSelectedTemplateImage}
+                  setSelectedTemplate={setSelectedTemplate}
                 />
               </div>
 
@@ -587,13 +601,23 @@ export default function FlyerGenerator() {
                           )}
 
                           {/* Template image */}
-                          <Image
-                            src={`/templates/TEMPLATE_${formData.templatePosition}.png`}
-                            alt="Template"
-                            className="absolute top-0 left-0 max-h-full max-w-full object-contain z-20"
-                            width={1080}
-                            height={1350}
-                          />
+                          {!selectedTemplateImage ? (
+                            <Image
+                              src={`/templates/TEMPLATE_${formData.templatePosition}.png`}
+                              alt="Template"
+                              className="absolute top-0 left-0 max-h-full max-w-full object-contain z-20"
+                              width={1080}
+                              height={1350}
+                            />
+                          ) : (
+                            <Image
+                              src={selectedTemplateImage}
+                              alt="Template"
+                              className="absolute top-0 left-0 max-h-full max-w-full object-contain z-20"
+                              width={1080}
+                              height={1350}
+                            />
+                          )}
 
                           {/* Image label */}
                           <div className="absolute z-30 bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">

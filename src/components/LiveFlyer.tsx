@@ -19,7 +19,7 @@ import {
 import { DateTime } from "luxon";
 import ServerOffline from "./ServerOffline";
 import ImageCropper from "./ImageCropper";
-import LiveTemplates from "./LiveTemplates";
+import FlyerTemplates from "./FlyerTemplates";
 
 export default function LiveFlyer() {
   const router = useRouter();
@@ -635,7 +635,8 @@ export default function LiveFlyer() {
               />
             </div>
             <div className="col-span-2">
-              <LiveTemplates
+              <FlyerTemplates
+                type="LIVE"
                 setSelectedTemplateImage={setSelectedTemplateImage}
                 setSelectedTemplate={setSelectedTemplate}
               />
@@ -1045,8 +1046,8 @@ export default function LiveFlyer() {
                   isLoading ||
                   isFetchingImage ||
                   requestSent ||
-                  formData.model === ""  ||
-                  formData.croppedImage === "" 
+                  formData.model === "" ||
+                  formData.croppedImage === ""
                     ? "opacity-60 cursor-not-allowed"
                     : "opacity-100"
                 }`}
@@ -1055,7 +1056,7 @@ export default function LiveFlyer() {
                   isFetchingImage ||
                   requestSent ||
                   formData.model === "" ||
-                  formData.croppedImage === "" 
+                  formData.croppedImage === ""
                 }
               >
                 {formData.customRequest ? (
