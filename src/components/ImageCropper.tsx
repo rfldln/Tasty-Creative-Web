@@ -262,6 +262,7 @@ export default function ImageCropper({
 
         setSelectedImage(imageUrl);
         setCrop(undefined); // Reset crop when new image is loaded
+        setFormData?.((prev) => ({...prev, croppedImage: imageUrl })); // Reset form data
         setShowFilePicker(false);
       });
     } catch (error) {
@@ -306,6 +307,7 @@ export default function ImageCropper({
         setSelectedImage(reader.result as string);
         // Reset crop when new image is loaded
         setCrop(undefined);
+        setFormData?.((prev) => ({...prev, croppedImage: reader.result as string })); // Reset form data
       });
       reader.readAsDataURL(e.target.files[0]);
     }
