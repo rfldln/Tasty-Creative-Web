@@ -12,6 +12,7 @@ import Link from "next/link";
 import { cn, emailData } from "@/lib/utils";
 import ServerOffline from "./ServerOffline";
 import FlyerTemplates from "./FlyerTemplates";
+import { vipFlyerValidation } from "../../schema/zodValidationSchema";
 
 export default function FlyerGenerator() {
   const router = useRouter();
@@ -41,6 +42,8 @@ export default function FlyerGenerator() {
     string | null
   >(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const normalizeData = (rawData: any[] | null): WebhookResponse[] => {
     if (!Array.isArray(rawData)) return [];
@@ -102,7 +105,7 @@ export default function FlyerGenerator() {
 
   const [formData, setFormData] = useState<ModelFormData>({
     croppedImage: null,
-    templatePosition: "LEFT",
+    templatePosition: "BOTTOM",
     type: "VIP",
     options: ["NSFW", "Custom", "Calls"],
     customImage: true,
@@ -167,21 +170,41 @@ export default function FlyerGenerator() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
-    // setIsProcessing(true);
-    setIsFetchingImage(true);
-    setItemReceived(0);
-    // const result = liveFlyerValidation.safeParse(formData);
-    // if (!result.success) {
-    //   setError(JSON.stringify(result.error.format()));
-    //   setIsLoading(false);
-    //   return;
-    // }
+
+    const result = vipFlyerValidation.safeParse(formData);
+
+    if (!result.success) {
+      const formattedErrors = result.error.format();
+
+      // Map Zod field errors to your fieldErrors state
+      const newFieldErrors: Record<string, string> = {};
+      for (const key in formattedErrors) {
+        if (key !== "_errors") {
+          const fieldError =
+            formattedErrors[key as keyof typeof formattedErrors];
+          newFieldErrors[key] =
+            fieldError &&
+            "_errors" in fieldError &&
+            Array.isArray(fieldError._errors)
+              ? fieldError._errors[0]
+              : "";
+        }
+      }
+
+      setFieldErrors(newFieldErrors);
+      setError("Please correct the errors above.");
+      setIsLoading(false);
+      return;
+    }
 
     const requestId = uuidv4(); // Generate unique ID
     const webhookUrl = "/api/webhook-proxy";
 
     try {
+      setIsLoading(true);
+      setIsFetchingImage(true);
+      setItemReceived(0);
+
       const formDataToSend = new FormData();
 
       // Append text data
@@ -342,6 +365,28 @@ export default function FlyerGenerator() {
     }
   }, [response]);
 
+    useEffect(() => {
+      // Only validate croppedImage if it has a value
+      if (formData.croppedImage) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fieldSchema = (vipFlyerValidation.shape as any)["croppedImage"];
+        if (fieldSchema) {
+          const result = fieldSchema.safeParse(formData.croppedImage);
+  
+          setFieldErrors((prev) => ({
+            ...prev,
+            croppedImage: result.success ? "" : result.error.errors[0].message,
+          }));
+        }
+      } else {
+        // If croppedImage is empty, clear the error
+        setFieldErrors((prev) => ({
+          ...prev,
+          croppedImage: "",
+        }));
+      }
+    }, [formData.croppedImage]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6  text-white min-h-screen">
       {response?.error === "Invalid JSON response from webhook" ? (
@@ -362,6 +407,8 @@ export default function FlyerGenerator() {
                   isLoading={isLoading}
                   isFetchingImage={isFetchingImage}
                   webhookData={webhookData}
+                  error={fieldErrors.model}
+                  setFieldErrors={setFieldErrors}
                 />
               </div>
 
@@ -397,6 +444,8 @@ export default function FlyerGenerator() {
                   model={formData.model}
                   customRequest={formData.customRequest}
                   setFormData={setFormData}
+                  error={fieldErrors.croppedImage}
+             
                 />
               </div>
 
@@ -514,15 +563,15 @@ export default function FlyerGenerator() {
                   type="submit"
                   className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
                     isLoading ||
-                    isFetchingImage ||
-                    (!formData.croppedImage && !formData.customRequest)
+                    isFetchingImage
+                   
                       ? "opacity-60 cursor-not-allowed"
                       : "opacity-100"
                   }`}
                   disabled={
                     isLoading ||
-                    isFetchingImage ||
-                    (!formData.croppedImage && !formData.customRequest)
+                    isFetchingImage 
+                   
                   }
                 >
                   {formData.customRequest ? (

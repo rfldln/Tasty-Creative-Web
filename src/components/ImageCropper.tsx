@@ -376,7 +376,12 @@ export default function ImageCropper({
       <div className="flex flex-col  ">
         {isCustomImage ? (
           <div className="w-full">
-            <label className="px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2 cursor-pointer">
+            <label
+              className={cn(
+                "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
+                { "border border-red-500 text-red-500": error }
+              )}
+            >
               <input
                 type="file"
                 accept="image/*"
@@ -393,7 +398,7 @@ export default function ImageCropper({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-white"
+                className={cn("text-white", { "text-red-500": error })}
               >
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7" />
                 <line x1="16" y1="5" x2="22" y2="5" />
