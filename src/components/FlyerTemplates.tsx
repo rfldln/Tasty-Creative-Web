@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Image from "next/image";
@@ -12,10 +13,12 @@ interface DriveFile {
   thumbnailLink?: string;
 }
 
-export default function LiveTemplates({
+export default function FlyerTemplates({
+  type,
   setSelectedTemplate,
   setSelectedTemplateImage,
 }: {
+  type: string;
   setSelectedTemplate: (template: string) => void;
   setSelectedTemplateImage: (templateImage: string) => void;
 }) {
@@ -30,7 +33,7 @@ export default function LiveTemplates({
     setError(null);
 
     try {
-      const res = await fetch("/api/google-drive/live-templates");
+      const res = await fetch(`/api/google-drive/flyer-templates?type=${type}`);
       if (!res.ok) {
         throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
@@ -42,6 +45,27 @@ export default function LiveTemplates({
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `/api/google-drive/flyer-templates?type=${type}`
+        );
+        if (!res.ok) {
+          throw new Error(`Error ${res.status}: ${res.statusText}`);
+        }
+        const data = await res.json();
+        setFiles(data.files);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFiles();
+  }, [type]);
 
   const handleViewTemplates = () => {
     setShowFiles(true);
@@ -72,8 +96,8 @@ export default function LiveTemplates({
         const imageUrl = URL.createObjectURL(blob);
 
         setSelectedTemplateImage(imageUrl);
-        setSelectedTemplate(file.name); 
-        handleClose(); 
+        setSelectedTemplate(file.name);
+        handleClose();
       });
     } catch (error) {
       console.error("Failed to fetch thumbnail:", error);
