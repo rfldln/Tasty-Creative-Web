@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
+import { DateTime } from "luxon";
 
 // Define types
 interface FormData {
@@ -378,6 +379,18 @@ export async function POST(request: NextRequest) {
     const ianaTimezone = timezoneMap[formData.timezone] || formData.timezone;
     log(`Converted timezone: ${formData.timezone} -> ${ianaTimezone}`);
 
+    const { date, time, timezone } = formData;
+    const dateTimeString = `${date}T${time}`;
+
+    const userDateTime = DateTime.fromISO(dateTimeString, { zone: timezone });
+
+    // Convert to LA time
+    const laDateTime = userDateTime.setZone("America/Los_Angeles");
+    const laEndTime = laDateTime.plus({ hours: 1 });
+
+    const eventStart = laDateTime.toISO();
+    const eventEnd = laEndTime.toISO();
+
     const [hours, minutes] = formData.time.split(":").map(Number);
     const parsedDate = new Date(formData.date);
 
@@ -402,8 +415,14 @@ export async function POST(request: NextRequest) {
     const event = {
       summary: `${formData.model} OF Live`,
       description,
-      start: { dateTime: eventDateTime.toISOString(), timeZone: ianaTimezone },
-      end: { dateTime: endDateTime.toISOString(), timeZone: ianaTimezone },
+      start: {
+        dateTime: eventStart,
+        timeZone: "America/Los_Angeles",
+      },
+      end: {
+        dateTime: eventEnd,
+        timeZone: "America/Los_Angeles",
+      },
       colorId: formData.paid ? "11" : "10",
       reminders: {
         useDefault: false,

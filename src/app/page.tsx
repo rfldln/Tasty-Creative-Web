@@ -1108,8 +1108,8 @@ const TastyCreative = () => {
       {/* Header - Updated with logout button and user from auth context */}
       <div className="relative z-10 backdrop-blur-xl bg-black/40 border-b border-white/10 p-4 flex justify-between items-center">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
-            <Star size={16} className="text-white" />
+          <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
+           <img src="/tasty-logo.png" alt="logo" width={32} height={32} />
           </div>
           <h1 className="text-xl font-bold">Tasty Creative</h1>
         </div>

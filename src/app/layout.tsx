@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "Tasty Creative",
   description: "Admin dashboard for Tasty Creative",
   icons: {
-    icon: "/kiss.png",
+    icon: "/tasty-logo.png",
   },
 };
 
