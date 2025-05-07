@@ -4,14 +4,18 @@ import { cookies } from "next/headers";
 
 export async function GET() {
   try {
+    console.log("Starting GET request...");
+
     const cookieStore = await cookies();
     const tokensCookie = cookieStore.get("google_auth_tokens");
 
     if (!tokensCookie) {
+      console.log("Not authenticated. No token found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const tokens = JSON.parse(tokensCookie.value);
+    console.log("Tokens retrieved:", tokens);
 
     // Setup OAuth2 client
     const oauth2Client = new google.auth.OAuth2(
@@ -26,41 +30,42 @@ export async function GET() {
       expiry_date: tokens.expiry_date,
     });
 
-
     // Setup Sheets API client
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
-    // Define spreadsheet and range
-    const spreadsheetId = "1Ad_I-Eq11NWKT1jqPB9Bw6L1jVKBHHLqR4ZBLBT9XtU"; // Your Google Sheets ID
-    const range = "Notifications!A2:G2"; // Range to get the latest notification
+    // Fetch all rows in the Notifications sheet, starting from row 2
+    const spreadsheetId = "1Ad_I-Eq11NWKT1jqPB9Bw6L1jVKBHHLqR4ZBLBT9XtU";
+    const range = "Notifications!A2:G";
+    console.log(`Fetching data from spreadsheetId: ${spreadsheetId}, range: ${range}`);
+
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range,
     });
 
-    const data = response.data;
+    const rows = response.data.values;
+    console.log("Fetched rows:", rows);
 
-
-    if (!data.values || data.values.length === 0) {
+    if (!rows || rows.length === 0) {
       console.log("No notifications found.");
       return NextResponse.json({ message: "No notifications found" });
     }
 
-    const notification = data.values[0];
+    const notifications = rows.map((row) => ({
+      timestamp: row[0],
+      message: row[1],
+      model: row[2],
+      editedBy: row[3],
+      row: row[4],
+      sheet: row[5],
+      editedData: row[6] ? JSON.parse(row[6]) : {},
+    }));
 
-    return NextResponse.json({
-      notification: {
-        timestamp: notification[0],
-        message: notification[1],
-        model: notification[2],
-        editedBy: notification[3],
-        row: notification[4],
-        sheet: notification[5],
-        editedData: JSON.parse(notification[6]),
-      },
-    });
+    console.log("Notifications fetched successfully:", notifications);
+
+    return NextResponse.json({ notifications });
   } catch (error) {
-    console.error("Error fetching notification:", error);
-    return NextResponse.json({ message: "Error fetching notification" }, { status: 500 });
+    console.error("Error fetching notifications:", error);
+    return NextResponse.json({ message: "Error fetching notifications" }, { status: 500 });
   }
 }

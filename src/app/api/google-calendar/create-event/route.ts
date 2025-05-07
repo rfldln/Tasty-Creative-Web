@@ -372,24 +372,34 @@ export async function POST(request: NextRequest) {
     const drive = google.drive({ version: "v3", auth: oauth2Client });
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
-    // The parent folder ID from your URL
     const parentFolderId = process.env.GOOGLE_DRIVE_SHEET_FOLDER_ID!;
-    log(`Using parent folder ID: ${parentFolderId}`);
-
+    log(`✅ Using parent folder ID: ${parentFolderId}`);
+    
     const ianaTimezone = timezoneMap[formData.timezone] || formData.timezone;
-    log(`Converted timezone: ${formData.timezone} -> ${ianaTimezone}`);
-
+    log(`🌐 Received timezone: ${formData.timezone}`);
+    log(`🔁 Converted to IANA timezone: ${ianaTimezone}`);
+    
     const { date, time, timezone } = formData;
     const dateTimeString = `${date}T${time}`;
-
+    log(`📅 Combined date and time string: ${dateTimeString}`);
+    
     const userDateTime = DateTime.fromISO(dateTimeString, { zone: timezone });
-
-    // Convert to LA time
+    log(`🕒 Parsed user time (${timezone}): ${userDateTime.toISO()}`);
+    
     const laDateTime = userDateTime.setZone("America/Los_Angeles");
+    log(`🌴 Converted to Los Angeles time: ${laDateTime.toISO()}`);
+    
     const laEndTime = laDateTime.plus({ hours: 1 });
-
+    log(`⏰ Event duration: 1 hour`);
+    log(`🟢 Event start in LA: ${laDateTime.toISO()}`);
+    log(`🔚 Event end in LA: ${laEndTime.toISO()}`);
+    
     const eventStart = laDateTime.toISO();
     const eventEnd = laEndTime.toISO();
+
+    log(`📅 Event start time: ${eventStart}`)
+    log(`🔚 Event end time: ${eventEnd}`);
+    
 
     const [hours, minutes] = formData.time.split(":").map(Number);
     const parsedDate = new Date(formData.date);
