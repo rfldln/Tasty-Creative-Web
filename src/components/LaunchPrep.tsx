@@ -17,7 +17,7 @@ const LaunchPrep = () => {
     []
   );
 
-  const [selectedModel, setSelectedModel] = useState<string | null>(null)
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [modelDataLoading, setModelDataLoading] = useState(false);
   const [selectedModelData, setSelectedModelData] =
@@ -27,13 +27,7 @@ const LaunchPrep = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const ITEMS_PER_PAGE = viewMode === "grid" ? 15 : 10;
-
-  useEffect(() => {
-    const model = searchParams?.get('model');
-    if (model) {
-      setSelectedModel(model);
-    }
-  }, [searchParams]);
+  const model = searchParams?.get("model");
 
   // Fetch all models initially
   useEffect(() => {
@@ -43,8 +37,9 @@ const LaunchPrep = () => {
         const data = await res.json();
         setOnBoardingModels(data);
         // Set the first model as default selected if models exist
+
         if (data.length > 0) {
-          setSelectedModel(data[0].Model);
+          setSelectedModel(model ? model : data[0].Model);
         }
       } catch (err) {
         console.error("Failed to fetch models:", err);
@@ -65,7 +60,9 @@ const LaunchPrep = () => {
       try {
         // Fetch fresh data for the selected model
         const res = await fetch(
-          `/api/google/onboarding?model=${encodeURIComponent(selectedModel)}`
+          `/api/google/onboarding?model=${encodeURIComponent(
+            model ? model : selectedModel
+          )}`
         );
         const data = await res.json();
 

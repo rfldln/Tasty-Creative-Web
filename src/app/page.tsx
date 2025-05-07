@@ -235,8 +235,7 @@ const TastyCreative = () => {
   const [outputFormat, setOutputFormat] = useState("png");
   const [comfyModel, setComfyModel] = useState("realistic");
 
-  const [notifications, setNotifications] = useState<NotificationData>();
-  console.log(notifications, 'notifications')
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
 
   // Voice tab states
   const [voiceText, setVoiceText] = useState("");
@@ -329,32 +328,32 @@ const TastyCreative = () => {
   };
 
   useEffect(() => {
-  if (tabValue === "dashboard" || tabValue==="" )  {
-    let intervalId: NodeJS.Timeout;
+    if (tabValue === "dashboard" || tabValue === "") {
+      let intervalId: NodeJS.Timeout;
 
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch("/api/notifications");
-        if (res.ok) {
-          const data = await res.json();
-          setNotifications(data.notification || []);
+      const fetchNotifications = async () => {
+        try {
+          const res = await fetch("/api/notifications");
+          if (res.ok) {
+            const data = await res.json();
+            console.log("Fetched Notifications:", data.notifications); // Log the fetched data
+            setNotifications(data.notifications || []);
+          }
+        } catch (error) {
+          console.error("Error fetching notifications:", error);
         }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-      }
-    };
+      };
 
-    // Initial fetch
-    fetchNotifications();
+      // Initial fetch
+      fetchNotifications();
 
-    // Poll every 5 seconds (you can adjust this)
-    // eslint-disable-next-line prefer-const
-    intervalId = setInterval(fetchNotifications, 5000);
+      // Poll every 5 seconds
+      intervalId = setInterval(fetchNotifications, 5000);
 
-    // Cleanup
-    return () => clearInterval(intervalId);
+      // Cleanup
+      return () => clearInterval(intervalId);
     }
-  }, []);
+  }, [tabValue]);
 
   // Initialize the voice parameters cache
   useEffect(() => {
@@ -1223,17 +1222,23 @@ const TastyCreative = () => {
               {/* Calendar Controls */}
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 {/* Calendar Header */}
-               {notifications && (
+               {Array.isArray(notifications) && (
                 <div className='px-5'>
-                   <LaunchPrepDetails
-                    modelDataLoading={false} // Replace with actual loading state if needed
-                    selectedModelData={notifications.editedData} // Passing the `editedData` from the notificationsication
-                    timestamp={notifications.timestamp} // Passing the timestamp
-                    editedBy={notifications.editedBy} // Passing the editor's name
-                    className="bg-black/20 dark"
-                    dashboard={true} // Pass the dashboard prop to the component
-                    triggerTabChange={triggerTabChange} // Pass the handleTabChange function to the component
-                  />
+                  {notifications.map((notification:NotificationData, index:number) => (
+                    <div
+                      className='py-1'
+                      key={index}>
+                      <LaunchPrepDetails              
+                        modelDataLoading={false} // Replace with actual loading state if needed
+                        selectedModelData={notification.editedData} // Passing the `editedData` from the notificationication
+                        timestamp={notification.timestamp} // Passing the timestamp
+                        editedBy={notification.editedBy} // Passing the editor's name
+                        className="bg-black/20 dark"
+                        dashboard={true} // Pass the dashboard prop to the component
+                        triggerTabChange={triggerTabChange} // Pass the handleTabChange function to the component
+                      />
+                  </div>
+                  ))}
                 </div>
                )}
                 <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

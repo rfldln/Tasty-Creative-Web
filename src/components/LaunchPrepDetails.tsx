@@ -109,7 +109,8 @@ const LaunchPrepDetails = ({
               {dashboard && (
                 <div
                   onClick={() =>
-                    triggerTabChange && triggerTabChange("onboarding", selectedModelData.Model)
+                    triggerTabChange &&
+                    triggerTabChange("onboarding", selectedModelData.Model)
                   }
                   className="underline cursor-pointer text-sm text-neutral-400"
                 >
@@ -130,45 +131,49 @@ const LaunchPrepDetails = ({
             </div>
           </div>
 
-          <hr className="mb-4 opacity-30" />
-          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {prepItems.map((item, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex items-center space-x-2 p-2 rounded-md",
-                  item.status === "Done"
-                    ? "bg-green-50 dark:bg-green-900/20"
-                    : "bg-red-50 dark:bg-red-900/20"
-                )}
-              >
-                <Checkbox
-                  id={`item-${index}`}
-                  className={cn("w-4 h-4 sm:w-5 sm:h-5", {
-                    "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500":
-                      item.status === "Done",
-                    "border-red-400": item.status === "Pending",
-                  })}
-                  disabled
-                  checked={item.status === "Done"}
-                />
-                <label
-                  htmlFor={`item-${index}`}
-                  className={cn(
-                    "text-sm sm:text-base font-medium leading-none",
-                    {
-                      "text-red-600 dark:text-red-400":
-                        item.status === "Pending",
-                      "text-green-600 dark:text-green-500":
-                        item.status === "Done",
-                    }
-                  )}
-                >
-                  {item.item}
-                </label>
+          {!dashboard && (
+            <>
+              <hr className="mb-4 opacity-30" />
+              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                {prepItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex items-center space-x-2 p-2 rounded-md",
+                      item.status === "Done"
+                        ? "bg-green-50 dark:bg-green-900/20"
+                        : "bg-red-50 dark:bg-red-900/20"
+                    )}
+                  >
+                    <Checkbox
+                      id={`item-${index}`}
+                      className={cn("w-4 h-4 sm:w-5 sm:h-5", {
+                        "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500":
+                          item.status === "Done",
+                        "border-red-400": item.status === "Pending",
+                      })}
+                      disabled
+                      checked={item.status === "Done"}
+                    />
+                    <label
+                      htmlFor={`item-${index}`}
+                      className={cn(
+                        "text-sm sm:text-base font-medium leading-none",
+                        {
+                          "text-red-600 dark:text-red-400":
+                            item.status === "Pending",
+                          "text-green-600 dark:text-green-500":
+                            item.status === "Done",
+                        }
+                      )}
+                    >
+                      {item.item}
+                    </label>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </>
       ) : (
         <div className="flex items-center justify-center h-40">
