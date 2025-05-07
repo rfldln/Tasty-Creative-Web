@@ -655,16 +655,14 @@ export async function POST(request: NextRequest) {
           // Continue execution even if this fails - we'll try to use an existing row
         }
 
-        const pstTime = [
-          "'" +
-            new Intl.DateTimeFormat("en-US", {
-              timeZone: "America/Los_Angeles",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            }).format(eventDateTime),
-        ];
-        log(`PST time formatted: ${pstTime[0]}`);
+        if (!eventStart) {
+          throw new Error("eventStart is null or undefined");
+        }
+        const pstTime = DateTime.fromISO(eventStart, { zone: "America/Los_Angeles" });
+
+        // Format to "hh:mm a" (e.g., "02:15 PM")
+        const formattedTime = pstTime.toFormat("hh:mm a");
+      
 
         const imageFormula = `=HYPERLINK("${formData.webViewLink}", IMAGE("${formData.thumbnail}"))`;
         log(`Image formula: ${imageFormula}`);
@@ -683,7 +681,7 @@ export async function POST(request: NextRequest) {
         log("Initialized empty row values array", { rowValues });
 
         // Populate with our data
-        rowValues[timeColumnIndex] = pstTime[0];
+        rowValues[timeColumnIndex] = formattedTime;
         rowValues[flyerColumnIndex] = imageFormula;
 
         // Set Post Schedule to "LIVE"
