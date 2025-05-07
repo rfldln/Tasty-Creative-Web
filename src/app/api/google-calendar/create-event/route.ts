@@ -696,7 +696,7 @@ export async function POST(request: NextRequest) {
 
         // Set Post Schedule to "LIVE"
         if (scheduleIndex !== -1) {
-          rowValues[scheduleIndex] = "LIVE";
+          rowValues[scheduleIndex] = "LIVE POST";
         }
 
         log("Populated row values", { rowValues });
