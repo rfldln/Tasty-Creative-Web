@@ -1222,7 +1222,7 @@ const TastyCreative = () => {
               {/* Calendar Controls */}
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 {/* Calendar Header */}
-               {Array.isArray(notifications) && (
+               {Array.isArray(notifications) && notifications && (
                 <div className='px-5'>
                   {notifications.map((notification:NotificationData, index:number) => (
                     <div
