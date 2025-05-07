@@ -374,32 +374,31 @@ export async function POST(request: NextRequest) {
 
     const parentFolderId = process.env.GOOGLE_DRIVE_SHEET_FOLDER_ID!;
     log(`✅ Using parent folder ID: ${parentFolderId}`);
-    
+
     const ianaTimezone = timezoneMap[formData.timezone] || formData.timezone;
     log(`🌐 Received timezone: ${formData.timezone}`);
     log(`🔁 Converted to IANA timezone: ${ianaTimezone}`);
-    
+
     const { date, time, timezone } = formData;
     const dateTimeString = `${date}T${time}`;
     log(`📅 Combined date and time string: ${dateTimeString}`);
-    
+
     const userDateTime = DateTime.fromISO(dateTimeString, { zone: timezone });
     log(`🕒 Parsed user time (${timezone}): ${userDateTime.toISO()}`);
-    
+
     const laDateTime = userDateTime.setZone("America/Los_Angeles");
     log(`🌴 Converted to Los Angeles time: ${laDateTime.toISO()}`);
-    
+
     const laEndTime = laDateTime.plus({ hours: 1 });
     log(`⏰ Event duration: 1 hour`);
     log(`🟢 Event start in LA: ${laDateTime.toISO()}`);
     log(`🔚 Event end in LA: ${laEndTime.toISO()}`);
-    
+
     const eventStart = laDateTime.toISO();
     const eventEnd = laEndTime.toISO();
 
-    log(`📅 Event start time: ${eventStart}`)
+    log(`📅 Event start time: ${eventStart}`);
     log(`🔚 Event end time: ${eventEnd}`);
-    
 
     const [hours, minutes] = formData.time.split(":").map(Number);
     const parsedDate = new Date(formData.date);
@@ -668,11 +667,12 @@ export async function POST(request: NextRequest) {
         if (!eventStart) {
           throw new Error("eventStart is null or undefined");
         }
-        const pstTime = DateTime.fromISO(eventStart, { zone: "America/Los_Angeles" });
+        const pstTime = DateTime.fromISO(eventStart, {
+          zone: "America/Los_Angeles",
+        });
 
         // Format to "hh:mm a" (e.g., "02:15 PM")
         const formattedTime = pstTime.toFormat("hh:mm a");
-      
 
         const imageFormula = `=HYPERLINK("${formData.webViewLink}", IMAGE("${formData.thumbnail}"))`;
         log(`Image formula: ${imageFormula}`);
@@ -760,8 +760,8 @@ export async function POST(request: NextRequest) {
                           userEnteredFormat: {
                             backgroundColor: {
                               red: 1.0,
-                              green: 1.0,
-                              blue: 0.0,
+                              green: 0.0,
+                              blue: 1.0,
                             },
                           },
                         })),
