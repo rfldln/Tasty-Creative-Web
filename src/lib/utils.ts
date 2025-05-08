@@ -68,13 +68,13 @@ export function formatDateOption(
   input: string,
   option: "MonthDay" | "DayOfWeek" | "MMDD"
 ): string {
-  const [datePart, , tzAbbr] = input.split(" ");
-  const date = new Date(`${datePart}T00:00:00`);
+  const [datePart, timePart, tzAbbr] = input.split(" ");
+  const date = new Date(`${datePart}T${timePart}`);
 
   const formatters: Record<typeof option, string> = {
-    MonthDay: formatMonthDay(date),
-    DayOfWeek: formatDayOfWeek(date),
-    MMDD: formatMMDD(date),
+    MonthDay: `${formatMonthDay(date)} ${formatTime(date)}`,
+    DayOfWeek: `${formatDayOfWeek(date)} ${formatTime(date)}`,
+    MMDD: `${formatMMDD(date)} ${formatTime(date)}`,
   };
 
   return `${formatters[option]} ${tzAbbr}`;
@@ -95,6 +95,15 @@ function formatDayOfWeek(date: Date): string {
 // "5/8"
 function formatMMDD(date: Date): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+// "1:54 PM"
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 // Adds st, nd, rd, or th
