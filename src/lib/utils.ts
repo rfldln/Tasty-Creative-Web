@@ -24,8 +24,8 @@ export const extractDriveId = (url: string) => {
   return match ? match[1] : null;
 };
 
- // Function to generate thumbnail URL based on fileId
- export const getThumbnailUrl = (fileId: string | undefined) => {
+// Function to generate thumbnail URL based on fileId
+export const getThumbnailUrl = (fileId: string | undefined) => {
   console.log("File ID:", fileId); // Debugging line
   const extractedFileId = fileId ? extractDriveId(fileId) : "";
   console.log("Extracted File ID:", extractedFileId); // Debugging line
@@ -66,10 +66,10 @@ export async function blobUrlToBase64(blobUrl: string) {
 
 export function formatDateOption(
   input: string,
-  option: 'MonthDay' | 'DayOfWeek' | 'MMDD'
+  option: "MonthDay" | "DayOfWeek" | "MMDD"
 ): string {
-  const [datePart, timePart, tzAbbr] = input.split(' ');
-  const date = new Date(`${datePart}T${timePart}:00${getTimezoneOffset(tzAbbr)}`);
+  const [datePart, , tzAbbr] = input.split(" ");
+  const date = new Date(`${datePart}T00:00:00`);
 
   const formatters: Record<typeof option, string> = {
     MonthDay: formatMonthDay(date),
@@ -82,14 +82,14 @@ export function formatDateOption(
 
 // "May 8th"
 function formatMonthDay(date: Date): string {
-  const month = date.toLocaleString('en-US', { month: 'long' });
+  const month = date.toLocaleString("en-US", { month: "long" });
   const day = date.getDate();
   return `${month} ${day}${getDaySuffix(day)}`;
 }
 
 // "Thursday"
 function formatDayOfWeek(date: Date): string {
-  return date.toLocaleString('en-US', { weekday: 'long' });
+  return date.toLocaleString("en-US", { weekday: "long" });
 }
 
 // "5/8"
@@ -99,26 +99,10 @@ function formatMMDD(date: Date): string {
 
 // Adds st, nd, rd, or th
 function getDaySuffix(day: number): string {
-  if (day >= 11 && day <= 13) return 'th';
+  if (day >= 11 && day <= 13) return "th";
   const lastDigit = day % 10;
-  return ['st', 'nd', 'rd'][lastDigit - 1] || 'th';
+  return ["st", "nd", "rd"][lastDigit - 1] || "th";
 }
-
-// Maps common timezones to UTC offsets
-function getTimezoneOffset(abbr: string): string {
-  const map: Record<string, string> = {
-    MST: '-07:00',
-    MDT: '-06:00',
-    PST: '-08:00',
-    PDT: '-07:00',
-    EST: '-05:00',
-    EDT: '-04:00',
-    CST: '-06:00',
-    CDT: '-05:00',
-  };
-  return map[abbr] || 'Z'; // fallback to UTC
-}
-
 
 export const emailData = {
   to: "kentjohnliloc@gmail.com,txl.tasty@gmail.com",
