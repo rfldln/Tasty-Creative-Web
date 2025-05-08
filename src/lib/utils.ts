@@ -64,6 +64,60 @@ export async function blobUrlToBase64(blobUrl: string) {
   });
 }
 
+export function formatDateOption(
+  input: string,
+  option: 'MonthDay' | 'DayOfWeek' | 'MMDD'
+): string {
+  const [datePart, timePart, tzAbbr] = input.split(' ');
+  const date = new Date(`${datePart}T${timePart}:00${getTimezoneOffset(tzAbbr)}`);
+
+  const formatters: Record<typeof option, string> = {
+    MonthDay: formatMonthDay(date),
+    DayOfWeek: formatDayOfWeek(date),
+    MMDD: formatMMDD(date),
+  };
+
+  return `${formatters[option]} ${tzAbbr}`;
+}
+
+// "May 8th"
+function formatMonthDay(date: Date): string {
+  const month = date.toLocaleString('en-US', { month: 'long' });
+  const day = date.getDate();
+  return `${month} ${day}${getDaySuffix(day)}`;
+}
+
+// "Thursday"
+function formatDayOfWeek(date: Date): string {
+  return date.toLocaleString('en-US', { weekday: 'long' });
+}
+
+// "5/8"
+function formatMMDD(date: Date): string {
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+// Adds st, nd, rd, or th
+function getDaySuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th';
+  const lastDigit = day % 10;
+  return ['st', 'nd', 'rd'][lastDigit - 1] || 'th';
+}
+
+// Maps common timezones to UTC offsets
+function getTimezoneOffset(abbr: string): string {
+  const map: Record<string, string> = {
+    MST: '-07:00',
+    MDT: '-06:00',
+    PST: '-08:00',
+    PDT: '-07:00',
+    EST: '-05:00',
+    EDT: '-04:00',
+    CST: '-06:00',
+    CDT: '-05:00',
+  };
+  return map[abbr] || 'Z'; // fallback to UTC
+}
 
 
 export const emailData = {

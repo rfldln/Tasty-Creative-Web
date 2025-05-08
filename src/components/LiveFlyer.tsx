@@ -1,5 +1,5 @@
 "use client";
-import { cn, emailData } from "@/lib/utils";
+import { cn, emailData, formatDateOption } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
@@ -85,6 +85,10 @@ export default function LiveFlyer() {
   >(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
+  const [dtmzoption, setDtmzoption] = useState<
+    "MonthDay" | "DayOfWeek" | "MMDD"
+  >("MonthDay");
+
   const [eventCreated, setEventCreated] = useState<{
     success: boolean;
     message: string;
@@ -103,6 +107,7 @@ export default function LiveFlyer() {
     customRequest: false,
     customDetails: "",
     type: "LIVE",
+    datetmz: "",
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -297,6 +302,7 @@ export default function LiveFlyer() {
       formDataToSend.append("header", formData.header || "");
       formDataToSend.append("croppedImage", formData.croppedImage || "");
       formDataToSend.append("selectedTemplate", selectedTemplate || "");
+      formDataToSend.append("datetmz", formData.datetmz || "");
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
@@ -492,6 +498,29 @@ export default function LiveFlyer() {
     }
   }, [formData.croppedImage]);
 
+  const dateTimezone = () => {
+    const { date, time, timezone } = formData;
+    if (!date || !timezone) return null;
+
+    const datetimezone = date + " " + time + " " + timezone;
+
+    try {
+      setFormData((prev) => ({
+        ...prev,
+        datetmz: formatDateOption(datetimezone, dtmzoption),
+      }));
+    } catch (err) {
+      console.error("Invalid date/timezone format:", err);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (formData.date && formData.time && formData.timezone) {
+      dateTimezone();
+    }
+  }, [formData.date, formData.time, formData.timezone, dtmzoption]);
+
   return (
     <div className="flex flex-col gap-5">
       {response?.error === "Invalid JSON response from webhook" && (
@@ -658,6 +687,63 @@ export default function LiveFlyer() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="col-span-2 w-full">
+              <label className="text-sm font-medium mb-1"></label>
+              {formData.datetmz ? formData.datetmz : "Date/Timezone"}
+            </div>
+
+            <div className="col-span-2 flex gap-4 items-center">
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="dtmz"
+                  value="MonthDay"
+                  checked={dtmzoption === "MonthDay"}
+                  onChange={() => setDtmzoption("MonthDay")}
+                  className="accent-blue-600"
+                />
+                <span className="text-sm">
+                  {formData.datetmz
+                    ? formatDateOption(formData.date + " " + formData.time + " " + formData.timezone, "MonthDay")
+                    : "MonthDay"}
+                </span>
+              </label>
+
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="dtmz"
+                  value="DayOfWeek"
+                  checked={dtmzoption === "DayOfWeek"}
+                  onChange={() => setDtmzoption("DayOfWeek")}
+                  className="accent-blue-600"
+                />
+                <span className="text-sm">
+                  {" "}
+                  {formData.datetmz
+                    ? formatDateOption(formData.date + " " + formData.time + " " + formData.timezone, "DayOfWeek")
+                    : "DayOfWeek"}
+                </span>
+              </label>
+
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="dtmz"
+                  value="MMDD"
+                  checked={dtmzoption === "MMDD"}
+                  onChange={() => setDtmzoption("MMDD")}
+                  className="accent-blue-600"
+                />
+                <span className="text-sm">
+                  {" "}
+                  {formData.datetmz
+                    ? formatDateOption(formData.date + " " + formData.time + " " + formData.timezone, "MMDD")
+                    : "MMDD"}
+                </span>
+              </label>
             </div>
 
             <div className="col-span-2 flex w-full justify-between items-center h-full">

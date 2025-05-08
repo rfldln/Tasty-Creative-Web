@@ -24,6 +24,7 @@ type ModelFormData = {
   gets?: number;
   croppedImageLeft?: string | null;
   croppedImageRight?: string | null;
+  datetmz?: string | null;
 };
 
 type ModelsDropdownProps = {
