@@ -99,6 +99,7 @@ export default function FTTFlyer() {
   const [formData, setFormData] = useState<ModelFormData>({
     model: "",
     customImage: false,
+    templatePosition: "BOTTOM",
     imageId: "",
     noOfTemplate: 1,
     customRequest: false,
