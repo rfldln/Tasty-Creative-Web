@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
   const authTokensCookie = cookieStore.get("google_auth_tokens")?.value;
   const type = searchParams?.get("type");
+  const flyer = searchParams?.get("flyer");
 
   if (!authTokensCookie) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -30,14 +31,23 @@ export async function GET(request: NextRequest) {
   if (type === "LIVE") {
     folderId = "1ykoRn82LsLjah0CXG346LInKV6rk03Ji";
   }
-  if (type === "BOTTOM") {
+  if (flyer === "VIP" && type === "BOTTOM") {
     folderId = "1LRY3Yv6yw2QeYqxY1tAVqcZW-Awa5FAD";
   }
-  if (type === "LEFT") {
+  if (flyer === "VIP" && type === "LEFT") {
     folderId = "1G-kCkeG2XyL-elcC7T-U7CVIV6rGWOIN";
   }
-  if (type === "RIGHT") {
+  if (flyer === "VIP" && type === "RIGHT") {
     folderId = "1ydbCAULvx05RdkRSzhU8FzTi0wbJ9ddv";
+  }
+  if (flyer === "FTT" && type === "BOTTOM") {
+    folderId = "1lXS8rPmnpOxcF_MA82OqGpgHl_Ow9del";
+  }
+  if (flyer === "FTT" && type === "LEFT") {
+    folderId = "10UXhF78k-zfgLCy_G-TWeagOOPWLSieQ";
+  }
+  if (flyer === "FTT" && type === "RIGHT") {
+    folderId = "1p_U7XP3F2EMWMDtPc8pTC-8TDPhb_WaI";
   }
 
   try {

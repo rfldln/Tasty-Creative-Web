@@ -14,10 +14,12 @@ interface DriveFile {
 }
 
 export default function FlyerTemplates({
+  flyer,
   type,
   setSelectedTemplate,
   setSelectedTemplateImage,
 }: {
+  flyer: string;
   type: string;
   setSelectedTemplate: (template: string) => void;
   setSelectedTemplateImage: (templateImage: string) => void;
@@ -51,7 +53,7 @@ export default function FlyerTemplates({
       setLoading(true);
       try {
         const res = await fetch(
-          `/api/google-drive/flyer-templates?type=${type}`
+          `/api/google-drive/flyer-templates?flyer=${flyer}&type=${type}`
         );
         if (!res.ok) {
           throw new Error(`Error ${res.status}: ${res.statusText}`);
@@ -172,7 +174,7 @@ export default function FlyerTemplates({
               {/* Header */}
               <div className="flex justify-between items-center mb-8 sticky top-0 bg-black/80 backdrop-blur-sm py-4 -mt-6 -mx-6 px-6">
                 <h2 className="text-2xl font-bold text-white">
-                  {type === "LIVE" ? "LIVE Flyer" : "VIP Flyer"} Templates
+                  {flyer} Templates
                 </h2>
                 <button
                   type="button"
