@@ -689,12 +689,12 @@ export default function LiveFlyer() {
               </div>
             </div>
 
-            <div className="col-span-2 w-full">
+            {/* <div className="col-span-2 w-full">
               <label className="text-sm font-medium mb-1"></label>
               {formData.datetmz ? formData.datetmz : "Date/Timezone"}
-            </div>
+            </div> */}
 
-            <div className="col-span-2 flex gap-4 items-center">
+            <div className="col-span-2 flex flex-col gap-4 ">
               <label className="flex items-center gap-1">
                 <input
                   type="radio"
