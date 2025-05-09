@@ -21,7 +21,7 @@ import puppeteer from "puppeteer";
 import fs from "fs";
 import path from "path";
 
-export async function getVaultMedia(username: string): Promise<string[]> {
+async function getVaultMedia(username: string): Promise<string[]> {
   const cookiesPath = path.resolve(`./cookies/${username}.json`);
   if (!fs.existsSync(cookiesPath))
     throw new Error(`No cookies for ${username}`);
