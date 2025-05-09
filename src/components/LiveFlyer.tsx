@@ -560,6 +560,7 @@ export default function LiveFlyer() {
             </div>
             <div className="col-span-2">
               <FlyerTemplates
+                flyer="LIVE"
                 type="LIVE"
                 setSelectedTemplateImage={setSelectedTemplateImage}
                 setSelectedTemplate={setSelectedTemplate}
@@ -706,7 +707,14 @@ export default function LiveFlyer() {
                 />
                 <span className="text-sm">
                   {formData.datetmz
-                    ? formatDateOption(formData.date + " " + formData.time + " " + formData.timezone, "MonthDay")
+                    ? formatDateOption(
+                        formData.date +
+                          " " +
+                          formData.time +
+                          " " +
+                          formData.timezone,
+                        "MonthDay"
+                      )
                     : "MonthDay"}
                 </span>
               </label>
@@ -723,7 +731,14 @@ export default function LiveFlyer() {
                 <span className="text-sm">
                   {" "}
                   {formData.datetmz
-                    ? formatDateOption(formData.date + " " + formData.time + " " + formData.timezone, "DayOfWeek")
+                    ? formatDateOption(
+                        formData.date +
+                          " " +
+                          formData.time +
+                          " " +
+                          formData.timezone,
+                        "DayOfWeek"
+                      )
                     : "DayOfWeek"}
                 </span>
               </label>
@@ -740,7 +755,14 @@ export default function LiveFlyer() {
                 <span className="text-sm">
                   {" "}
                   {formData.datetmz
-                    ? formatDateOption(formData.date + " " + formData.time + " " + formData.timezone, "MMDD")
+                    ? formatDateOption(
+                        formData.date +
+                          " " +
+                          formData.time +
+                          " " +
+                          formData.timezone,
+                        "MMDD"
+                      )
                     : "MMDD"}
                 </span>
               </label>
@@ -1059,11 +1081,11 @@ export default function LiveFlyer() {
                     </div>
                   </>
                 )}
-                <div className="mt-2 col-span-2 absolute bottom-6 w-full">
+                <div className="mt-2 absolute bottom-6 w-full">
                   <button
                     type="button"
                     onClick={handleCreateEventSubmit}
-                    className={`rounded-md px-5 w-full  bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
+                    className={`rounded-md px-5 w-1/2  bg-gradient-to-r from-blue-600 to-purple-600 py-2 text-white font-medium transition-colors  ${
                       isEventCreating ||
                       isFetchingImage ||
                       eventCreated?.success ||

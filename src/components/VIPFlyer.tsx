@@ -43,7 +43,7 @@ export default function FlyerGenerator() {
   >(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
-    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const normalizeData = (rawData: any[] | null): WebhookResponse[] => {
     if (!Array.isArray(rawData)) return [];
@@ -365,27 +365,27 @@ export default function FlyerGenerator() {
     }
   }, [response]);
 
-    useEffect(() => {
-      // Only validate croppedImage if it has a value
-      if (formData.croppedImage) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const fieldSchema = (vipFlyerValidation.shape as any)["croppedImage"];
-        if (fieldSchema) {
-          const result = fieldSchema.safeParse(formData.croppedImage);
-  
-          setFieldErrors((prev) => ({
-            ...prev,
-            croppedImage: result.success ? "" : result.error.errors[0].message,
-          }));
-        }
-      } else {
-        // If croppedImage is empty, clear the error
+  useEffect(() => {
+    // Only validate croppedImage if it has a value
+    if (formData.croppedImage) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fieldSchema = (vipFlyerValidation.shape as any)["croppedImage"];
+      if (fieldSchema) {
+        const result = fieldSchema.safeParse(formData.croppedImage);
+
         setFieldErrors((prev) => ({
           ...prev,
-          croppedImage: "",
+          croppedImage: result.success ? "" : result.error.errors[0].message,
         }));
       }
-    }, [formData.croppedImage]);
+    } else {
+      // If croppedImage is empty, clear the error
+      setFieldErrors((prev) => ({
+        ...prev,
+        croppedImage: "",
+      }));
+    }
+  }, [formData.croppedImage]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6  text-white min-h-screen">
@@ -445,12 +445,12 @@ export default function FlyerGenerator() {
                   customRequest={formData.customRequest}
                   setFormData={setFormData}
                   error={fieldErrors.croppedImage}
-             
                 />
               </div>
 
               <div className="col-span-2">
                 <FlyerTemplates
+                  flyer="VIP"
                   type={formData.templatePosition || ""}
                   setSelectedTemplateImage={setSelectedTemplateImage}
                   setSelectedTemplate={setSelectedTemplate}
@@ -562,17 +562,11 @@ export default function FlyerGenerator() {
                 <button
                   type="submit"
                   className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
-                    isLoading ||
-                    isFetchingImage
-                   
+                    isLoading || isFetchingImage
                       ? "opacity-60 cursor-not-allowed"
                       : "opacity-100"
                   }`}
-                  disabled={
-                    isLoading ||
-                    isFetchingImage 
-                   
-                  }
+                  disabled={isLoading || isFetchingImage}
                 >
                   {formData.customRequest ? (
                     <span>
