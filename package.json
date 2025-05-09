@@ -30,7 +30,6 @@
     "@vercel/postgres": "^0.10.0",
     "bcrypt": "^5.1.1",
     "busboy": "^1.6.0",
-    "chrome-aws-lambda": "^10.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -82,6 +81,7 @@
     "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.2.3",
+    "ignore-loader": "^0.1.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
