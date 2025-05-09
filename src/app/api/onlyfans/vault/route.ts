@@ -1,3 +1,4 @@
+import { getVaultMedia } from "@/lib/scrapper/getVaultMedia";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -16,35 +17,36 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// fetchVault.ts
-import puppeteer from "puppeteer";
-import fs from "fs";
-import path from "path";
 
-async function getVaultMedia(username: string): Promise<string[]> {
-  const cookiesPath = path.resolve(`./cookies/${username}.json`);
-  if (!fs.existsSync(cookiesPath))
-    throw new Error(`No cookies for ${username}`);
+// // fetchVault.ts
+// import puppeteer from "puppeteer";
+// import fs from "fs";
+// import path from "path";
 
-  const cookies = JSON.parse(fs.readFileSync(cookiesPath, "utf8"));
+// async function getVaultMedia(username: string): Promise<string[]> {
+//   const cookiesPath = path.resolve(`./cookies/${username}.json`);
+//   if (!fs.existsSync(cookiesPath))
+//     throw new Error(`No cookies for ${username}`);
 
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
-  await page.setCookie(...cookies);
+//   const cookies = JSON.parse(fs.readFileSync(cookiesPath, "utf8"));
 
-  await page.goto("https://onlyfans.com/my/vault", {
-    waitUntil: "networkidle0",
-  });
+//   const browser = await puppeteer.launch({ headless: true });
+//   const page = await browser.newPage();
+//   await page.setCookie(...cookies);
 
-  const mediaUrls = await page.evaluate(() => {
-    const urls: string[] = [];
-    document.querySelectorAll("img, video").forEach((el) => {
-      const src = (el as HTMLImageElement | HTMLVideoElement).src;
-      if (src) urls.push(src);
-    });
-    return urls;
-  });
+//   await page.goto("https://onlyfans.com/my/vault", {
+//     waitUntil: "networkidle0",
+//   });
 
-  await browser.close();
-  return mediaUrls;
-}
+//   const mediaUrls = await page.evaluate(() => {
+//     const urls: string[] = [];
+//     document.querySelectorAll("img, video").forEach((el) => {
+//       const src = (el as HTMLImageElement | HTMLVideoElement).src;
+//       if (src) urls.push(src);
+//     });
+//     return urls;
+//   });
+
+//   await browser.close();
+//   return mediaUrls;
+// }
