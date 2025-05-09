@@ -519,7 +519,7 @@ export default function FTTFlyer() {
               />
             </div>
 
-            <div className="col-span-2">
+            {/* <div className="col-span-2">
               <FlyerTemplates
                 flyer="FTT"
                 type={formData.templatePosition || ""}
@@ -557,7 +557,7 @@ export default function FTTFlyer() {
                   ))}
                 </div>
               </div>
-            </div>
+            </div> */}
 
             <div className="col-span-2 flex w-full gap-5 items-center h-full">
               <div className="flex flex-col">
@@ -769,7 +769,7 @@ export default function FTTFlyer() {
                         )}
 
                         {/* Template image */}
-                        {!selectedTemplateImage ? (
+                        {/* {!selectedTemplateImage ? (
                           <Image
                             src={`/templates/TEMPLATE_${formData.templatePosition}.png`}
                             alt="Template"
@@ -785,7 +785,7 @@ export default function FTTFlyer() {
                             width={1080}
                             height={1350}
                           />
-                        )}
+                        )} */}
 
                         {/* Image label */}
                         <div className="absolute z-30 bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
