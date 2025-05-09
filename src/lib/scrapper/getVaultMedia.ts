@@ -2,24 +2,24 @@ import puppeteer from "puppeteer";
 import fs from "fs";
 import path from "path";
 
-// Auto-scroll function to load more media
-async function autoScroll(page: puppeteer.Page) {
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) => {
-      let totalHeight = 0;
-      const distance = 300;
-      const timer = setInterval(() => {
-        window.scrollBy(0, distance);
-        totalHeight += distance;
+// // Auto-scroll function to load more media
+// async function autoScroll(page: puppeteer.Page) {
+//   await page.evaluate(async () => {
+//     await new Promise<void>((resolve) => {
+//       let totalHeight = 0;
+//       const distance = 300;
+//       const timer = setInterval(() => {
+//         window.scrollBy(0, distance);
+//         totalHeight += distance;
 
-        if (totalHeight >= document.body.scrollHeight) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 200);
-    });
-  });
-}
+//         if (totalHeight >= document.body.scrollHeight) {
+//           clearInterval(timer);
+//           resolve();
+//         }
+//       }, 200);
+//     });
+//   });
+// }
 
 export async function getVaultMedia(username: string): Promise<string[]> {
   // Corrected path to ./lib/access for your username JSON cookies
@@ -45,7 +45,7 @@ export async function getVaultMedia(username: string): Promise<string[]> {
   }
 
   // Auto-scroll to load more media
-  await autoScroll(page);
+//   await autoScroll(page);
 
   // Extract media URLs (img/video)
   const mediaUrls = await page.evaluate(() => {
