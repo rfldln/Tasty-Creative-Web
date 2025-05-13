@@ -1,75 +1,67 @@
-'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from "react";
 
-const accounts = ['autumren', 'anothermodel', 'thirdmodel'];
+export default function MediaViewerPage() {
+  const [localUrl, setLocalUrl] = useState("");
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-export default function VaultDashboard() {
-  const [username, setUsername] = useState(accounts[0]);
-  const [media, setMedia] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loginInProgress, setLoginInProgress] = useState(false);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMediaUrl(null);
 
-  const fetchMedia = () => {
-    setLoading(true);
-    fetch(`/api/onlyfans/vault?username=${username}`)
-      .then((res) => res.json())
-      .then((data) => setMedia(data.media || []))
-      .catch(() => setMedia([]))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchMedia();
-  }, [username]);
-
-  const handleLogin = async () => {
-    setLoginInProgress(true);
-    const res = await fetch(`/api/onlyfans/login?username=${username}`);
-    const data = await res.json();
-    if (data.success) {
-      alert(`Login launched for ${username}. Please check the server.`);
-    } else {
-      alert(`Failed to launch login: ${data.error}`);
+    try {
+      // Encode the file path using base64
+      const encodedPath = btoa(localUrl);
+      const url = `api/be/proxy?path=${encodedPath}`;
+      setMediaUrl(url);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err: any) {
+      setError("Invalid file path or encoding issue.");
     }
-    setLoginInProgress(false);
   };
 
   return (
-    <div className="p-4">
-      <div className="flex items-center gap-4 mb-4">
-        <select
-          onChange={(e) => setUsername(e.target.value)}
-          value={username}
-          className="border p-2 rounded"
-        >
-          {accounts.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Media Viewer</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          placeholder="Enter local file path"
+          value={localUrl}
+          onChange={(e) => setLocalUrl(e.target.value)}
+          className="w-full border rounded px-3 py-2"
+        />
         <button
-          onClick={handleLogin}
-          disabled={loginInProgress}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded"
         >
-          {loginInProgress ? 'Starting Login...' : 'Login to OnlyFans'}
+          Stream Media
         </button>
-      </div>
+      </form>
 
-      {loading ? (
-        <p>Loading vault...</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-4">
-          {media.map((url, i) =>
-            url.includes('.mp4') ? (
-              <video key={i} src={url} controls className="rounded" />
-            ) : (
-              <img key={i} src={url} alt="Vault item" className="rounded" />
-            )
+      {mediaUrl && (
+        <div className="mt-6 space-y-4">
+          <h2 className="text-xl font-semibold">Preview:</h2>
+          {localUrl.match(/\.(mp4|mov)$/i) ? (
+            <video src={mediaUrl} controls className="w-full max-w-3xl" />
+          ) : (
+            <img
+              src={mediaUrl}
+              alt="Media"
+              className="w-full max-w-md rounded"
+            />
           )}
         </div>
+      )}
+
+      {error && (
+        <pre className="mt-4 p-4 bg-red-100 text-red-900 rounded">
+          Error: {error}
+        </pre>
       )}
     </div>
   );
