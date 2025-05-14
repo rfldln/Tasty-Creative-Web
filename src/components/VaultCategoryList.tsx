@@ -51,7 +51,7 @@ const VaultCategoryList = ({
         .catch((err) => setError(err.message))
         .finally(() => setIsLoading(false));
     }
-  }, [selectedClient, clientLoading, selectedCategory, lastSync]);
+  }, [selectedClient, clientLoading, lastSync]);
 
   const handleSync = async () => {
     try {
