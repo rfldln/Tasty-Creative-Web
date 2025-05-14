@@ -37,6 +37,7 @@ const VaultCategoryList = ({
   useEffect(() => {
     if (selectedClient && selectedClient.email !== "Select a client") {
       setIsLoading(true);
+      setVaultCategories([]);
       fetch(
         `/api/be/vault-category-list?email=${encodeURIComponent(
           selectedClient.email
