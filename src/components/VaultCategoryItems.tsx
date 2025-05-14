@@ -152,6 +152,7 @@ const VaultCategoryItems = ({
             {selectedCategory && (
               <div className="flex items-center gap-2">
                 <button
+                  disabled={syncing}
                   onClick={handleSync}
                   className="text-sm px-1 bg-yellow-400/40 rounded-md cursor-pointer"
                 >

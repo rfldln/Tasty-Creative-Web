@@ -131,6 +131,7 @@ const VaultCategoryList = ({
         <h2 className="font-bold">Categories</h2>
         {selectedClient && selectedClient.email != "Select a client" && (
           <button
+            disabled={syncing}
             onClick={handleSync}
             className="text-sm px-1 bg-yellow-400/40 rounded-md cursor-pointer"
           >
