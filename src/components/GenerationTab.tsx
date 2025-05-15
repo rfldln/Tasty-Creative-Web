@@ -17,6 +17,7 @@ import {
   BreadcrumbSeparator,
   BreadcrumbPage,
 } from "./ui/breadcrumb";
+import GifMaker from "./GifMaker";
 
 const GenerationTab = () => {
   const [hash, setHash] = useState<string>("");
@@ -45,6 +46,8 @@ const GenerationTab = () => {
     content = <FTTFlyer />;
   } else if (hash === "#twitter") {
     content = <TwitterAdsPage />;
+  } else if (hash === "#gif-maker") {
+    content = <GifMaker />;
   }
 
   const formattedHash = () => {
@@ -53,6 +56,7 @@ const GenerationTab = () => {
     if (hash === "#game") return "Game";
     if (hash === "#ftt") return "FTT";
     if (hash === "#twitter") return "Twitter Ads";
+    if (hash === "#gif-maker") return "GIF Maker";
     return "Generate"; // Default case if no hash is set
   };
   return (
