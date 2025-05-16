@@ -10,7 +10,10 @@ import {
   Play,
   Pause,
   Clock,
+  Download,
+  Loader2,
 } from "lucide-react";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 // Define TypeScript interfaces
 interface ModelFormData {
@@ -25,10 +28,21 @@ interface VideoClip {
 }
 
 const GifMaker = () => {
+  const [combinedVideoUrl, setCombinedVideoUrl] = useState("");
+
   const [formData, setFormData] = useState<ModelFormData>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState("sideBySide");
   const [maxDuration, setMaxDuration] = useState(5); // Default max duration in seconds
+  const [fps, setFps] = useState(15); // Frames per second for GIF
+  const [quality, setQuality] = useState(10); // Quality setting (1-30)
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null);
+  const [error, setError] = useState("");
+  const [isReady, setIsReady] = useState(false);
+  // Canvas ref for capturing frames
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const templates: Record<
     string,
@@ -86,6 +100,8 @@ const GifMaker = () => {
   const [activeVideoIndex, setActiveVideoIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  // Additional ref for the output video grid
+  const outputGridRef = useRef<HTMLDivElement>(null);
 
   // Function to handle video file selection
   const handleVideoChange = (index: number, file: File | null) => {
@@ -97,7 +113,7 @@ const GifMaker = () => {
       newClips[index] = {
         file: file,
         startTime: 0,
-        endTime: 5, // Default to 5 seconds or max duration
+        endTime: Math.min(5, maxDuration), // Default to 5 seconds or max duration
         duration: 0, // Will be updated once metadata is loaded
       };
       return newClips;
@@ -131,6 +147,42 @@ const GifMaker = () => {
       }
     }, 100);
   };
+
+  useEffect(() => {
+    // Dynamic import within useEffect to avoid SSR issues
+    const loadFfmpeg = async () => {
+      try {
+        // Import the older version of FFmpeg that's more compatible with Next.js
+        const createFFmpeg = (await import("@ffmpeg/ffmpeg")).createFFmpeg;
+        const fetchFile = (await import("@ffmpeg/ffmpeg")).fetchFile;
+
+        // Store fetchFile for later use
+        window.fetchFile = fetchFile;
+
+        const ffmpegInstance = createFFmpeg({
+          log: true,
+          corePath: "https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js",
+        });
+
+        await ffmpegInstance.load();
+        setFfmpeg(ffmpegInstance);
+        setIsReady(true);
+      } catch (error) {
+        console.error("Error loading FFmpeg:", error);
+        setError(
+          "Failed to load video processing library. Please try again later."
+        );
+      }
+    };
+
+    loadFfmpeg();
+
+    return () => {
+      if (gifUrl) {
+        URL.revokeObjectURL(gifUrl);
+      }
+    };
+  }, []);
 
   // Update video time when slider changes
   const updateVideoTime = (index: number, time: number) => {
@@ -254,7 +306,213 @@ const GifMaker = () => {
     while (videoRefs.current.length < totalCells) {
       videoRefs.current.push(null);
     }
+
+    // Reset GIF URL when template changes
+    setGifUrl(null);
   }, [totalCells]);
+
+  // Function to capture a frame from all videos at their current times
+  const captureFrame = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    // Clear canvas
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const cols = templates[selectedTemplate].cols;
+    const rows = templates[selectedTemplate].rows;
+
+    // Calculate cell dimensions
+    const cellWidth = canvas.width / cols;
+    const cellHeight = canvas.height / rows;
+
+    // Draw each video to its grid position
+    videoClips.forEach((clip, index) => {
+      const video = videoRefs.current[index];
+      if (!video || !clip.file) return;
+
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+
+      ctx.drawImage(
+        video,
+        col * cellWidth,
+        row * cellHeight,
+        cellWidth,
+        cellHeight
+      );
+    });
+
+    return canvas.toDataURL("image/jpeg", 0.95);
+  };
+
+  // Function to create GIF
+  const createGif = async () => {
+    if (!ffmpeg || !ffmpeg.isLoaded()) {
+      console.error("FFmpeg not loaded");
+      return;
+    }
+
+    setIsProcessing(true);
+    setProcessingProgress(0);
+    setGifUrl(null);
+
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas) throw new Error("Canvas not available");
+
+      const width = 640;
+      const height = 360;
+      canvas.width = width;
+      canvas.height = height;
+
+      // Reset videos to start
+      for (let i = 0; i < videoClips.length; i++) {
+        const video = videoRefs.current[i];
+        if (video && videoClips[i].file) {
+          video.currentTime = videoClips[i].startTime;
+          video.pause();
+        }
+      }
+
+      const effectiveDuration = Math.min(
+        maxDuration,
+        Math.max(
+          ...videoClips
+            .filter((clip) => clip.file)
+            .map((clip) => clip.endTime - clip.startTime)
+        )
+      );
+
+      const totalFrames = Math.floor(effectiveDuration * fps);
+      const frameFiles: string[] = [];
+
+      for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+        const currentTime = frameIndex / fps;
+
+        // Sync all video refs to appropriate looped time
+        for (let i = 0; i < videoClips.length; i++) {
+          const video = videoRefs.current[i];
+          const clip = videoClips[i];
+
+          if (video && clip.file) {
+            const clipDuration = clip.endTime - clip.startTime;
+            const loopedTime = (currentTime % clipDuration) + clip.startTime;
+
+            video.currentTime = loopedTime;
+
+            await new Promise<void>((resolve) => {
+              const onSeeked = () => {
+                video.removeEventListener("seeked", onSeeked);
+
+                // Prefer requestVideoFrameCallback for more accuracy
+                if ("requestVideoFrameCallback" in video) {
+                  (video as any).requestVideoFrameCallback(() => {
+                    resolve();
+                  });
+                } else {
+                  // Fallback: slight delay
+                  setTimeout(resolve, 50);
+                }
+              };
+
+              video.addEventListener("seeked", onSeeked);
+            });
+          }
+        }
+
+        const frameDataUrl = captureFrame();
+        if (frameDataUrl) {
+          const response = await fetch(frameDataUrl);
+          const blob = await response.blob();
+          const frameArray = new Uint8Array(await blob.arrayBuffer());
+          const frameName = `frame_${frameIndex
+            .toString()
+            .padStart(5, "0")}.png`;
+          ffmpeg.FS("writeFile", frameName, frameArray);
+          frameFiles.push(frameName);
+        }
+
+        setProcessingProgress(Math.floor((frameIndex / totalFrames) * 80));
+      }
+
+      // Create a frame list input.txt for FFmpeg concat
+      const inputList = frameFiles.map((name) => `file '${name}'`).join("\n");
+      ffmpeg.FS("writeFile", "input.txt", new TextEncoder().encode(inputList));
+
+      // Generate a palette first
+      await ffmpeg.run(
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        "input.txt",
+        "-vf",
+        `fps=${fps},scale=${width}:${height}:flags=lanczos,palettegen`,
+        "-y",
+        "palette.png"
+      );
+
+      // Then use that palette to render the final GIF
+      await ffmpeg.run(
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        "input.txt",
+        "-i",
+        "palette.png",
+        "-filter_complex",
+        `fps=${fps},scale=${width}:${height}:flags=lanczos[x];[x][1:v]paletteuse`,
+        "-loop",
+        "0",
+        "-y",
+        "output.gif"
+      );
+
+      const data = ffmpeg.FS("readFile", "output.gif");
+      const gifBlob = new Blob([data.buffer], { type: "image/gif" });
+      const url = URL.createObjectURL(gifBlob);
+      setGifUrl(url);
+
+      // Cleanup
+      frameFiles.forEach((name) => {
+        try {
+          ffmpeg.FS("unlink", name);
+        } catch (e) {
+          console.warn("Cleanup error for", name, e);
+        }
+      });
+
+      ffmpeg.FS("unlink", "input.txt");
+      ffmpeg.FS("unlink", "palette.png");
+      ffmpeg.FS("unlink", "output.gif");
+    } catch (err) {
+      console.error("GIF creation error:", err);
+      alert("Failed to create GIF. See console for details.");
+    } finally {
+      setProcessingProgress(100);
+      setIsProcessing(false);
+    }
+  };
+
+  // Function to download the generated GIF
+  const downloadGif = () => {
+    if (!gifUrl) return;
+
+    const link = document.createElement("a");
+    link.href = gifUrl;
+    link.download = `OnlyFans_${selectedTemplate}_${new Date().getTime()}.gif`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
@@ -316,6 +574,7 @@ const GifMaker = () => {
           <h3 className="text-gray-300 mb-2 font-medium">Preview</h3>
           <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
             <div
+              ref={outputGridRef}
               className="grid aspect-video"
               style={{
                 gridTemplateColumns: `repeat(${templates[selectedTemplate].cols}, 1fr)`,
@@ -419,7 +678,10 @@ const GifMaker = () => {
 
         {/* Timeframe Editor */}
         {activeVideoIndex !== null && videoClips[activeVideoIndex]?.file && (
-          <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 mb-6">
+          <div
+            id="timeframe-editor"
+            className="bg-gray-900 p-4 rounded-lg border border-gray-700 mb-6"
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-blue-300 font-medium">Edit Timeframe</h3>
               <button
@@ -435,7 +697,7 @@ const GifMaker = () => {
             </div>
 
             {/* Trimming preview */}
-            <div className="relative mb-4">
+            {/* <div className="relative mb-4">
               <video
                 ref={(el) => {
                   if (el) {
@@ -463,7 +725,7 @@ const GifMaker = () => {
                 autoPlay
                 loop
               />
-            </div>
+            </div> */}
 
             <div className="flex justify-between text-sm text-gray-400 mb-2">
               <span>
@@ -522,7 +784,7 @@ const GifMaker = () => {
           </div>
         )}
 
-        {/* Max Duration Setting */}
+        {/* GIF Settings */}
         <div className="mb-6">
           <h3 className="text-gray-300 mb-2 font-medium">GIF Settings</h3>
           <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
@@ -540,21 +802,112 @@ const GifMaker = () => {
                 className="w-full accent-blue-500"
               />
             </div>
+
+            <div className="mb-2">
+              <label className="text-sm text-gray-300 mb-1 block">
+                GIF Framerate: {fps} fps
+              </label>
+              <input
+                type="range"
+                min="5"
+                max="30"
+                step="1"
+                value={fps}
+                onChange={(e) => setFps(parseInt(e.target.value))}
+                className="w-full accent-blue-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Higher framerates result in smoother animation but larger file
+                size
+              </p>
+            </div>
+
+            <div className="mb-2">
+              <label className="text-sm text-gray-300 mb-1 block">
+                Quality: {quality}
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                step="1"
+                value={quality}
+                onChange={(e) => setQuality(parseInt(e.target.value))}
+                className="w-full accent-blue-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Higher quality results in better image quality but larger file
+                size
+              </p>
+            </div>
           </div>
         </div>
 
+        {/* Generated GIF Preview */}
+        {gifUrl && (
+          <div className="mb-6">
+            <h3 className="text-gray-300 mb-2 font-medium">Generated GIF</h3>
+            <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
+              <div className="flex flex-col items-center">
+                <img
+                  src={gifUrl}
+                  alt="Generated GIF"
+                  className="max-w-full rounded-lg mb-4"
+                />
+                <button
+                  onClick={downloadGif}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" /> Download GIF
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex justify-end space-x-3">
-          <button className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-colors">
-            Cancel
+          <button
+            className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-colors"
+            onClick={() => {
+              // Reset form or navigate away logic
+              if (gifUrl) {
+                URL.revokeObjectURL(gifUrl);
+                setGifUrl(null);
+              }
+            }}
+          >
+            Reset
           </button>
-          <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors">
-            Create GIF
+          <button
+            className={`${
+              isProcessing
+                ? "bg-blue-800 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-500"
+            } text-white px-4 py-2 rounded-lg transition-colors flex items-center`}
+            onClick={createGif}
+            disabled={isProcessing || videoClips.every((clip) => !clip.file)}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing ({processingProgress}%)
+              </>
+            ) : (
+              <>Create GIF</>
+            )}
           </button>
         </div>
       </div>
+      {/* Canvas for capturing frames */}
+      <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
   );
 };
-
 export default GifMaker;
+
+// Create a non-SSR version of the component
+export const ClientSideFFmpeg = dynamic(() => Promise.resolve(GifMaker), {
+  ssr: false,
+});
+import dynamic from "next/dynamic";
