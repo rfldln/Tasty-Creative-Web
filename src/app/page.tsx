@@ -39,7 +39,8 @@ import {
   Twitter,
   PencilRuler,
   Clapperboard,
-  MessageSquareText
+  MessageSquareText,
+  Vault
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -109,6 +110,7 @@ import LaunchPrepDetails from '@/components/LaunchPrepDetails';
 import GenerationTab from '@/components/GenerationTab';
 import ChattingTab from '@/components/ChattingTab';
 import OnboardingTab from '@/components/OnboardingTab';
+import VaultTab from '@/components/VaultTab';
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -326,6 +328,43 @@ const TastyCreative = () => {
     window.history.pushState(null, '', `?tab=${tab}&model=${model}`);
     window.location.reload();
   };
+
+  useEffect(() => {
+      const checkAuth = async () => {
+        try {
+          const res = await fetch("/api/google/check-auth");
+          const data = await res.json();
+  
+          if (!data.authenticated) {
+            // Get the current tab from URL or default to 'live'
+            const currentTab = tabValue || "live";
+  
+            // Include the current tab in the auth request
+            const authRes = await fetch(
+              `/api/google/auth?tab=${encodeURIComponent(currentTab)}`
+            );
+            const authData = await authRes.json();
+  
+            if (authData.authUrl) {
+              // Append the tab parameter to the auth URL
+              const authUrlWithTab = new URL(authData.authUrl);
+              authUrlWithTab.searchParams?.set(
+                "state",
+                JSON.stringify({ tab: currentTab })
+              );
+  
+              window.location.href = authUrlWithTab.toString();
+            }
+          } else {
+            // setIsLoading(false);
+          }
+        } catch (error) {
+          console.error("Authentication check failed", error);
+        }
+      };
+  
+      checkAuth();
+    }, [router]);
 
   useEffect(() => {
     if (tabValue === "dashboard" || tabValue === "") {
@@ -1136,7 +1175,7 @@ const TastyCreative = () => {
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
         <Tabs defaultValue={tabValue} className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-6 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
+          <TabsList className="grid grid-cols-7 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="dashboard"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
@@ -1213,6 +1252,13 @@ const TastyCreative = () => {
             >
               <MessageSquareText size={16} className="sm:mr-1" />
               <span className="hidden sm:inline">Chatting</span>
+            </TabsTrigger>
+                       <TabsTrigger
+              value="vault"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
+            >
+              <Vault size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">Vault</span>
             </TabsTrigger>
           </TabsList>
 
@@ -2686,6 +2732,10 @@ const TastyCreative = () => {
 
           <TabsContent value="onboarding">
             <OnboardingTab  />
+          </TabsContent>
+
+          <TabsContent value="vault">
+            <VaultTab  />
           </TabsContent>
         </Tabs>
       </div>

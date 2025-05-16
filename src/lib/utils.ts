@@ -113,6 +113,14 @@ function getDaySuffix(day: number): string {
   return ["st", "nd", "rd"][lastDigit - 1] || "th";
 }
 
+export const getInitials = (name: string) => {
+  return name
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+};
+
 export const emailData = {
   to: "kentjohnliloc@gmail.com,txl.tasty@gmail.com",
   subject: "⚠️ ALERT: Webhook Server Offline",

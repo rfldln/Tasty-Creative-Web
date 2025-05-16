@@ -53,23 +53,12 @@ export const API_KEY_PROFILES = {
     voices: [
       {
         name: "OF Bronwin",
-        voiceId: "bbY4EbJ4diWPBBc5gWZS",
+        voiceId: "rFfKB0Jvn1Pj082TgJl2",
         category: "professional",
       },
     ],
   },
   account_6: {
-    name: "OF Cora's voice",
-    description: "Backup account for high-volume usage",
-    voices: [
-      {
-        name: "OF Cora",
-        voiceId: "4DNFphLda0049k3q9sJU",
-        category: "professional",
-      },
-    ],
-  },
-  account_7: {
     name: "OF Nicole's voice",
     description: "Backup account for high-volume usage",
     voices: [
