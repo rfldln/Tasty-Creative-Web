@@ -28,8 +28,6 @@ interface VideoClip {
 }
 
 const GifMaker = () => {
-  const [combinedVideoUrl, setCombinedVideoUrl] = useState("");
-
   const [formData, setFormData] = useState<ModelFormData>({});
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState("sideBySide");
@@ -67,22 +65,130 @@ const GifMaker = () => {
     },
     triptychHorizontal: {
       name: "Horizontal Triptych",
-      icon: <Rows3 className="w-5 h-5" />,
-      cols: 1,
-      rows: 3,
-    },
-    triptychVertical: {
-      name: "Vertical Triptych",
       icon: <Columns3 className="w-5 h-5" />,
       cols: 3,
       rows: 1,
     },
+    triptychVertical: {
+      name: "Vertical Triptych",
+      icon: <Rows3 className="w-5 h-5" />,
+      cols: 1,
+      rows: 3,
+    },
     grid2x2: {
-      name: "2×2 Grid",
+      name: "2x2 Grid",
       icon: <Grid2X2 className="w-5 h-5" />,
       cols: 2,
       rows: 2,
     },
+  };
+
+  type Layout =
+    | "Single"
+    | "Side by Side"
+    | "Horizontal Triptych"
+    | "Vertical Triptych"
+    | "2x2 Grid";
+
+  const scaleWidth = 320;
+  const scaleHeight = 180; // Fixed positive height
+
+  const createFilterComplex = (
+    layout: Layout,
+    clipCount: number,
+    fps: number
+  ) => {
+    if (layout === "Single" && clipCount === 1) {
+      return `[0:v]scale=${scaleWidth}:${scaleHeight},fps=${fps},palettegen=stats_mode=diff[p]`;
+    }
+
+    if (layout === "Side by Side" && clipCount === 2) {
+      return (
+        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
+        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
+        `[v0][v1]hstack=inputs=2,fps=${fps},palettegen=stats_mode=diff[p]`
+      );
+    }
+
+    if (layout === "Horizontal Triptych" && clipCount === 3) {
+      return (
+        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
+        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
+        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
+        `[v0][v1][v2]hstack=inputs=3[v];` + // stack horizontally first, label [v]
+        `[v]fps=${fps},palettegen=stats_mode=diff[p]` // then apply fps and palettegen filters
+      );
+    }
+
+    if (layout === "Vertical Triptych" && clipCount === 3) {
+      return (
+        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
+        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
+        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
+        `[v0][v1][v2]vstack=inputs=3[v];` + // stack vertically first, label [v]
+        `[v]fps=${fps},palettegen=stats_mode=diff[p]` // then apply fps and palettegen filters
+      );
+    }
+
+    if (layout === "2x2 Grid" && clipCount === 4) {
+      return (
+        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
+        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
+        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
+        `[3:v]scale=${scaleWidth}:${scaleHeight}[v3];` +
+        `[v0][v1][v2][v3]xstack=inputs=4:layout=0_0|${scaleWidth}_0|0_${scaleHeight}|${scaleWidth}_${scaleHeight},fps=${fps},palettegen=stats_mode=diff[p]`
+      );
+    }
+
+    throw new Error(`Unsupported layout ${layout} for ${clipCount} clips`);
+  };
+
+  const createUseFilterComplex = (
+    layout: Layout,
+    clipCount: number,
+    fps: number
+  ) => {
+    if (layout === "Single" && clipCount === 1) {
+      return `[0:v]scale=${scaleWidth}:${scaleHeight},fps=${fps}[x];[x][1:v]paletteuse=dither=bayer`;
+    }
+
+    if (layout === "Side by Side" && clipCount === 2) {
+      return (
+        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
+        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
+        `[v0][v1]hstack=inputs=2,fps=${fps}[x];[x][2:v]paletteuse=dither=bayer`
+      );
+    }
+
+    if (layout === "Horizontal Triptych" && clipCount === 3) {
+      return (
+        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
+        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
+        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
+        `[v0][v1][v2]hstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+      );
+    }
+
+    if (layout === "Vertical Triptych" && clipCount === 3) {
+      return (
+        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
+        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
+        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
+        `[v0][v1][v2]vstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+      );
+    }
+
+    if (layout === "2x2 Grid" && clipCount === 4) {
+      return (
+        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
+        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
+        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
+        `[3:v]scale=${scaleWidth}:${scaleHeight}[v3];` +
+        `[v0][v1][v2][v3]xstack=inputs=4:layout=0_0|${scaleWidth}_0|0_${scaleHeight}|${scaleWidth}_${scaleHeight},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
+      );
+    }
+
+    throw new Error(`Unsupported layout ${layout} for ${clipCount} clips`);
   };
 
   const totalCells =
@@ -312,43 +418,43 @@ const GifMaker = () => {
   }, [totalCells]);
 
   // Function to capture a frame from all videos at their current times
-  const captureFrame = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
+  // const captureFrame = () => {
+  //   const canvas = canvasRef.current;
+  //   if (!canvas) return null;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
+  //   const ctx = canvas.getContext("2d");
+  //   if (!ctx) return null;
 
-    // Clear canvas
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  //   // Clear canvas
+  //   ctx.fillStyle = "black";
+  //   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const cols = templates[selectedTemplate].cols;
-    const rows = templates[selectedTemplate].rows;
+  //   const cols = templates[selectedTemplate].cols;
+  //   const rows = templates[selectedTemplate].rows;
 
-    // Calculate cell dimensions
-    const cellWidth = canvas.width / cols;
-    const cellHeight = canvas.height / rows;
+  //   // Calculate cell dimensions
+  //   const cellWidth = canvas.width / cols;
+  //   const cellHeight = canvas.height / rows;
 
-    // Draw each video to its grid position
-    videoClips.forEach((clip, index) => {
-      const video = videoRefs.current[index];
-      if (!video || !clip.file) return;
+  //   // Draw each video to its grid position
+  //   videoClips.forEach((clip, index) => {
+  //     const video = videoRefs.current[index];
+  //     if (!video || !clip.file) return;
 
-      const col = index % cols;
-      const row = Math.floor(index / cols);
+  //     const col = index % cols;
+  //     const row = Math.floor(index / cols);
 
-      ctx.drawImage(
-        video,
-        col * cellWidth,
-        row * cellHeight,
-        cellWidth,
-        cellHeight
-      );
-    });
+  //     ctx.drawImage(
+  //       video,
+  //       col * cellWidth,
+  //       row * cellHeight,
+  //       cellWidth,
+  //       cellHeight
+  //     );
+  //   });
 
-    return canvas.toDataURL("image/jpeg", 0.95);
-  };
+  //   return canvas.toDataURL("image/jpeg", 0.95);
+  // };
 
   // Function to create GIF
   const createGif = async () => {
@@ -362,144 +468,108 @@ const GifMaker = () => {
     setGifUrl(null);
 
     try {
-      const canvas = canvasRef.current;
-      if (!canvas) throw new Error("Canvas not available");
+      const validClips = videoClips.filter((clip) => clip.file);
+      if (validClips.length === 0) throw new Error("No video clips with files");
 
-      const width = 640;
-      const height = 360;
-      canvas.width = width;
-      canvas.height = height;
-
-      // Reset videos to start
-      for (let i = 0; i < videoClips.length; i++) {
-        const video = videoRefs.current[i];
-        if (video && videoClips[i].file) {
-          video.currentTime = videoClips[i].startTime;
-          video.pause();
-        }
+      // Choose layout based on videoClips.length or a selected layout
+      const clipCount = validClips.length;
+      // Example: dynamically select layout, replace with your actual selection
+      let layout: Layout = "Single";
+      if (selectedTemplate && templates[selectedTemplate]) {
+        layout = templates[selectedTemplate].name as Layout;
       }
-
-      const effectiveDuration = Math.min(
-        maxDuration,
-        Math.max(
-          ...videoClips
-            .filter((clip) => clip.file)
-            .map((clip) => clip.endTime - clip.startTime)
-        )
+      // Limit clips to max needed for layout
+      const clipsToUse = validClips.slice(
+        0,
+        layout === "2x2 Grid" ? 4 : clipCount
       );
 
-      const totalFrames = Math.floor(effectiveDuration * fps);
-      const frameFiles: string[] = [];
-
-      for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
-        const currentTime = frameIndex / fps;
-
-        // Sync all video refs to appropriate looped time
-        for (let i = 0; i < videoClips.length; i++) {
-          const video = videoRefs.current[i];
-          const clip = videoClips[i];
-
-          if (video && clip.file) {
-            const clipDuration = clip.endTime - clip.startTime;
-            const loopedTime = (currentTime % clipDuration) + clip.startTime;
-
-            video.currentTime = loopedTime;
-
-            await new Promise<void>((resolve) => {
-              const onSeeked = () => {
-                video.removeEventListener("seeked", onSeeked);
-
-                // Prefer requestVideoFrameCallback for more accuracy
-                if ("requestVideoFrameCallback" in video) {
-                  (video as any).requestVideoFrameCallback(() => {
-                    resolve();
-                  });
-                } else {
-                  // Fallback: slight delay
-                  setTimeout(resolve, 50);
-                }
-              };
-
-              video.addEventListener("seeked", onSeeked);
-            });
-          }
-        }
-
-        const frameDataUrl = captureFrame();
-        if (frameDataUrl) {
-          const response = await fetch(frameDataUrl);
-          const blob = await response.blob();
-          const frameArray = new Uint8Array(await blob.arrayBuffer());
-          const frameName = `frame_${frameIndex
-            .toString()
-            .padStart(5, "0")}.png`;
-          ffmpeg.FS("writeFile", frameName, frameArray);
-          frameFiles.push(frameName);
-        }
-
-        setProcessingProgress(Math.floor((frameIndex / totalFrames) * 80));
+      // Write all clips to FS
+      for (let i = 0; i < clipsToUse.length; i++) {
+        const clip = clipsToUse[i];
+        const data = await fetchFile(clip.file!);
+        ffmpeg.FS("writeFile", `input${i}.mp4`, data);
       }
 
-      // Create a frame list input.txt for FFmpeg concat
-      const inputList = frameFiles.map((name) => `file '${name}'`).join("\n");
-      ffmpeg.FS("writeFile", "input.txt", new TextEncoder().encode(inputList));
+      // Determine durations (use shortest trimmed duration across clips)
+      const durations = clipsToUse.map((c) =>
+        Math.min(maxDuration, c.endTime - c.startTime)
+      );
+      const duration = Math.min(...durations);
 
-      // Generate a palette first
+      setProcessingProgress(20);
+
+      // Build input args with trimming for palette gen
+      const paletteInputs: string[] = [];
+      for (let i = 0; i < clipsToUse.length; i++) {
+        paletteInputs.push("-ss", String(clipsToUse[i].startTime));
+        paletteInputs.push("-t", String(duration));
+        paletteInputs.push("-i", `input${i}.mp4`);
+      }
+
+      // Palette generation
       await ffmpeg.run(
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
-        "input.txt",
-        "-vf",
-        `fps=${fps},scale=${width}:${height}:flags=lanczos,palettegen`,
+        ...paletteInputs,
+        "-filter_complex",
+        createFilterComplex(layout, clipsToUse.length, fps),
+        "-map",
+        "[p]",
         "-y",
         "palette.png"
       );
 
-      // Then use that palette to render the final GIF
+      setProcessingProgress(60);
+
+      // Build input args with trimming for GIF creation (palette is extra input)
+      const gifInputs: string[] = [];
+      for (let i = 0; i < clipsToUse.length; i++) {
+        gifInputs.push("-ss", String(clipsToUse[i].startTime));
+        gifInputs.push("-t", String(duration));
+        gifInputs.push("-i", `input${i}.mp4`);
+      }
+      gifInputs.push("-i", "palette.png"); // palette input
+
       await ffmpeg.run(
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
-        "input.txt",
-        "-i",
-        "palette.png",
+        ...gifInputs,
         "-filter_complex",
-        `fps=${fps},scale=${width}:${height}:flags=lanczos[x];[x][1:v]paletteuse`,
+        createUseFilterComplex(layout, clipsToUse.length, fps),
         "-loop",
         "0",
         "-y",
         "output.gif"
       );
 
+      setProcessingProgress(90);
+
+      // Read result
       const data = ffmpeg.FS("readFile", "output.gif");
       const gifBlob = new Blob([data.buffer], { type: "image/gif" });
       const url = URL.createObjectURL(gifBlob);
       setGifUrl(url);
 
       // Cleanup
-      frameFiles.forEach((name) => {
-        try {
-          ffmpeg.FS("unlink", name);
-        } catch (e) {
-          console.warn("Cleanup error for", name, e);
-        }
-      });
-
-      ffmpeg.FS("unlink", "input.txt");
+      for (let i = 0; i < clipsToUse.length; i++) {
+        ffmpeg.FS("unlink", `input${i}.mp4`);
+      }
       ffmpeg.FS("unlink", "palette.png");
       ffmpeg.FS("unlink", "output.gif");
+
+      setProcessingProgress(100);
     } catch (err) {
       console.error("GIF creation error:", err);
-      alert("Failed to create GIF. See console for details.");
+      setError(
+        `Failed to create GIF: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
     } finally {
-      setProcessingProgress(100);
       setIsProcessing(false);
     }
+  };
+
+  // Helper function to read files
+  const fetchFile = async (file: File): Promise<Uint8Array> => {
+    return new Uint8Array(await file.arrayBuffer());
   };
 
   // Function to download the generated GIF
