@@ -80,15 +80,21 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
           />
         </SelectTrigger>
         <SelectContent className="bg-black/90 border-white/10 text-gray-400 max-h-72">
-          {models.map((model, index) => (
-            <SelectItem
-              key={index}
-              value={model.name}
-              className="flex items-center justify-between py-2"
-            >
-              {model.name}
-            </SelectItem>
-          ))}
+          {models.length === 0 ? (
+            <div className="text-center py-2 text-sm text-gray-500">
+              No models available
+            </div>
+          ) : (
+            models.map((model, index) => (
+              <SelectItem
+                key={index}
+                value={model.name}
+                className="flex items-center justify-between py-2"
+              >
+                {model.name}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
       {error && (

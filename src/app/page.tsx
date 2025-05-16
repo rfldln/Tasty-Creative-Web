@@ -337,7 +337,7 @@ const TastyCreative = () => {
   
           if (!data.authenticated) {
             // Get the current tab from URL or default to 'live'
-            const currentTab = tabValue || "live";
+            const currentTab = tabValue || "dashboard";
   
             // Include the current tab in the auth request
             const authRes = await fetch(
