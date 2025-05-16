@@ -559,7 +559,6 @@ export default function FTTFlyer() {
                 </div>
               </div>
             </div> */}
-            </div> */}
 
             <div className="col-span-2 flex w-full gap-5 items-center h-full">
               <div className="flex flex-col">
@@ -770,8 +769,8 @@ export default function FTTFlyer() {
                           />
                         )}
 
-                        {/* Template image
-                        {!selectedTemplateImage ? (
+                        {/* Template image */}
+                        {/* {!selectedTemplateImage ? (
                           <Image
                             src={`/templates/TEMPLATE_${formData.templatePosition}.png`}
                             alt="Template"
@@ -787,7 +786,6 @@ export default function FTTFlyer() {
                             width={1080}
                             height={1350}
                           />
-                        )} */}
                         )} */}
 
                         {/* Image label */}
