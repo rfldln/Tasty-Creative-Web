@@ -319,54 +319,54 @@ export default function FTTFlyer() {
         formDataToSend.append("imageFile", formData.imageFile);
       }
 
-      // Make the API request
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        body: formDataToSend, // Send as FormData (automatically sets correct headers)
-      });
+      // // Make the API request
+      // const response = await fetch(webhookUrl, {
+      //   method: "POST",
+      //   body: formDataToSend, // Send as FormData (automatically sets correct headers)
+      // });
 
-      console.log(response, "response");
+      // console.log(response, "response");
 
-      // Check for errors based on the status code
-      if (!response.ok) {
-        const errorText = await response.text();
-        setResponse({
-          error: `Failed to call webhook. Status: ${response.status} - ${errorText}`,
-        });
-        setError(errorText);
-        setIsLoading(false);
-        return;
-      }
+      // // Check for errors based on the status code
+      // if (!response.ok) {
+      //   const errorText = await response.text();
+      //   setResponse({
+      //     error: `Failed to call webhook. Status: ${response.status} - ${errorText}`,
+      //   });
+      //   setError(errorText);
+      //   setIsLoading(false);
+      //   return;
+      // }
 
-      // Read the response correctly (expect JSON response)
-      const textData = await response.text();
-      try {
-        const jsonData = JSON.parse(textData);
-        setResponse(jsonData); // Store the response in the state
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
-        setResponse({ error: "Invalid JSON response from webhook" });
-        setError(textData); // Store the raw response if it's not JSON
-        stopChecking(); // Stop checking if the response is invalid
-        // Send email about the invalid response (server offline)
-        const emailData = {
-          to: "kentjohnliloc@gmail.com",
-          subject: "Webhook Server Offline",
-          text: `The webhook server returned an invalid response:\n\n${textData}`,
-          html: `<p>The webhook server returned an invalid response:</p><pre>${textData}</pre>`,
-        };
+      // // Read the response correctly (expect JSON response)
+      // const textData = await response.text();
+      // try {
+      //   const jsonData = JSON.parse(textData);
+      //   setResponse(jsonData); // Store the response in the state
+      //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // } catch (e) {
+      //   setResponse({ error: "Invalid JSON response from webhook" });
+      //   setError(textData); // Store the raw response if it's not JSON
+      //   stopChecking(); // Stop checking if the response is invalid
+      //   // Send email about the invalid response (server offline)
+      //   const emailData = {
+      //     to: "kentjohnliloc@gmail.com",
+      //     subject: "Webhook Server Offline",
+      //     text: `The webhook server returned an invalid response:\n\n${textData}`,
+      //     html: `<p>The webhook server returned an invalid response:</p><pre>${textData}</pre>`,
+      //   };
 
-        // Send the email notification to admin about the issue
-        try {
-          await fetch("/api/sendEmail", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(emailData),
-          });
-        } catch (emailError) {
-          console.error("Error sending email:", emailError);
-        }
-      }
+      //   // Send the email notification to admin about the issue
+      //   try {
+      //     await fetch("/api/sendEmail", {
+      //       method: "POST",
+      //       headers: { "Content-Type": "application/json" },
+      //       body: JSON.stringify(emailData),
+      //     });
+      //   } catch (emailError) {
+      //     console.error("Error sending email:", emailError);
+      //   }
+      // }
 
       // Handle request-based logic
       if (formData.customRequest !== true) {
@@ -519,16 +519,16 @@ export default function FTTFlyer() {
               />
             </div>
 
-            <div className="col-span-2">
+            {/* <div className="col-span-2">
               <FlyerTemplates
                 flyer="FTT"
                 type={formData.templatePosition || ""}
                 setSelectedTemplateImage={setSelectedTemplateImage}
                 setSelectedTemplate={setSelectedTemplate}
               />
-            </div>
+            </div> */}
 
-            <div className="flex gap-4 col-span-2">
+            {/* <div className="flex gap-4 col-span-2">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Template Position
@@ -557,7 +557,7 @@ export default function FTTFlyer() {
                   ))}
                 </div>
               </div>
-            </div>
+            </div> */}
 
             <div className="col-span-2 flex w-full gap-5 items-center h-full">
               <div className="flex flex-col">
@@ -768,7 +768,7 @@ export default function FTTFlyer() {
                           />
                         )}
 
-                        {/* Template image */}
+                        {/* Template image
                         {!selectedTemplateImage ? (
                           <Image
                             src={`/templates/TEMPLATE_${formData.templatePosition}.png`}
@@ -785,7 +785,7 @@ export default function FTTFlyer() {
                             width={1080}
                             height={1350}
                           />
-                        )}
+                        )} */}
 
                         {/* Image label */}
                         <div className="absolute z-30 bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">

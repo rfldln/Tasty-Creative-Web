@@ -19,7 +19,7 @@ export const vipFlyerValidation = z.object({
 export const fttFlyerValidation = z.object({
   model: z.string().min(1).default(""), // If it's a date, use z.string().datetime()
   croppedImage: z.string().min(1).default(""),
-  templatePosition: z.string().min(1).default(""),
+  // templatePosition: z.string().min(1).default(""),
   tip: z.number().min(1).default(10),
   get: z.number().min(1).default(100),
 });
