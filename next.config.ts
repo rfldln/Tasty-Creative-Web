@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
-import path, { resolve } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import CopyPlugin from 'copy-webpack-plugin';
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import CopyPlugin from "copy-webpack-plugin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 
 const nextConfig = {
   experimental: {
@@ -35,8 +34,14 @@ const nextConfig = {
         source: "/api/notifications",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE" },
-          { key: "Access-Control-Allow-Headers", value: "Content-Type, x-api-key" },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, PUT, DELETE",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type, x-api-key",
+          },
         ],
       },
       {
@@ -49,7 +54,7 @@ const nextConfig = {
     ];
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-   webpack(config, { isServer }) {
+  webpack(config: any, { isServer }: { isServer: boolean }) {
     if (!isServer) {
       config.resolve.fallback = {
         fs: false,
@@ -60,7 +65,7 @@ const nextConfig = {
 
       const workerPath = path.resolve(
         __dirname,
-        'node_modules/gif.js/dist/gif.worker.js'
+        "node_modules/gif.js/dist/gif.worker.js"
       );
 
       config.plugins.push(
@@ -68,7 +73,7 @@ const nextConfig = {
           patterns: [
             {
               from: workerPath,
-              to: path.resolve(__dirname, 'public/gif.worker.js'),
+              to: path.resolve(__dirname, "public/gif.worker.js"),
             },
           ],
         })
