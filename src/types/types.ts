@@ -31,7 +31,7 @@ type ModelsDropdownProps = {
   formData: ModelFormData;
   setFormData: React.Dispatch<React.SetStateAction<ModelFormData>>;
   isLoading: boolean;
-  isFetchingImage: boolean;
+  isFetchingImage?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   webhookData?: any;
   error?: string;

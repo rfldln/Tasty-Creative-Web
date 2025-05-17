@@ -58,6 +58,10 @@ const data = {
           title: "Twitter Ads",
           url: "#twitter",
         },
+        {
+          title: "GIF Maker",
+          url: "#gif-maker",
+        },
       ],
     },
   ],
