@@ -12,8 +12,15 @@ import {
   Clock,
   Download,
   Loader2,
+  Eraser,
+  Sliders,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
+import dynamic from "next/dynamic";
+import { parseGIF, decompressFrames } from "gifuct-js";
+import GIF from "gif.js";
 
 // Define TypeScript interfaces
 interface ModelFormData {
@@ -39,6 +46,29 @@ const GifMaker = () => {
   const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null);
   const [error, setError] = useState("");
   const [isReady, setIsReady] = useState(false);
+
+  const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [blurType, setBlurType] = useState("gaussian"); // gaussian, pixelated, mosaic
+  const [blurIntensity, setBlurIntensity] = useState(10);
+  const [brushSize, setBrushSize] = useState(20);
+  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(
+    null
+  );
+
+  // GIF Blur Processing
+  const [gifFrames, setGifFrames] = useState<ImageData[]>([]);
+  const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
+  const [isGifProcessing, setIsGifProcessing] = useState(false);
+  const [isGifLoaded, setIsGifLoaded] = useState(false);
+
+  // Refs
+  const canvasBlurRef = useRef<HTMLCanvasElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const outputCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
   // Canvas ref for capturing frames
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -417,45 +447,6 @@ const GifMaker = () => {
     setGifUrl(null);
   }, [totalCells]);
 
-  // Function to capture a frame from all videos at their current times
-  // const captureFrame = () => {
-  //   const canvas = canvasRef.current;
-  //   if (!canvas) return null;
-
-  //   const ctx = canvas.getContext("2d");
-  //   if (!ctx) return null;
-
-  //   // Clear canvas
-  //   ctx.fillStyle = "black";
-  //   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  //   const cols = templates[selectedTemplate].cols;
-  //   const rows = templates[selectedTemplate].rows;
-
-  //   // Calculate cell dimensions
-  //   const cellWidth = canvas.width / cols;
-  //   const cellHeight = canvas.height / rows;
-
-  //   // Draw each video to its grid position
-  //   videoClips.forEach((clip, index) => {
-  //     const video = videoRefs.current[index];
-  //     if (!video || !clip.file) return;
-
-  //     const col = index % cols;
-  //     const row = Math.floor(index / cols);
-
-  //     ctx.drawImage(
-  //       video,
-  //       col * cellWidth,
-  //       row * cellHeight,
-  //       cellWidth,
-  //       cellHeight
-  //     );
-  //   });
-
-  //   return canvas.toDataURL("image/jpeg", 0.95);
-  // };
-
   // Function to create GIF
   const createGif = async () => {
     if (!ffmpeg || !ffmpeg.isLoaded()) {
@@ -543,9 +534,14 @@ const GifMaker = () => {
 
       // Read result
       const data = ffmpeg.FS("readFile", "output.gif");
-      const gifBlob = new Blob([data.buffer], { type: "image/gif" });
+      const gifBlob = new Blob([new Uint8Array(data.buffer)], {
+        type: "image/gif",
+      });
       const url = URL.createObjectURL(gifBlob);
       setGifUrl(url);
+
+      // Extract frames from the GIF
+      extractGifFrames(gifBlob);
 
       // Cleanup
       for (let i = 0; i < clipsToUse.length; i++) {
@@ -579,6 +575,578 @@ const GifMaker = () => {
     const link = document.createElement("a");
     link.href = gifUrl;
     link.download = `OnlyFans_${selectedTemplate}_${new Date().getTime()}.gif`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // ================== GIF Blur Processing ==================
+
+  // Extract frames from GIF
+  const extractGifFrames = async (gifBlob: Blob) => {
+    if (!gifBlob) {
+      console.error("No GIF blob provided");
+      return;
+    }
+
+    setIsGifProcessing(true);
+    setGifFrames([]);
+    setCurrentFrameIndex(0);
+    setIsGifLoaded(false);
+
+    try {
+      const arrayBuffer = await gifBlob.arrayBuffer();
+      const gif = parseGIF(arrayBuffer);
+      const frames = decompressFrames(gif, true);
+
+      // Validate and set default dimensions if needed
+      let gifWidth = gif.lsd && gif.lsd.width ? gif.lsd.width : 1;
+      let gifHeight = gif.lsd && gif.lsd.height ? gif.lsd.height : 1;
+
+      // Ensure dimensions are positive numbers
+      gifWidth = Math.max(1, gifWidth);
+      gifHeight = Math.max(1, gifHeight);
+
+      const extractedFrames: ImageData[] = [];
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = gifWidth;
+      tempCanvas.height = gifHeight;
+
+      const ctx = tempCanvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) {
+        throw new Error("Could not get canvas context");
+      }
+
+      // Process each frame
+      for (let i = 0; i < frames.length; i++) {
+        const frame = frames[i];
+
+        // Skip frames with invalid dimensions or no patch data
+        if (!frame.patch || frame.patch.length === 0) {
+          console.warn(`Skipping frame ${i} due to missing patch data`);
+          continue;
+        }
+
+        try {
+          // Use frame dimensions if available, otherwise fall back to GIF dimensions
+          const frameWidth = frame.dims?.width || gifWidth;
+          const frameHeight = frame.dims?.height || gifHeight;
+          const frameLeft = frame.dims?.left || 0;
+          const frameTop = frame.dims?.top || 0;
+
+          // Create ImageData from frame
+          const imageData = new ImageData(
+            new Uint8ClampedArray(frame.patch),
+            frameWidth,
+            frameHeight
+          );
+
+          // Clear canvas and draw frame at its proper position
+          ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+          ctx.putImageData(imageData, frameLeft, frameTop);
+
+          // Get the full canvas data
+          const frameData = ctx.getImageData(
+            0,
+            0,
+            tempCanvas.width,
+            tempCanvas.height
+          );
+          extractedFrames.push(frameData);
+        } catch (frameError) {
+          console.error(`Error processing frame ${i}:`, frameError);
+        }
+      }
+
+      if (extractedFrames.length === 0) {
+        throw new Error("No valid frames could be extracted from the GIF");
+      }
+
+      setGifFrames(extractedFrames);
+      displayFrame(0); // Display first frame
+      setIsGifLoaded(true);
+    } catch (error) {
+      console.error("Error extracting GIF frames:", error);
+      setError(
+        "Failed to process GIF. The file may be corrupted or unsupported."
+      );
+      // Reset frames state
+      setGifFrames([]);
+      setCurrentFrameIndex(0);
+    } finally {
+      setIsGifProcessing(false);
+    }
+  };
+
+  // Display a specific frame
+  const displayFrame = (index: number) => {
+    // Validate frames array exists and has content
+    if (!Array.isArray(gifFrames)) {
+      console.error("gifFrames is not an array");
+      return;
+    }
+
+    if (gifFrames.length === 0) {
+      console.error("No frames available to display");
+      return;
+    }
+
+    // Validate index is within bounds
+    const safeIndex = Math.max(0, Math.min(index, gifFrames.length - 1));
+    if (index !== safeIndex) {
+      console.warn(`Adjusted frame index from ${index} to ${safeIndex}`);
+      index = safeIndex;
+    }
+
+    const canvas = canvasBlurRef.current;
+    if (!canvas) {
+      console.error("Canvas ref not available");
+      return;
+    }
+
+    const frame = gifFrames[index];
+    if (!frame || !frame.data || frame.data.length === 0) {
+      console.error("Invalid frame data at index", index);
+      return;
+    }
+
+    // Ensure we have valid dimensions
+    const frameWidth = Math.max(1, frame.width || 1);
+    const frameHeight = Math.max(1, frame.height || 1);
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) {
+      console.error("Could not get canvas context");
+      return;
+    }
+
+    // Set canvas dimensions
+    canvas.width = frameWidth;
+    canvas.height = frameHeight;
+
+    // Update mask canvas dimensions to match
+    const maskCanvas = maskCanvasRef.current;
+    if (maskCanvas) {
+      maskCanvas.width = frameWidth;
+      maskCanvas.height = frameHeight;
+    }
+
+    // Draw frame
+    ctx.putImageData(frame, 0, 0);
+    setCurrentFrameIndex(index);
+  };
+
+  // Apply blur to current frame
+  const applyBlurToCurrentFrame = () => {
+    if (
+      !gifFrames.length ||
+      currentFrameIndex < 0 ||
+      currentFrameIndex >= gifFrames.length
+    )
+      return;
+
+    const canvas = canvasBlurRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas) return;
+
+    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+    if (!maskCtx) return;
+
+    // Get the mask data
+    const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Create a copy of the current frame
+    const frameData = new ImageData(
+      new Uint8ClampedArray(gifFrames[currentFrameIndex].data),
+      gifFrames[currentFrameIndex].width,
+      gifFrames[currentFrameIndex].height
+    );
+
+    // Apply blur based on mask
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const i = (y * canvas.width + x) * 4;
+
+        // If pixel is in the mask (non-transparent)
+        if (maskData.data[i + 3] > 0) {
+          if (blurType === "pixelated") {
+            applyPixelatedBlur(x, y, frameData);
+          } else if (blurType === "gaussian") {
+            applyGaussianBlur(x, y, frameData);
+          } else if (blurType === "mosaic") {
+            applyMosaicBlur(x, y, frameData);
+          }
+        }
+      }
+    }
+
+    // Update the frame in our array
+    const updatedFrames = [...gifFrames];
+    updatedFrames[currentFrameIndex] = frameData;
+    setGifFrames(updatedFrames);
+
+    // Display the updated frame
+    ctx.putImageData(frameData, 0, 0);
+  };
+
+  // Process all frames with the current mask
+  const processAllFrames = async () => {
+    if (!gifFrames.length) return;
+
+    setIsGifProcessing(true);
+
+    try {
+      const maskCanvas = maskCanvasRef.current;
+      if (!maskCanvas) return;
+
+      const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+      if (!maskCtx) return;
+
+      // Get the mask data once (assumes same mask for all frames)
+      const maskData = maskCtx.getImageData(
+        0,
+        0,
+        maskCanvas.width,
+        maskCanvas.height
+      );
+
+      const processedFrames = await Promise.all(
+        gifFrames.map((frame) => {
+          return new Promise<ImageData>((resolve) => {
+            const frameData = new ImageData(
+              new Uint8ClampedArray(frame.data),
+              frame.width,
+              frame.height
+            );
+
+            // Apply blur based on mask
+            for (let y = 0; y < frame.height; y++) {
+              for (let x = 0; x < frame.width; x++) {
+                const i = (y * frame.width + x) * 4;
+
+                // If pixel is in the mask (white)
+                if (maskData.data[i + 3] > 0) {
+                  if (blurType === "pixelated") {
+                    applyPixelatedBlur(x, y, frameData);
+                  } else if (blurType === "gaussian") {
+                    applyGaussianBlur(x, y, frameData);
+                  } else if (blurType === "mosaic") {
+                    applyMosaicBlur(x, y, frameData);
+                  }
+                }
+              }
+            }
+
+            resolve(frameData);
+          });
+        })
+      );
+
+      setGifFrames(processedFrames);
+      displayFrame(currentFrameIndex);
+    } catch (error) {
+      console.error("Error processing frames:", error);
+      setError("Failed to process all frames");
+    } finally {
+      setIsGifProcessing(false);
+    }
+  };
+
+  // Reconstruct GIF from processed frames
+  const reconstructGif = async () => {
+    if (!gifFrames.length) {
+      console.error("No frames to reconstruct");
+      return;
+    }
+
+    setIsGifProcessing(true);
+
+    try {
+      // Use the dimensions from the first frame as reference
+      const firstFrame = gifFrames[0];
+      const width = firstFrame.width;
+      const height = firstFrame.height;
+
+      // Create a new GIF instance with proper configuration
+      const gif = new GIF({
+        workers: 4, // Increased worker count for better performance
+        quality: quality, // Use the quality setting from state
+        width: width,
+        height: height,
+        workerScript:
+          "https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js",
+        dither: "FloydSteinberg", // Better dithering
+        transparent: null, // No transparency
+        background: "#000000", // Black background
+        debug: true, // Enable debugging
+      });
+
+      // Add each frame with proper timing
+      gifFrames.forEach((frame) => {
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+
+        const ctx = tempCanvas.getContext("2d");
+        if (!ctx) {
+          console.error("Could not get canvas context");
+          return;
+        }
+
+        // Create ImageData from frame
+        const imageData = new ImageData(
+          new Uint8ClampedArray(frame.data),
+          frame.width,
+          frame.height
+        );
+
+        // Draw frame to canvas
+        ctx.putImageData(imageData, 0, 0);
+
+        // Add frame with delay (100ms = 10fps, adjust as needed)
+        gif.addFrame(tempCanvas, {
+          delay: 1000 / fps, // Calculate delay based on fps
+          copy: true, // Make a copy of the canvas
+        });
+      });
+
+      // Handle rendering completion
+      gif.on("finished", (blob: Blob) => {
+        const url = URL.createObjectURL(blob);
+        setGifUrl(url);
+        setIsGifProcessing(false);
+
+        // Clean up previous URL if it exists
+        if (gifUrl) {
+          URL.revokeObjectURL(gifUrl);
+        }
+      });
+
+      // Handle rendering errors
+      gif.on("abort", () => {
+        console.error("GIF rendering aborted");
+        setError("GIF rendering was aborted");
+        setIsGifProcessing(false);
+      });
+
+      gif.render();
+    } catch (error) {
+      console.error("Error reconstructing GIF:", error);
+      setError(
+        `Failed to reconstruct GIF: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      setIsGifProcessing(false);
+    }
+  };
+
+  // Blur functions
+  const applyGaussianBlur = (x: number, y: number, imageData: ImageData) => {
+    const intensity = blurIntensity;
+    const radius = Math.floor(intensity / 2);
+    let r = 0,
+      g = 0,
+      b = 0,
+      a = 0,
+      count = 0;
+
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const nx = Math.min(Math.max(x + dx, 0), imageData.width - 1);
+        const ny = Math.min(Math.max(y + dy, 0), imageData.height - 1);
+        const ni = (ny * imageData.width + nx) * 4;
+
+        r += imageData.data[ni];
+        g += imageData.data[ni + 1];
+        b += imageData.data[ni + 2];
+        a += imageData.data[ni + 3];
+        count++;
+      }
+    }
+
+    const i = (y * imageData.width + x) * 4;
+    imageData.data[i] = r / count;
+    imageData.data[i + 1] = g / count;
+    imageData.data[i + 2] = b / count;
+    imageData.data[i + 3] = a / count;
+  };
+
+  const applyPixelatedBlur = (x: number, y: number, imageData: ImageData) => {
+    const blockSize = Math.max(1, Math.floor(blurIntensity / 2));
+    const blockX = Math.floor(x / blockSize) * blockSize;
+    const blockY = Math.floor(y / blockSize) * blockSize;
+
+    const baseI = (blockY * imageData.width + blockX) * 4;
+    const r = imageData.data[baseI];
+    const g = imageData.data[baseI + 1];
+    const b = imageData.data[baseI + 2];
+    const a = imageData.data[baseI + 3];
+
+    const i = (y * imageData.width + x) * 4;
+    imageData.data[i] = r;
+    imageData.data[i + 1] = g;
+    imageData.data[i + 2] = b;
+    imageData.data[i + 3] = a;
+  };
+
+  const applyMosaicBlur = (x: number, y: number, imageData: ImageData) => {
+    const blockSize = Math.max(1, Math.floor(blurIntensity / 2));
+    const blockX = Math.floor(x / blockSize) * blockSize;
+    const blockY = Math.floor(y / blockSize) * blockSize;
+
+    let r = 0,
+      g = 0,
+      b = 0,
+      a = 0,
+      count = 0;
+
+    for (let dy = 0; dy < blockSize && blockY + dy < imageData.height; dy++) {
+      for (let dx = 0; dx < blockSize && blockX + dx < imageData.width; dx++) {
+        const nx = blockX + dx;
+        const ny = blockY + dy;
+        const ni = (ny * imageData.width + nx) * 4;
+
+        r += imageData.data[ni];
+        g += imageData.data[ni + 1];
+        b += imageData.data[ni + 2];
+        a += imageData.data[ni + 3];
+        count++;
+      }
+    }
+
+    const avgR = r / count;
+    const avgG = g / count;
+    const avgB = b / count;
+    const avgA = a / count;
+
+    const i = (y * imageData.width + x) * 4;
+    imageData.data[i] = avgR;
+    imageData.data[i + 1] = avgG;
+    imageData.data[i + 2] = avgB;
+    imageData.data[i + 3] = avgA;
+  };
+
+  // Handle drawing on the mask
+  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasBlurRef.current;
+    if (!canvas) return;
+
+    // Initialize mask canvas if not already done
+    const maskCanvas = maskCanvasRef.current;
+    if (maskCanvas) {
+      maskCanvas.width = canvas.width;
+      maskCanvas.height = canvas.height;
+      const maskCtx = maskCanvas.getContext("2d");
+      if (maskCtx) {
+        maskCtx.fillStyle = "rgba(0,0,0,0)"; // Transparent background
+        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+      }
+    }
+
+    setIsDrawing(true);
+    drawMask(getMousePos(e));
+  };
+
+  const stopDrawing = () => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      if (isGifLoaded) {
+        applyBlurToCurrentFrame();
+      }
+    }
+  };
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing || !canvas) return;
+    drawMask(getMousePos(e));
+  };
+
+  const getMousePos = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!canvasBlurRef.current) return { x: 0, y: 0 };
+    const rect = canvasBlurRef.current.getBoundingClientRect();
+
+    // Get position considering touch or mouse events
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+
+    return {
+      x: (clientX - rect.left) * (canvasBlurRef.current.width / rect.width),
+      y: (clientY - rect.top) * (canvasBlurRef.current.height / rect.height),
+    };
+  };
+
+  const drawMask = (pos: { x: number; y: number }) => {
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas) return;
+
+    const maskCtx = maskCanvas.getContext("2d");
+    if (!maskCtx) return;
+
+    // Set drawing properties
+    maskCtx.globalCompositeOperation = "source-over";
+    maskCtx.fillStyle = "white";
+    maskCtx.beginPath();
+    maskCtx.arc(pos.x, pos.y, brushSize, 0, Math.PI * 2);
+    maskCtx.fill();
+
+    // Immediately apply blur to the current frame
+    applyBlurToCurrentFrame();
+  };
+
+  const clearMask = () => {
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas) return;
+
+    const maskCtx = maskCanvas.getContext("2d");
+    if (!maskCtx) return;
+
+    // Clear the mask
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+
+    // Reset to transparent
+    maskCtx.fillStyle = "rgba(0,0,0,0)";
+    maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+
+    // Redisplay the original frame
+    if (isGifLoaded && gifFrames.length > 0) {
+      const originalFrame = gifFrames[currentFrameIndex];
+      const canvas = canvasBlurRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.putImageData(originalFrame, 0, 0);
+        }
+      }
+    }
+  };
+
+  // When navigating frames
+  const goToPreviousFrame = () => {
+    if (gifFrames.length > 0) {
+      const newIndex = Math.max(0, currentFrameIndex - 1);
+      displayFrame(newIndex);
+    }
+  };
+
+  const goToNextFrame = () => {
+    if (gifFrames.length > 0) {
+      const newIndex = Math.min(gifFrames.length - 1, currentFrameIndex + 1);
+      displayFrame(newIndex);
+    }
+  };
+
+  const downloadProcessedGif = () => {
+    if (!gifUrl) return;
+
+    const link = document.createElement("a");
+    link.href = gifUrl;
+    link.download = `OnlyFans_blurred_${new Date().getTime()}.gif`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -766,37 +1334,6 @@ const GifMaker = () => {
               </button>
             </div>
 
-            {/* Trimming preview */}
-            {/* <div className="relative mb-4">
-              <video
-                ref={(el) => {
-                  if (el) {
-                    videoRefs.current[activeVideoIndex] = el;
-
-                    // Sync video to startTime
-                    el.onloadedmetadata = () => {
-                      el.currentTime = videoClips[activeVideoIndex].startTime;
-                    };
-
-                    // Pause when reaching endTime
-                    el.ontimeupdate = () => {
-                      if (
-                        el.currentTime >= videoClips[activeVideoIndex].endTime
-                      ) {
-                        el.pause();
-                        setIsPlaying(false);
-                      }
-                    };
-                  }
-                }}
-                src={URL.createObjectURL(videoClips[activeVideoIndex].file!)}
-                className="rounded w-full aspect-video object-cover"
-                controls={false}
-                autoPlay
-                loop
-              />
-            </div> */}
-
             <div className="flex justify-between text-sm text-gray-400 mb-2">
               <span>
                 Total: {formatTime(videoClips[activeVideoIndex].duration)}
@@ -932,6 +1469,159 @@ const GifMaker = () => {
                 </button>
               </div>
             </div>
+
+            {/* GIF Blur Editor */}
+            <div className="mt-6 bg-gray-900 p-4 rounded-lg border border-gray-700">
+              <h3 className="text-gray-300 mb-4 font-medium">Blur Editor</h3>
+
+              {/* Frame Navigation */}
+              {isGifLoaded && (
+                <div className="flex justify-center items-center mb-4">
+                  <button
+                    onClick={goToPreviousFrame}
+                    disabled={currentFrameIndex === 0 || gifFrames.length === 0}
+                    className="p-2 rounded-full bg-gray-700 disabled:opacity-50"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={goToNextFrame}
+                    disabled={
+                      currentFrameIndex === gifFrames.length - 1 ||
+                      gifFrames.length === 0
+                    }
+                    className="p-2 rounded-full bg-gray-700 disabled:opacity-50"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Drawing canvas (visible) */}
+              <div
+                className="relative"
+                style={{ maxWidth: "100%", overflow: "auto" }}
+              >
+                {/* Main canvas that displays the GIF frame */}
+                <canvas
+                  ref={canvasBlurRef}
+                  className="max-w-full border border-gray-600 rounded-lg"
+                  style={{ cursor: "crosshair" }}
+                />
+
+                {/* Mask canvas that sits on top for drawing */}
+                <canvas
+                  ref={maskCanvasRef}
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                  className="absolute top-0 left-0 opacity-50"
+                  style={{
+                    maxWidth: "100%",
+                    pointerEvents: "auto", // Make sure it receives events
+                    zIndex: 10, // Ensure it's above the main canvas
+                  }}
+                />
+              </div>
+
+              {/* Controls */}
+              <div className="mt-4 p-4 bg-gray-800 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Blur type */}
+                  <div>
+                    <label className="block mb-2 text-gray-300">
+                      Blur Type
+                    </label>
+                    <select
+                      value={blurType}
+                      onChange={(e) => setBlurType(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-300"
+                    >
+                      <option value="gaussian">Gaussian Blur</option>
+                      <option value="pixelated">Pixelated</option>
+                      <option value="mosaic">Mosaic</option>
+                    </select>
+                  </div>
+
+                  {/* Blur intensity */}
+                  <div>
+                    <label className="block mb-2 text-gray-300">
+                      Blur Intensity: {blurIntensity}
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
+                      value={blurIntensity}
+                      onChange={(e) =>
+                        setBlurIntensity(parseInt(e.target.value))
+                      }
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+
+                  {/* Brush size */}
+                  <div>
+                    <label className="block mb-2 text-gray-300">
+                      Brush Size: {brushSize}px
+                    </label>
+                    <input
+                      type="range"
+                      min="5"
+                      max="100"
+                      value={brushSize}
+                      onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-end space-x-2">
+                    <button
+                      onClick={clearMask}
+                      className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg flex items-center justify-center"
+                    >
+                      <Eraser className="w-4 h-4 mr-2" /> Clear
+                    </button>
+                    <button
+                      onClick={() => (isGifLoaded ? processAllFrames() : null)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg flex items-center justify-center"
+                    >
+                      <Sliders className="w-4 h-4 mr-2" /> Apply to All Frames
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Blurred GIF */}
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={reconstructGif}
+                  disabled={isGifProcessing || !isGifLoaded}
+                  className={`${
+                    isGifProcessing
+                      ? "bg-purple-800"
+                      : "bg-purple-600 hover:bg-purple-500"
+                  } text-white px-4 py-2 rounded-lg transition-colors flex items-center`}
+                >
+                  {isGifProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" /> Save Blurred GIF
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -974,10 +1664,10 @@ const GifMaker = () => {
     </div>
   );
 };
+
 export default GifMaker;
 
 // Create a non-SSR version of the component
 export const ClientSideFFmpeg = dynamic(() => Promise.resolve(GifMaker), {
   ssr: false,
 });
-import dynamic from "next/dynamic";
