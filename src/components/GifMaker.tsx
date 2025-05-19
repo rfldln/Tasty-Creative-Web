@@ -19,6 +19,7 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import dynamic from "next/dynamic";
 import { parseGIF, decompressFrames } from "gifuct-js";
 import GIF from "gif.js";
+import Cookies from "js-cookie";
 
 // Define TypeScript interfaces
 interface ModelFormData {
@@ -32,13 +33,37 @@ interface VideoClip {
   duration: number;
 }
 
+const BLUR_COOKIE_KEY = "blurSettings";
+const GIF_COOKIE_KEY = "gifSettings";
+
+type BlurSettings = {
+  blurType: "gaussian" | "pixelated" | "mosaic";
+  blurIntensity: number;
+  brushSize: number;
+};
+
+type GifSettings = {
+  maxDuration: number;
+  fps: number;
+  quality: number;
+};
+
+const defaultBlurSettings: BlurSettings = {
+  blurType: "gaussian",
+  blurIntensity: 10,
+  brushSize: 20,
+};
+
+const defaultGifSettings: GifSettings = {
+  maxDuration: 5,
+  fps: 15,
+  quality: 10,
+};
+
 const GifMaker = () => {
   const [formData, setFormData] = useState<ModelFormData>({});
   const [gifUrl, setGifUrl] = useState<string | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState("sideBySide");
-  const [maxDuration, setMaxDuration] = useState(5); // Default max duration in seconds
-  const [fps, setFps] = useState(15); // Frames per second for GIF
-  const [quality, setQuality] = useState(10); // Quality setting (1-30)
+  const [selectedTemplate, setSelectedTemplate] = useState("single");
   const [processingProgress, setProcessingProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null);
@@ -48,15 +73,66 @@ const GifMaker = () => {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
 
   const [isDrawing, setIsDrawing] = useState(false);
-  const [blurType, setBlurType] = useState("gaussian"); // gaussian, pixelated, mosaic
-  const [blurIntensity, setBlurIntensity] = useState(10);
-  const [brushSize, setBrushSize] = useState(20);
+
+  const [blurSettings, setBlurSettings] = useState<BlurSettings>(() => {
+    const cookie = Cookies.get(BLUR_COOKIE_KEY);
+    if (cookie) {
+      try {
+        return { ...defaultBlurSettings, ...JSON.parse(cookie) };
+      } catch (err) {
+        console.warn("Invalid cookie format for blur blurSettings");
+      }
+    }
+    return defaultBlurSettings;
+  });
+
+  const [gifSettings, setGifSettings] = useState<GifSettings>(() => {
+    const cookie = Cookies.get(GIF_COOKIE_KEY);
+    if (cookie) {
+      try {
+        return { ...defaultGifSettings, ...JSON.parse(cookie) };
+      } catch (err) {
+        console.warn("Invalid cookie format for blur blurSettings");
+      }
+    }
+    return defaultGifSettings;
+  });
+  // Update cookie whenever blurSettings change
+  useEffect(() => {
+    Cookies.set(BLUR_COOKIE_KEY, JSON.stringify(blurSettings), {
+      expires: 365, // 1 year
+    });
+  }, [blurSettings]);
+
+  useEffect(() => {
+    Cookies.set(GIF_COOKIE_KEY, JSON.stringify(gifSettings), {
+      expires: 365, // 1 year
+    });
+  }, [gifSettings]);
 
   // GIF Blur Processing
   const [gifFrames, setGifFrames] = useState<ImageData[]>([]);
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [isGifProcessing, setIsGifProcessing] = useState(false);
   const [isGifLoaded, setIsGifLoaded] = useState(false);
+
+  const setBlurType = (type: BlurSettings["blurType"]) =>
+    setBlurSettings((prev) => ({ ...prev, blurType: type }));
+
+  const setBlurIntensity = (val: number) =>
+    setBlurSettings((prev) => ({ ...prev, blurIntensity: val }));
+
+  const setBrushSize = (val: number) =>
+    setBlurSettings((prev) => ({ ...prev, brushSize: val }));
+
+  const setMaxDuration = (val: number) =>
+    setGifSettings((prev) => ({ ...prev, maxDuration: val }));
+
+  const setFps = (val: number) =>
+    setGifSettings((prev) => ({ ...prev, fps: val }));
+
+  const setQuality = (val: number) =>
+    setGifSettings((prev) => ({ ...prev, quality: val }));
 
   // Refs
   const canvasBlurRef = useRef<HTMLCanvasElement | null>(null);
@@ -114,53 +190,97 @@ const GifMaker = () => {
     | "Vertical Triptych"
     | "2x2 Grid";
 
-  const scaleWidth = 320;
-  const scaleHeight = 180; // Fixed positive height
+  const getAspectRatioSize = (
+    layout: Layout,
+    originalWidth: number = 0,
+    originalHeight: number = 0,
+    baseHeight: number = 360
+  ): { width: number; height: number } => {
+    switch (layout) {
+      case "Single":
+        return { width: originalWidth, height: originalHeight }; // use original size
+      case "Side by Side":
+        return { width: baseHeight * 2, height: baseHeight };
+      case "Horizontal Triptych":
+        return { width: baseHeight * 3, height: baseHeight };
+      case "Vertical Triptych":
+        return { width: baseHeight, height: baseHeight * 3 };
+      case "2x2 Grid":
+        return { width: baseHeight * 2, height: baseHeight * 2 };
+      default:
+        throw new Error(`Unsupported layout: ${layout}`);
+    }
+  };
 
   const createFilterComplex = (
     layout: Layout,
     clipCount: number,
-    fps: number
-  ) => {
+    fps: number,
+    baseHeight: number = 360
+  ): string => {
+    const { width, height } = getAspectRatioSize(layout, baseHeight);
+    const w =
+      width /
+      (layout === "Side by Side"
+        ? 2
+        : layout === "Horizontal Triptych"
+        ? 3
+        : layout === "2x2 Grid"
+        ? 2
+        : 1);
+    const h =
+      height /
+      (layout === "Vertical Triptych" ? 3 : layout === "2x2 Grid" ? 2 : 1);
+
     if (layout === "Single" && clipCount === 1) {
-      return `[0:v]scale=${scaleWidth}:${scaleHeight},fps=${fps},palettegen=stats_mode=diff[p]`;
+      return `fps=${fps},palettegen=stats_mode=diff[p]`;
     }
+
+    const scale = (index: number) =>
+      `[${index}:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}[v${index}];`;
+    const label = (i: number) => `[v${i}]`;
 
     if (layout === "Side by Side" && clipCount === 2) {
       return (
-        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
-        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
-        `[v0][v1]hstack=inputs=2,fps=${fps},palettegen=stats_mode=diff[p]`
+        scale(0) +
+        scale(1) +
+        `${label(0)}${label(
+          1
+        )}hstack=inputs=2,fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
     if (layout === "Horizontal Triptych" && clipCount === 3) {
       return (
-        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
-        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
-        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
-        `[v0][v1][v2]hstack=inputs=3[v];` + // stack horizontally first, label [v]
-        `[v]fps=${fps},palettegen=stats_mode=diff[p]` // then apply fps and palettegen filters
+        scale(0) +
+        scale(1) +
+        scale(2) +
+        `${label(0)}${label(1)}${label(
+          2
+        )}hstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
     if (layout === "Vertical Triptych" && clipCount === 3) {
       return (
-        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
-        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
-        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
-        `[v0][v1][v2]vstack=inputs=3[v];` + // stack vertically first, label [v]
-        `[v]fps=${fps},palettegen=stats_mode=diff[p]` // then apply fps and palettegen filters
+        scale(0) +
+        scale(1) +
+        scale(2) +
+        `${label(0)}${label(1)}${label(
+          2
+        )}vstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
     if (layout === "2x2 Grid" && clipCount === 4) {
       return (
-        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
-        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
-        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
-        `[3:v]scale=${scaleWidth}:${scaleHeight}[v3];` +
-        `[v0][v1][v2][v3]xstack=inputs=4:layout=0_0|${scaleWidth}_0|0_${scaleHeight}|${scaleWidth}_${scaleHeight},fps=${fps},palettegen=stats_mode=diff[p]`
+        scale(0) +
+        scale(1) +
+        scale(2) +
+        scale(3) +
+        `${label(0)}${label(1)}${label(2)}${label(
+          3
+        )}xstack=inputs=4:layout=0_0|${w}_0|0_${h}|${w}_${h},fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -170,45 +290,72 @@ const GifMaker = () => {
   const createUseFilterComplex = (
     layout: Layout,
     clipCount: number,
-    fps: number
-  ) => {
+    fps: number,
+    baseHeight: number = 360
+  ): string => {
+    const { width, height } = getAspectRatioSize(layout, baseHeight);
+    const w =
+      width /
+      (layout === "Side by Side"
+        ? 2
+        : layout === "Horizontal Triptych"
+        ? 3
+        : layout === "2x2 Grid"
+        ? 2
+        : 1);
+    const h =
+      height /
+      (layout === "Vertical Triptych" ? 3 : layout === "2x2 Grid" ? 2 : 1);
+
+    const scale = (index: number) =>
+      `[${index}:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}[v${index}];`;
+    const label = (i: number) => `[v${i}]`;
+
     if (layout === "Single" && clipCount === 1) {
-      return `[0:v]scale=${scaleWidth}:${scaleHeight},fps=${fps}[x];[x][1:v]paletteuse=dither=bayer`;
+      return `fps=${fps}[x];[x][1:v]paletteuse=dither=bayer`;
     }
 
     if (layout === "Side by Side" && clipCount === 2) {
       return (
-        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
-        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
-        `[v0][v1]hstack=inputs=2,fps=${fps}[x];[x][2:v]paletteuse=dither=bayer`
+        scale(0) +
+        scale(1) +
+        `${label(0)}${label(
+          1
+        )}hstack=inputs=2,fps=${fps}[x];[x][2:v]paletteuse=dither=bayer`
       );
     }
 
     if (layout === "Horizontal Triptych" && clipCount === 3) {
       return (
-        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
-        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
-        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
-        `[v0][v1][v2]hstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+        scale(0) +
+        scale(1) +
+        scale(2) +
+        `${label(0)}${label(1)}${label(
+          2
+        )}hstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
       );
     }
 
     if (layout === "Vertical Triptych" && clipCount === 3) {
       return (
-        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
-        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
-        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
-        `[v0][v1][v2]vstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+        scale(0) +
+        scale(1) +
+        scale(2) +
+        `${label(0)}${label(1)}${label(
+          2
+        )}vstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
       );
     }
 
     if (layout === "2x2 Grid" && clipCount === 4) {
       return (
-        `[0:v]scale=${scaleWidth}:${scaleHeight}[v0];` +
-        `[1:v]scale=${scaleWidth}:${scaleHeight}[v1];` +
-        `[2:v]scale=${scaleWidth}:${scaleHeight}[v2];` +
-        `[3:v]scale=${scaleWidth}:${scaleHeight}[v3];` +
-        `[v0][v1][v2][v3]xstack=inputs=4:layout=0_0|${scaleWidth}_0|0_${scaleHeight}|${scaleWidth}_${scaleHeight},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
+        scale(0) +
+        scale(1) +
+        scale(2) +
+        scale(3) +
+        `${label(0)}${label(1)}${label(2)}${label(
+          3
+        )}xstack=inputs=4:layout=0_0|${w}_0|0_${h}|${w}_${h},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
       );
     }
 
@@ -243,7 +390,7 @@ const GifMaker = () => {
       newClips[index] = {
         file: file,
         startTime: 0,
-        endTime: Math.min(5, maxDuration), // Default to 5 seconds or max duration
+        endTime: Math.min(5, gifSettings.maxDuration), // Default to 5 seconds or max duration
         duration: 0, // Will be updated once metadata is loaded
       };
       return newClips;
@@ -263,7 +410,7 @@ const GifMaker = () => {
             const newClips = [...prev];
             newClips[index] = {
               ...newClips[index],
-              endTime: Math.min(maxDuration, videoDuration),
+              endTime: Math.min(gifSettings.maxDuration, videoDuration),
               duration: videoDuration,
             };
             return newClips;
@@ -448,9 +595,15 @@ const GifMaker = () => {
       return;
     }
 
+    // Reset all relevant states
+    setGifUrl(null);
+    setGifFrames([]);
+    setCurrentFrameIndex(0);
+    setIsGifLoaded(false);
+    setOriginalGifData(null);
+
     setIsProcessing(true);
     setProcessingProgress(0);
-    setGifUrl(null);
 
     try {
       const validClips = videoClips.filter((clip) => clip.file);
@@ -463,6 +616,7 @@ const GifMaker = () => {
       if (selectedTemplate && templates[selectedTemplate]) {
         layout = templates[selectedTemplate].name as Layout;
       }
+
       // Limit clips to max needed for layout
       const clipsToUse = validClips.slice(
         0,
@@ -478,7 +632,7 @@ const GifMaker = () => {
 
       // Determine durations (use shortest trimmed duration across clips)
       const durations = clipsToUse.map((c) =>
-        Math.min(maxDuration, c.endTime - c.startTime)
+        Math.min(gifSettings.maxDuration, c.endTime - c.startTime)
       );
       const duration = Math.min(...durations);
 
@@ -496,7 +650,7 @@ const GifMaker = () => {
       await ffmpeg.run(
         ...paletteInputs,
         "-filter_complex",
-        createFilterComplex(layout, clipsToUse.length, fps),
+        createFilterComplex(layout, clipsToUse.length, gifSettings.fps),
         "-map",
         "[p]",
         "-y",
@@ -517,7 +671,7 @@ const GifMaker = () => {
       await ffmpeg.run(
         ...gifInputs,
         "-filter_complex",
-        createUseFilterComplex(layout, clipsToUse.length, fps),
+        createUseFilterComplex(layout, clipsToUse.length, gifSettings.fps),
         "-loop",
         "0",
         "-y",
@@ -531,11 +685,44 @@ const GifMaker = () => {
       const gifBlob = new Blob([new Uint8Array(data.buffer)], {
         type: "image/gif",
       });
+
+      const originalWidth = videoClips[0]?.file
+        ? videoRefs.current[0]?.videoWidth
+        : 0;
+      const originalHeight = videoClips[0]?.file
+        ? videoRefs.current[0]?.videoHeight
+        : 0;
+
+      const { width, height } = getAspectRatioSize(
+        layout,
+        originalWidth,
+        originalHeight
+      );
+
+      // Reset canvas dimensions
+      const canvas = canvasBlurRef.current;
+      if (canvas) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      const maskCanvas = maskCanvasRef.current;
+      if (maskCanvas) {
+        maskCanvas.width = width;
+        maskCanvas.height = height;
+        const maskCtx = maskCanvas.getContext("2d");
+        if (maskCtx) {
+          maskCtx.clearRect(0, 0, width, height);
+          maskCtx.fillStyle = "rgba(0,0,0,0)";
+          maskCtx.fillRect(0, 0, width, height);
+        }
+      }
+
       const url = URL.createObjectURL(gifBlob);
       setGifUrl(url);
 
-      // Extract frames from the GIF
-      extractGifFrames(gifBlob);
+      // Extract frames from the new GIF
+      await extractGifFrames(gifBlob, width, height);
 
       // Cleanup
       for (let i = 0; i < clipsToUse.length; i++) {
@@ -577,16 +764,35 @@ const GifMaker = () => {
   // ================== GIF Blur Processing ==================
   console.log(gifFrames);
   // Extract frames from GIF
-  const extractGifFrames = async (gifBlob: Blob) => {
+
+  // Update the extractGifFrames function
+  const extractGifFrames = async (
+    gifBlob: Blob,
+    targetWidth: number,
+    targetHeight: number
+  ) => {
+    // Reset all blur editor state
+    setGifFrames([]);
+    setCurrentFrameIndex(0);
+    setIsGifLoaded(false);
+
+    // Clear mask canvas
+    const maskCanvas = maskCanvasRef.current;
+    if (maskCanvas) {
+      const maskCtx = maskCanvas.getContext("2d");
+      if (maskCtx) {
+        maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        maskCtx.fillStyle = "rgba(0,0,0,0)";
+        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+      }
+    }
+
     if (!gifBlob) {
       console.error("No GIF blob provided");
       return;
     }
 
     setIsGifProcessing(true);
-    setGifFrames([]);
-    setCurrentFrameIndex(0);
-    setIsGifLoaded(false);
 
     try {
       const arrayBuffer = await gifBlob.arrayBuffer();
@@ -597,7 +803,6 @@ const GifMaker = () => {
       const gifWidth = gif.lsd?.width || 1;
       const gifHeight = gif.lsd?.height || 1;
 
-      // Store both the original frame data and the rendered compositions
       const extractedFrames: ImageData[] = [];
       const originalFrameData: {
         patch: Uint8ClampedArray;
@@ -616,10 +821,8 @@ const GifMaker = () => {
         throw new Error("Could not get canvas context");
       }
 
-      // Save a backup of canvas state for disposal method 3
       let prevCanvasState: ImageData | null = null;
 
-      // Process each frame with proper disposal handling
       for (let i = 0; i < frames.length; i++) {
         const frame = frames[i];
 
@@ -634,7 +837,7 @@ const GifMaker = () => {
           const frameLeft = frame.dims.left;
           const frameTop = frame.dims.top;
 
-          // Save original frame data for reconstruction
+          // Save original frame data
           originalFrameData.push({
             patch: new Uint8ClampedArray(frame.patch),
             dims: {
@@ -648,12 +851,11 @@ const GifMaker = () => {
             transparentIndex: frame.transparentIndex,
           });
 
-          // Handle frame disposal from previous frame
+          // Handle frame disposal
           if (i > 0) {
             const prevFrame = frames[i - 1];
-
             switch (prevFrame.disposalType) {
-              case 2: // Restore to background (clear previous frame area)
+              case 2:
                 ctx.clearRect(
                   prevFrame.dims.left,
                   prevFrame.dims.top,
@@ -661,47 +863,66 @@ const GifMaker = () => {
                   prevFrame.dims.height
                 );
                 break;
-              case 3: // Restore to previous
+              case 3:
                 if (prevCanvasState) {
                   ctx.putImageData(prevCanvasState, 0, 0);
                 }
                 break;
-              // Case 0 and 1: Do nothing, leave the canvas as is
             }
           } else {
-            // First frame, clear canvas
             ctx.clearRect(0, 0, gifWidth, gifHeight);
           }
 
-          // Save canvas state if the next frame uses disposal method 3
           if (frame.disposalType === 3) {
             prevCanvasState = ctx.getImageData(0, 0, gifWidth, gifHeight);
           }
 
-          // Create a separate canvas for the current frame
           const frameCanvas = document.createElement("canvas");
           frameCanvas.width = frameWidth;
           frameCanvas.height = frameHeight;
           const frameCtx = frameCanvas.getContext("2d");
+          if (!frameCtx) continue;
 
-          if (!frameCtx) {
-            throw new Error("Could not get frame canvas context");
-          }
-
-          // Put frame data onto the frame canvas
           const imageData = new ImageData(
             new Uint8ClampedArray(frame.patch),
             frameWidth,
             frameHeight
           );
           frameCtx.putImageData(imageData, 0, 0);
-
-          // Draw frame onto the main canvas
           ctx.drawImage(frameCanvas, frameLeft, frameTop);
 
-          // Get the composed frame
-          const composedFrame = ctx.getImageData(0, 0, gifWidth, gifHeight);
-          extractedFrames.push(composedFrame);
+          // Only scale if necessary
+          if (targetWidth !== gifWidth || targetHeight !== gifHeight) {
+            const scaledCanvas = document.createElement("canvas");
+            scaledCanvas.width = targetWidth;
+            scaledCanvas.height = targetHeight;
+            const scaledCtx = scaledCanvas.getContext("2d");
+            if (!scaledCtx) continue;
+
+            scaledCtx.drawImage(
+              ctx.canvas,
+              0,
+              0,
+              gifWidth,
+              gifHeight,
+              0,
+              0,
+              targetWidth,
+              targetHeight
+            );
+
+            const croppedImageData = scaledCtx.getImageData(
+              0,
+              0,
+              targetWidth,
+              targetHeight
+            );
+            extractedFrames.push(croppedImageData);
+          } else {
+            // Use original dimensions
+            const imageData = ctx.getImageData(0, 0, gifWidth, gifHeight);
+            extractedFrames.push(imageData);
+          }
         } catch (frameError) {
           console.error(`Error processing frame ${i}:`, frameError);
         }
@@ -711,7 +932,6 @@ const GifMaker = () => {
         throw new Error("No valid frames could be extracted from the GIF");
       }
 
-      // Store the original frame data for later reconstruction
       setOriginalGifData({
         frames: originalFrameData,
         width: gifWidth,
@@ -733,7 +953,6 @@ const GifMaker = () => {
       setIsGifProcessing(false);
     }
   };
-
   // Display a specific frame
   const displayFrame = (index: number) => {
     // Validate frames array exists and has content
@@ -830,11 +1049,11 @@ const GifMaker = () => {
 
         // If pixel is in the mask (non-transparent)
         if (maskData.data[i + 3] > 0) {
-          if (blurType === "pixelated") {
+          if (blurSettings.blurType === "pixelated") {
             applyPixelatedBlur(x, y, frameData);
-          } else if (blurType === "gaussian") {
+          } else if (blurSettings.blurType === "gaussian") {
             applyGaussianBlur(x, y, frameData);
-          } else if (blurType === "mosaic") {
+          } else if (blurSettings.blurType === "mosaic") {
             applyMosaicBlur(x, y, frameData);
           }
         }
@@ -887,11 +1106,11 @@ const GifMaker = () => {
 
                 // If pixel is in the mask (white)
                 if (maskData.data[i + 3] > 0) {
-                  if (blurType === "pixelated") {
+                  if (blurSettings.blurType === "pixelated") {
                     applyPixelatedBlur(x, y, frameData);
-                  } else if (blurType === "gaussian") {
+                  } else if (blurSettings.blurType === "gaussian") {
                     applyGaussianBlur(x, y, frameData);
-                  } else if (blurType === "mosaic") {
+                  } else if (blurSettings.blurType === "mosaic") {
                     applyMosaicBlur(x, y, frameData);
                   }
                 }
@@ -1014,7 +1233,7 @@ const GifMaker = () => {
       // Create a new GIF instance with configuration matching the original
       const gif = new GIF({
         workers: 4,
-        quality: quality,
+        quality: gifSettings.quality,
         width: width,
         height: height,
         workerScript: "/gif.worker.js",
@@ -1169,7 +1388,7 @@ const GifMaker = () => {
   };
   // Blur functions
   const applyGaussianBlur = (x: number, y: number, imageData: ImageData) => {
-    const intensity = blurIntensity;
+    const intensity = blurSettings.blurIntensity;
     const radius = Math.floor(intensity / 2);
     let r = 0,
       g = 0,
@@ -1199,7 +1418,7 @@ const GifMaker = () => {
   };
 
   const applyPixelatedBlur = (x: number, y: number, imageData: ImageData) => {
-    const blockSize = Math.max(1, Math.floor(blurIntensity / 2));
+    const blockSize = Math.max(1, Math.floor(blurSettings.blurIntensity / 2));
     const blockX = Math.floor(x / blockSize) * blockSize;
     const blockY = Math.floor(y / blockSize) * blockSize;
 
@@ -1217,7 +1436,7 @@ const GifMaker = () => {
   };
 
   const applyMosaicBlur = (x: number, y: number, imageData: ImageData) => {
-    const blockSize = Math.max(1, Math.floor(blurIntensity / 2));
+    const blockSize = Math.max(1, Math.floor(blurSettings.blurIntensity / 2));
     const blockX = Math.floor(x / blockSize) * blockSize;
     const blockY = Math.floor(y / blockSize) * blockSize;
 
@@ -1314,7 +1533,7 @@ const GifMaker = () => {
     maskCtx.globalCompositeOperation = "source-over";
     maskCtx.fillStyle = "white";
     maskCtx.beginPath();
-    maskCtx.arc(pos.x, pos.y, brushSize, 0, Math.PI * 2);
+    maskCtx.arc(pos.x, pos.y, blurSettings.brushSize, 0, Math.PI * 2);
     maskCtx.fill();
 
     // Immediately apply blur to the current frame
@@ -1348,21 +1567,6 @@ const GifMaker = () => {
     }
   };
 
-  // // When navigating frames
-  // const goToPreviousFrame = () => {
-  //   if (gifFrames.length > 0) {
-  //     const newIndex = Math.max(0, currentFrameIndex - 1);
-  //     displayFrame(newIndex);
-  //   }
-  // };
-
-  // const goToNextFrame = () => {
-  //   if (gifFrames.length > 0) {
-  //     const newIndex = Math.min(gifFrames.length - 1, currentFrameIndex + 1);
-  //     displayFrame(newIndex);
-  //   }
-  // };
-
   // const downloadProcessedGif = () => {
   //   if (!gifUrl) return;
 
@@ -1373,6 +1577,12 @@ const GifMaker = () => {
   //   link.click();
   //   document.body.removeChild(link);
   // };
+
+  useEffect(() => {
+    if (isGifLoaded) {
+      displayFrame(0);
+    }
+  }, [isGifLoaded]);
 
   return (
     <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
@@ -1406,6 +1616,13 @@ const GifMaker = () => {
             <button
               key={key}
               onClick={() => {
+                // Clean up existing object URLs
+                videoClips.forEach((clip) => {
+                  if (clip.file) {
+                    URL.revokeObjectURL(URL.createObjectURL(clip.file));
+                  }
+                });
+
                 setSelectedTemplate(key);
                 setVideoClips(
                   Array(templates[key].cols * templates[key].rows).fill({
@@ -1416,6 +1633,7 @@ const GifMaker = () => {
                   })
                 );
                 setActiveVideoIndex(null);
+                videoRefs.current = [];
               }}
               className={`flex flex-col items-center p-3 rounded-lg transition-colors ${
                 selectedTemplate === key
@@ -1528,6 +1746,7 @@ const GifMaker = () => {
                       }
                       className="absolute inset-0 opacity-0 cursor-pointer"
                       onClick={(e) => e.stopPropagation()}
+                      key={`${selectedTemplate}-${i}`} // Add this line
                     />
                   </label>
                 </div>
@@ -1619,14 +1838,14 @@ const GifMaker = () => {
           <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
             <div className="mb-2">
               <label className="text-sm text-gray-300 mb-1 block">
-                Maximum Duration (seconds): {maxDuration}s
+                Maximum Duration (seconds): {gifSettings.maxDuration}s
               </label>
               <input
                 type="range"
                 min="1"
                 max="10"
                 step="1"
-                value={maxDuration}
+                value={gifSettings.maxDuration}
                 onChange={(e) => setMaxDuration(parseInt(e.target.value))}
                 className="w-full accent-blue-500"
               />
@@ -1634,14 +1853,14 @@ const GifMaker = () => {
 
             <div className="mb-2">
               <label className="text-sm text-gray-300 mb-1 block">
-                GIF Framerate: {fps} fps
+                GIF Framerate: {gifSettings.fps} fps
               </label>
               <input
                 type="range"
                 min="5"
                 max="30"
                 step="1"
-                value={fps}
+                value={gifSettings.fps}
                 onChange={(e) => setFps(parseInt(e.target.value))}
                 className="w-full accent-blue-500"
               />
@@ -1653,14 +1872,14 @@ const GifMaker = () => {
 
             <div className="mb-2">
               <label className="text-sm text-gray-300 mb-1 block">
-                Quality: {quality}
+                Quality: {gifSettings.quality}
               </label>
               <input
                 type="range"
                 min="1"
                 max="20"
                 step="1"
-                value={quality}
+                value={gifSettings.quality}
                 onChange={(e) => setQuality(parseInt(e.target.value))}
                 className="w-full accent-blue-500"
               />
@@ -1722,7 +1941,7 @@ const GifMaker = () => {
 
               {/* Drawing canvas (visible) */}
               <div
-                className="relative"
+                className="relative cursor-crosshair"
                 style={{ maxWidth: "100%", overflow: "auto" }}
               >
                 {/* Main canvas that displays the GIF frame */}
@@ -1760,8 +1979,10 @@ const GifMaker = () => {
                       Blur Type
                     </label>
                     <select
-                      value={blurType}
-                      onChange={(e) => setBlurType(e.target.value)}
+                      value={blurSettings.blurType}
+                      onChange={(e) =>
+                        setBlurType(e.target.value as BlurSettings["blurType"])
+                      }
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-300"
                     >
                       <option value="gaussian">Gaussian Blur</option>
@@ -1773,13 +1994,13 @@ const GifMaker = () => {
                   {/* Blur intensity */}
                   <div>
                     <label className="block mb-2 text-gray-300">
-                      Blur Intensity: {blurIntensity}
+                      Blur Intensity: {blurSettings.blurIntensity}
                     </label>
                     <input
                       type="range"
                       min="1"
                       max="50"
-                      value={blurIntensity}
+                      value={blurSettings.blurIntensity}
                       onChange={(e) =>
                         setBlurIntensity(parseInt(e.target.value))
                       }
@@ -1790,13 +2011,13 @@ const GifMaker = () => {
                   {/* Brush size */}
                   <div>
                     <label className="block mb-2 text-gray-300">
-                      Brush Size: {brushSize}px
+                      Brush Size: {blurSettings.brushSize}px
                     </label>
                     <input
                       type="range"
                       min="5"
                       max="100"
-                      value={brushSize}
+                      value={blurSettings.brushSize}
                       onChange={(e) => setBrushSize(parseInt(e.target.value))}
                       className="w-full accent-blue-500"
                     />
@@ -1805,7 +2026,9 @@ const GifMaker = () => {
                   {/* Actions */}
                   <div className="flex items-end space-x-2">
                     <button
-                      onClick={clearMask}
+                      onClick={() => {
+                        clearMask();
+                      }}
                       className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg flex items-center justify-center"
                     >
                       <Eraser className="w-4 h-4 mr-2" /> Clear
