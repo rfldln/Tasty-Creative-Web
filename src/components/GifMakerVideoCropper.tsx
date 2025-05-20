@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Clock, UploadIcon } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import { useDrag } from "react-use-gesture";
@@ -27,7 +28,7 @@ type GifMakerVideoCropperProps = {
   templates: Templates;
   videoClips: VideoClip[];
   setSelectedTemplate: (template: string) => void;
-  setVideoClips: (clips: VideoClip[]) => void;
+  setVideoClips: (clips: VideoClip[] | ((prevClips: VideoClip[]) => VideoClip[])) => void;
   setActiveVideoIndex: (index: number | null) => void;
   videoRefs: React.RefObject<(HTMLVideoElement | null)[]>;
   selectedTemplate: string;
@@ -90,7 +91,7 @@ const GifMakerVideoCropper = ({
       videoElement.style.setProperty("--scale", newScale.toString());
     }
 
-    setVideoClips((prevClips) => {
+    setVideoClips((prevClips: VideoClip[]) => {
       const newClips = [...prevClips];
       newClips[index] = {
         ...newClips[index],
@@ -119,7 +120,7 @@ const GifMakerVideoCropper = ({
 
     if (!down) {
       // Persist final position to state
-      setVideoClips((prevClips) => {
+      setVideoClips((prevClips: VideoClip[]) => {
         const newClips = [...prevClips];
         newClips[activeVideoIndex] = {
           ...newClips[activeVideoIndex],
@@ -409,7 +410,7 @@ const GifMakerVideoCropper = ({
                     type="number"
                     value={videoClips[activeVideoIndex].positionX || 0}
                     onChange={(e) => {
-                      setVideoClips((prevClips) => {
+                      setVideoClips((prevClips: VideoClip[]) => {
                         const newClips = [...prevClips];
                         newClips[activeVideoIndex] = {
                           ...newClips[activeVideoIndex],
@@ -429,7 +430,7 @@ const GifMakerVideoCropper = ({
                     type="number"
                     value={videoClips[activeVideoIndex].positionY || 0}
                     onChange={(e) => {
-                      setVideoClips((prevClips) => {
+                      setVideoClips((prevClips: VideoClip[]) => {
                         const newClips = [...prevClips];
                         newClips[activeVideoIndex] = {
                           ...newClips[activeVideoIndex],
