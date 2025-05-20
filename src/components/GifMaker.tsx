@@ -9,7 +9,6 @@ import {
   Rows3,
   Play,
   Pause,
-  Clock,
   Download,
   Loader2,
   Eraser,
@@ -20,6 +19,7 @@ import dynamic from "next/dynamic";
 import { parseGIF, decompressFrames } from "gifuct-js";
 import GIF from "gif.js";
 import Cookies from "js-cookie";
+import GifMakerVideoCropper from "./GifMakerVideoCropper";
 
 // Define TypeScript interfaces
 interface ModelFormData {
@@ -31,6 +31,9 @@ interface VideoClip {
   startTime: number;
   endTime: number;
   duration: number;
+  positionX?: number; // <-- must be optional or default to 0
+  positionY?: number;
+  scale?: number;
 }
 
 const BLUR_COOKIE_KEY = "blurSettings";
@@ -60,6 +63,47 @@ const defaultGifSettings: GifSettings = {
   quality: 10,
 };
 
+export const templates: Record<
+  string,
+  {
+    name: string;
+    icon: React.JSX.Element;
+    cols: number;
+    rows: number;
+  }
+> = {
+  single: {
+    name: "Single",
+    icon: <Square className="w-5 h-5" />,
+    cols: 1,
+    rows: 1,
+  },
+  sideBySide: {
+    name: "Side by Side",
+    icon: <Columns2 className="w-5 h-5" />,
+    cols: 2,
+    rows: 1,
+  },
+  triptychHorizontal: {
+    name: "Horizontal Triptych",
+    icon: <Columns3 className="w-5 h-5" />,
+    cols: 3,
+    rows: 1,
+  },
+  triptychVertical: {
+    name: "Vertical Triptych",
+    icon: <Rows3 className="w-5 h-5" />,
+    cols: 1,
+    rows: 3,
+  },
+  grid2x2: {
+    name: "2x2 Grid",
+    icon: <Grid2X2 className="w-5 h-5" />,
+    cols: 2,
+    rows: 2,
+  },
+};
+
 const GifMaker = () => {
   const [formData, setFormData] = useState<ModelFormData>({});
   const [gifUrl, setGifUrl] = useState<string | null>(null);
@@ -69,6 +113,10 @@ const GifMaker = () => {
   const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null);
   const [error, setError] = useState("");
   const [isReady, setIsReady] = useState(false);
+  const [dimensions, setDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
 
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
 
@@ -142,84 +190,41 @@ const GifMaker = () => {
   // Canvas ref for capturing frames
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const templates: Record<
-    string,
-    {
-      name: string;
-      icon: React.JSX.Element;
-      cols: number;
-      rows: number;
-    }
-  > = {
-    single: {
-      name: "Single",
-      icon: <Square className="w-5 h-5" />,
-      cols: 1,
-      rows: 1,
-    },
-    sideBySide: {
-      name: "Side by Side",
-      icon: <Columns2 className="w-5 h-5" />,
-      cols: 2,
-      rows: 1,
-    },
-    triptychHorizontal: {
-      name: "Horizontal Triptych",
-      icon: <Columns3 className="w-5 h-5" />,
-      cols: 3,
-      rows: 1,
-    },
-    triptychVertical: {
-      name: "Vertical Triptych",
-      icon: <Rows3 className="w-5 h-5" />,
-      cols: 1,
-      rows: 3,
-    },
-    grid2x2: {
-      name: "2x2 Grid",
-      icon: <Grid2X2 className="w-5 h-5" />,
-      cols: 2,
-      rows: 2,
-    },
-  };
+  const [activeVideoIndex, setActiveVideoIndex] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  // Additional ref for the output video grid
+  const outputGridRef = useRef<HTMLDivElement>(null);
 
-  type Layout =
-    | "Single"
-    | "Side by Side"
-    | "Horizontal Triptych"
-    | "Vertical Triptych"
-    | "2x2 Grid";
+  const totalCells =
+    templates[selectedTemplate].cols * templates[selectedTemplate].rows;
 
-  const getAspectRatioSize = (
-    layout: Layout,
-    originalWidth: number = 0,
-    originalHeight: number = 0,
-    baseHeight: number = 360
-  ): { width: number; height: number } => {
-    switch (layout) {
-      case "Single":
-        return { width: originalWidth, height: originalHeight }; // use original size
-      case "Side by Side":
-        return { width: baseHeight * 2, height: baseHeight };
-      case "Horizontal Triptych":
-        return { width: baseHeight * 3, height: baseHeight };
-      case "Vertical Triptych":
-        return { width: baseHeight, height: baseHeight * 3 };
-      case "2x2 Grid":
-        return { width: baseHeight * 2, height: baseHeight * 2 };
-      default:
-        throw new Error(`Unsupported layout: ${layout}`);
-    }
-  };
+  const [videoClips, setVideoClips] = useState<VideoClip[]>(
+    Array.from({ length: totalCells }, () => ({
+      file: null,
+      startTime: 0,
+      endTime: 5,
+      duration: 0,
+      positionX: 0,
+      positionY: 0,
+      scale: 1,
+    }))
+  );
 
   const createFilterComplex = (
     layout: Layout,
-    clipCount: number,
-    fps: number,
-    baseHeight: number = 360
+    clips: VideoClip[],
+    fps: number
   ): string => {
-    const { width, height } = getAspectRatioSize(layout, baseHeight);
-    const w =
+    const { width, height } = dimensions;
+    if (width === 0 || height === 0) {
+      throw new Error("GIF dimensions are not set");
+    }
+
+    const clipCount = clips.length;
+
+    // Calculate base cell dimensions
+    const baseW =
       width /
       (layout === "Side by Side"
         ? 2
@@ -228,7 +233,7 @@ const GifMaker = () => {
         : layout === "2x2 Grid"
         ? 2
         : 1);
-    const h =
+    const baseH =
       height /
       (layout === "Vertical Triptych" ? 3 : layout === "2x2 Grid" ? 2 : 1);
 
@@ -236,8 +241,21 @@ const GifMaker = () => {
       return `fps=${fps},palettegen=stats_mode=diff[p]`;
     }
 
-    const scale = (index: number) =>
-      `[${index}:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}[v${index}];`;
+    const scale = (index: number) => {
+      const clip = clips[index];
+      const scaleFactor = clip.scale || 1;
+
+      // Calculate scaled dimensions
+      const scaledW = baseW * scaleFactor;
+      const scaledH = baseH * scaleFactor;
+
+      // Calculate crop offsets - properly apply position values
+      const offsetX = (scaledW - baseW) / 2 - (clip.positionX || 0);
+      const offsetY = (scaledH - baseH) / 2 - (clip.positionY || 0);
+
+      return `[${index}:v]scale=${scaledW}:${scaledH}:force_original_aspect_ratio=decrease,crop=${baseW}:${baseH}:${offsetX}:${offsetY}[v${index}];`;
+    };
+
     const label = (i: number) => `[v${i}]`;
 
     if (layout === "Side by Side" && clipCount === 2) {
@@ -280,7 +298,7 @@ const GifMaker = () => {
         scale(3) +
         `${label(0)}${label(1)}${label(2)}${label(
           3
-        )}xstack=inputs=4:layout=0_0|${w}_0|0_${h}|${w}_${h},fps=${fps},palettegen=stats_mode=diff[p]`
+        )}xstack=inputs=4:layout=0_0|${baseW}_0|0_${baseH}|${baseW}_${baseH},fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -289,12 +307,17 @@ const GifMaker = () => {
 
   const createUseFilterComplex = (
     layout: Layout,
-    clipCount: number,
-    fps: number,
-    baseHeight: number = 360
+    clips: VideoClip[],
+    fps: number
   ): string => {
-    const { width, height } = getAspectRatioSize(layout, baseHeight);
-    const w =
+    const { width, height } = dimensions;
+    if (width === 0 || height === 0) {
+      throw new Error("GIF dimensions are not set");
+    }
+
+    const clipCount = clips.length;
+
+    const baseW =
       width /
       (layout === "Side by Side"
         ? 2
@@ -303,12 +326,24 @@ const GifMaker = () => {
         : layout === "2x2 Grid"
         ? 2
         : 1);
-    const h =
+    const baseH =
       height /
       (layout === "Vertical Triptych" ? 3 : layout === "2x2 Grid" ? 2 : 1);
 
-    const scale = (index: number) =>
-      `[${index}:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}[v${index}];`;
+    const scale = (index: number) => {
+      const clip = clips[index];
+      const scaleFactor = clip.scale || 1;
+
+      // Calculate scaled dimensions
+      const scaledW = baseW * scaleFactor;
+      const scaledH = baseH * scaleFactor;
+
+      // Calculate crop offsets - same as in createFilterComplex
+      const offsetX = (scaledW - baseW) / 2 - (clip.positionX || 0);
+      const offsetY = (scaledH - baseH) / 2 - (clip.positionY || 0);
+
+      return `[${index}:v]scale=${scaledW}:${scaledH}:force_original_aspect_ratio=decrease,crop=${baseW}:${baseH}:${offsetX}:${offsetY}[v${index}];`;
+    };
     const label = (i: number) => `[v${i}]`;
 
     if (layout === "Single" && clipCount === 1) {
@@ -348,6 +383,15 @@ const GifMaker = () => {
     }
 
     if (layout === "2x2 Grid" && clipCount === 4) {
+      const layoutStr = clips
+        .map(
+          (clip) =>
+            `${Math.round((clip.positionX ?? 0) * baseW)}_${Math.round(
+              (clip.positionY ?? 0) * baseH
+            )}`
+        )
+        .join("|");
+
       return (
         scale(0) +
         scale(1) +
@@ -355,30 +399,149 @@ const GifMaker = () => {
         scale(3) +
         `${label(0)}${label(1)}${label(2)}${label(
           3
-        )}xstack=inputs=4:layout=0_0|${w}_0|0_${h}|${w}_${h},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
+        )}xstack=inputs=4:layout=${layoutStr},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
       );
     }
 
     throw new Error(`Unsupported layout ${layout} for ${clipCount} clips`);
   };
 
-  const totalCells =
-    templates[selectedTemplate].cols * templates[selectedTemplate].rows;
+  // Function to create GIF
+  const createGif = async () => {
+    if (!ffmpeg || !ffmpeg.isLoaded()) {
+      console.error("FFmpeg not loaded");
+      return;
+    }
 
-  const [videoClips, setVideoClips] = useState<VideoClip[]>(
-    Array(totalCells).fill({
-      file: null,
-      startTime: 0,
-      endTime: 5,
-      duration: 0,
-    })
-  );
+    setGifUrl(null);
+    setGifFrames([]);
+    setCurrentFrameIndex(0);
+    setIsGifLoaded(false);
+    setOriginalGifData(null);
+    setIsProcessing(true);
+    setProcessingProgress(0);
 
-  const [activeVideoIndex, setActiveVideoIndex] = useState<number | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
-  // Additional ref for the output video grid
-  const outputGridRef = useRef<HTMLDivElement>(null);
+    try {
+      const validClips = videoClips.filter((clip) => clip.file);
+      if (validClips.length === 0) throw new Error("No video clips with files");
+
+      const clipCount = validClips.length;
+      let layout: Layout = "Single";
+      if (selectedTemplate && templates[selectedTemplate]) {
+        layout = templates[selectedTemplate].name as Layout;
+      }
+
+      const clipsToUse = validClips.slice(
+        0,
+        layout === "2x2 Grid" ? 4 : clipCount
+      );
+
+      for (let i = 0; i < clipsToUse.length; i++) {
+        const data = await fetchFile(clipsToUse[i].file!);
+        ffmpeg.FS("writeFile", `input${i}.mp4`, data);
+      }
+
+      const durations = clipsToUse.map((c) =>
+        Math.min(gifSettings.maxDuration, c.endTime - c.startTime)
+      );
+      const duration = Math.min(...durations);
+
+      setProcessingProgress(20);
+
+      const paletteInputs: string[] = [];
+      for (let i = 0; i < clipsToUse.length; i++) {
+        paletteInputs.push("-ss", String(clipsToUse[i].startTime));
+        paletteInputs.push("-t", String(duration));
+        paletteInputs.push("-i", `input${i}.mp4`);
+      }
+
+      await ffmpeg.run(
+        ...paletteInputs,
+        "-filter_complex",
+        createFilterComplex(layout, clipsToUse, gifSettings.fps),
+        "-map",
+        "[p]",
+        "-y",
+        "palette.png"
+      );
+
+      setProcessingProgress(60);
+
+      const gifInputs: string[] = [];
+      for (let i = 0; i < clipsToUse.length; i++) {
+        gifInputs.push("-ss", String(clipsToUse[i].startTime));
+        gifInputs.push("-t", String(duration));
+        gifInputs.push("-i", `input${i}.mp4`);
+      }
+      gifInputs.push("-i", "palette.png");
+
+      await ffmpeg.run(
+        ...gifInputs,
+        "-filter_complex",
+        createUseFilterComplex(layout, clipsToUse, gifSettings.fps),
+        "-loop",
+        "0",
+        "-y",
+        "output.gif"
+      );
+
+      setProcessingProgress(90);
+
+      const data = ffmpeg.FS("readFile", "output.gif");
+      const gifBlob = new Blob([new Uint8Array(data.buffer)], {
+        type: "image/gif",
+      });
+
+      const { width, height } = dimensions;
+      if (width === 0 || height === 0) {
+        throw new Error("GIF dimensions are not set");
+      }
+
+      const canvas = canvasBlurRef.current;
+      if (canvas) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      const maskCanvas = maskCanvasRef.current;
+      if (maskCanvas) {
+        maskCanvas.width = width;
+        maskCanvas.height = height;
+        const maskCtx = maskCanvas.getContext("2d");
+        if (maskCtx) {
+          maskCtx.clearRect(0, 0, width, height);
+          maskCtx.fillStyle = "rgba(0,0,0,0)";
+          maskCtx.fillRect(0, 0, width, height);
+        }
+      }
+
+      const url = URL.createObjectURL(gifBlob);
+      setGifUrl(url);
+      await extractGifFrames(gifBlob, width, height);
+
+      for (let i = 0; i < clipsToUse.length; i++) {
+        ffmpeg.FS("unlink", `input${i}.mp4`);
+      }
+      ffmpeg.FS("unlink", "palette.png");
+      ffmpeg.FS("unlink", "output.gif");
+
+      setProcessingProgress(100);
+    } catch (err) {
+      console.error("GIF creation error:", err);
+      setError(
+        `Failed to create GIF: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Helper function to read files
+  const fetchFile = async (file: File): Promise<Uint8Array> => {
+    return new Uint8Array(await file.arrayBuffer());
+  };
 
   // Function to handle video file selection
   const handleVideoChange = (index: number, file: File | null) => {
@@ -587,167 +750,6 @@ const GifMaker = () => {
     // Reset GIF URL when template changes
     setGifUrl(null);
   }, [totalCells]);
-
-  // Function to create GIF
-  const createGif = async () => {
-    if (!ffmpeg || !ffmpeg.isLoaded()) {
-      console.error("FFmpeg not loaded");
-      return;
-    }
-
-    // Reset all relevant states
-    setGifUrl(null);
-    setGifFrames([]);
-    setCurrentFrameIndex(0);
-    setIsGifLoaded(false);
-    setOriginalGifData(null);
-
-    setIsProcessing(true);
-    setProcessingProgress(0);
-
-    try {
-      const validClips = videoClips.filter((clip) => clip.file);
-      if (validClips.length === 0) throw new Error("No video clips with files");
-
-      // Choose layout based on videoClips.length or a selected layout
-      const clipCount = validClips.length;
-      // Example: dynamically select layout, replace with your actual selection
-      let layout: Layout = "Single";
-      if (selectedTemplate && templates[selectedTemplate]) {
-        layout = templates[selectedTemplate].name as Layout;
-      }
-
-      // Limit clips to max needed for layout
-      const clipsToUse = validClips.slice(
-        0,
-        layout === "2x2 Grid" ? 4 : clipCount
-      );
-
-      // Write all clips to FS
-      for (let i = 0; i < clipsToUse.length; i++) {
-        const clip = clipsToUse[i];
-        const data = await fetchFile(clip.file!);
-        ffmpeg.FS("writeFile", `input${i}.mp4`, data);
-      }
-
-      // Determine durations (use shortest trimmed duration across clips)
-      const durations = clipsToUse.map((c) =>
-        Math.min(gifSettings.maxDuration, c.endTime - c.startTime)
-      );
-      const duration = Math.min(...durations);
-
-      setProcessingProgress(20);
-
-      // Build input args with trimming for palette gen
-      const paletteInputs: string[] = [];
-      for (let i = 0; i < clipsToUse.length; i++) {
-        paletteInputs.push("-ss", String(clipsToUse[i].startTime));
-        paletteInputs.push("-t", String(duration));
-        paletteInputs.push("-i", `input${i}.mp4`);
-      }
-
-      // Palette generation
-      await ffmpeg.run(
-        ...paletteInputs,
-        "-filter_complex",
-        createFilterComplex(layout, clipsToUse.length, gifSettings.fps),
-        "-map",
-        "[p]",
-        "-y",
-        "palette.png"
-      );
-
-      setProcessingProgress(60);
-
-      // Build input args with trimming for GIF creation (palette is extra input)
-      const gifInputs: string[] = [];
-      for (let i = 0; i < clipsToUse.length; i++) {
-        gifInputs.push("-ss", String(clipsToUse[i].startTime));
-        gifInputs.push("-t", String(duration));
-        gifInputs.push("-i", `input${i}.mp4`);
-      }
-      gifInputs.push("-i", "palette.png"); // palette input
-
-      await ffmpeg.run(
-        ...gifInputs,
-        "-filter_complex",
-        createUseFilterComplex(layout, clipsToUse.length, gifSettings.fps),
-        "-loop",
-        "0",
-        "-y",
-        "output.gif"
-      );
-
-      setProcessingProgress(90);
-
-      // Read result
-      const data = ffmpeg.FS("readFile", "output.gif");
-      const gifBlob = new Blob([new Uint8Array(data.buffer)], {
-        type: "image/gif",
-      });
-
-      const originalWidth = videoClips[0]?.file
-        ? videoRefs.current[0]?.videoWidth
-        : 0;
-      const originalHeight = videoClips[0]?.file
-        ? videoRefs.current[0]?.videoHeight
-        : 0;
-
-      const { width, height } = getAspectRatioSize(
-        layout,
-        originalWidth,
-        originalHeight
-      );
-
-      // Reset canvas dimensions
-      const canvas = canvasBlurRef.current;
-      if (canvas) {
-        canvas.width = width;
-        canvas.height = height;
-      }
-
-      const maskCanvas = maskCanvasRef.current;
-      if (maskCanvas) {
-        maskCanvas.width = width;
-        maskCanvas.height = height;
-        const maskCtx = maskCanvas.getContext("2d");
-        if (maskCtx) {
-          maskCtx.clearRect(0, 0, width, height);
-          maskCtx.fillStyle = "rgba(0,0,0,0)";
-          maskCtx.fillRect(0, 0, width, height);
-        }
-      }
-
-      const url = URL.createObjectURL(gifBlob);
-      setGifUrl(url);
-
-      // Extract frames from the new GIF
-      await extractGifFrames(gifBlob, width, height);
-
-      // Cleanup
-      for (let i = 0; i < clipsToUse.length; i++) {
-        ffmpeg.FS("unlink", `input${i}.mp4`);
-      }
-      ffmpeg.FS("unlink", "palette.png");
-      ffmpeg.FS("unlink", "output.gif");
-
-      setProcessingProgress(100);
-    } catch (err) {
-      console.error("GIF creation error:", err);
-      setError(
-        `Failed to create GIF: ${
-          err instanceof Error ? err.message : String(err)
-        }`
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Helper function to read files
-  const fetchFile = async (file: File): Promise<Uint8Array> => {
-    return new Uint8Array(await file.arrayBuffer());
-  };
 
   // Function to download the generated GIF
   const downloadGif = () => {
@@ -1584,6 +1586,8 @@ const GifMaker = () => {
     }
   }, [isGifLoaded]);
 
+  console.log(videoClips, "videoClips");
+
   return (
     <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
       <header className="text-center mb-12">
@@ -1606,154 +1610,25 @@ const GifMaker = () => {
         </div>
       </div>
 
-      {/* Template Selection */}
+      {/* Template Selection & Video Selector */}
       <div className="bg-gray-800/50 rounded-xl p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
-        <h2 className="text-xl font-semibold text-blue-300">GIF Template</h2>
-        <p className="text-gray-300 mb-4">Choose a template for your GIF.</p>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-          {Object.keys(templates).map((key) => (
-            <button
-              key={key}
-              onClick={() => {
-                // Clean up existing object URLs
-                videoClips.forEach((clip) => {
-                  if (clip.file) {
-                    URL.revokeObjectURL(URL.createObjectURL(clip.file));
-                  }
-                });
-
-                setSelectedTemplate(key);
-                setVideoClips(
-                  Array(templates[key].cols * templates[key].rows).fill({
-                    file: null,
-                    startTime: 0,
-                    endTime: 5,
-                    duration: 0,
-                  })
-                );
-                setActiveVideoIndex(null);
-                videoRefs.current = [];
-              }}
-              className={`flex flex-col items-center p-3 rounded-lg transition-colors ${
-                selectedTemplate === key
-                  ? "bg-blue-600 text-white ring-2 ring-blue-400"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-              }`}
-            >
-              {templates[key].icon}
-              <span className="text-xs mt-2">{templates[key].name}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Grid Preview with Clickable Inputs */}
-        <div className="mb-6">
-          <h3 className="text-gray-300 mb-2 font-medium">Preview</h3>
-          <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
-            <div
-              ref={outputGridRef}
-              className="grid aspect-video"
-              style={{
-                gridTemplateColumns: `repeat(${templates[selectedTemplate].cols}, 1fr)`,
-                gridTemplateRows: `repeat(${templates[selectedTemplate].rows}, 1fr)`,
-              }}
-            >
-              {Array.from({ length: totalCells }).map((_, i) => (
-                <div key={i} className="relative">
-                  <label
-                    className={`relative bg-gray-700 w-full h-full flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-600 transition overflow-hidden ${
-                      activeVideoIndex === i ? "ring-2 ring-blue-500" : ""
-                    }`}
-                  >
-                    {videoClips[i].file ? (
-                      <>
-                        <video
-                          ref={(el) => {
-                            if (!el) return;
-                            videoRefs.current[i] = el;
-
-                            const clip = videoClips[i];
-                            const startPlayback = () => {
-                              el.currentTime = clip.startTime;
-                              el.play().catch(() => {});
-                              requestAnimationFrame(checkLoop);
-                            };
-
-                            const checkLoop = () => {
-                              if (el.currentTime >= clip.endTime) {
-                                el.currentTime = clip.startTime;
-                                el.play().catch(() => {});
-                              }
-                              requestAnimationFrame(checkLoop);
-                            };
-
-                            const handleLoaded = () => {
-                              startPlayback();
-                              el.removeEventListener(
-                                "loadeddata",
-                                handleLoaded
-                              );
-                            };
-
-                            el.addEventListener("loadeddata", handleLoaded);
-                          }}
-                          src={
-                            videoClips[i].file
-                              ? URL.createObjectURL(videoClips[i].file)
-                              : ""
-                          }
-                          className="object-cover w-full h-full"
-                          preload="metadata"
-                          playsInline
-                          autoPlay
-                          muted
-                        />
-
-                        {/* Edit button overlay */}
-                        <button
-                          className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full z-10"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setActiveVideoIndex(i);
-                            setIsPlaying(false);
-                            // Scroll to timeframe editor
-                            document
-                              .getElementById("timeframe-editor")
-                              ?.scrollIntoView({
-                                behavior: "smooth",
-                                block: "center",
-                              });
-                          }}
-                        >
-                          <Clock className="w-4 h-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-sm flex items-center">
-                        <Clock className="w-4 h-4 mr-1" /> Upload video
-                      </span>
-                    )}
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={(e) =>
-                        handleVideoChange(
-                          i,
-                          e.target.files ? e.target.files[0] : null
-                        )
-                      }
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
-                      key={`${selectedTemplate}-${i}`} // Add this line
-                    />
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <GifMakerVideoCropper
+          templates={templates}
+          videoClips={videoClips}
+          setSelectedTemplate={setSelectedTemplate}
+          setVideoClips={setVideoClips}
+          setActiveVideoIndex={setActiveVideoIndex}
+          videoRefs={videoRefs}
+          selectedTemplate={selectedTemplate}
+          outputGridRef={outputGridRef}
+          activeVideoIndex={activeVideoIndex}
+          setIsPlaying={setIsPlaying}
+          handleVideoChange={handleVideoChange}
+          totalCells={totalCells}
+          setDimensions={(width: number, height: number) =>
+            setDimensions({ width, height })
+          }
+        />
 
         {/* Timeframe Editor */}
         {activeVideoIndex !== null && videoClips[activeVideoIndex]?.file && (

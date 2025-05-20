@@ -1438,7 +1438,7 @@ const TastyCreative = () => {
                             <button
                               key={index}
                               className={`w-full p-3 border rounded-lg text-left transition-colors ${isPast
-                                ? "border-gray-700/30 bg-black/40 opacity-60"
+                                ? "border-gray-700/30 bg-black/40 opacity-60 hidden"
                                 : "border-white/10 bg-black/40 hover:bg-black/60"
                                 }`}
                               onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}

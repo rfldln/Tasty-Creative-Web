@@ -69,3 +69,10 @@ type ModelCardProps = {
   selectedModel: string | null;
   setSelectedModel: React.Dispatch<React.SetStateAction<string | null>>;
 };
+
+type Layout =
+  | "Single"
+  | "Side by Side"
+  | "Horizontal Triptych"
+  | "Vertical Triptych"
+  | "2x2 Grid";
