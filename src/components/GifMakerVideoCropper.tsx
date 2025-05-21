@@ -28,7 +28,9 @@ type GifMakerVideoCropperProps = {
   templates: Templates;
   videoClips: VideoClip[];
   setSelectedTemplate: (template: string) => void;
-  setVideoClips: (clips: VideoClip[] | ((prevClips: VideoClip[]) => VideoClip[])) => void;
+  setVideoClips: (
+    clips: VideoClip[] | ((prevClips: VideoClip[]) => VideoClip[])
+  ) => void;
   setActiveVideoIndex: (index: number | null) => void;
   videoRefs: React.RefObject<(HTMLVideoElement | null)[]>;
   selectedTemplate: string;
@@ -143,8 +145,13 @@ const GifMakerVideoCropper = ({
 
       const aspectRatio = getAspectRatioSize(selectedTemplate);
       setDimensions(aspectRatio.width, aspectRatio.height);
+
       const containerWidth = containerRef.current.offsetWidth;
-      const scale = Math.min(containerWidth / aspectRatio.width, 1);
+
+      let scale = 1;
+      if (selectedTemplate !== "Single") {
+        scale = Math.min(containerWidth / aspectRatio.width, 1);
+      }
 
       outputGridRef.current.style.width = `${aspectRatio.width * scale}px`;
       outputGridRef.current.style.height = `${aspectRatio.height * scale}px`;
@@ -167,7 +174,6 @@ const GifMakerVideoCropper = ({
       />
     );
   };
-
 
   return (
     <>

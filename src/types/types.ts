@@ -76,3 +76,15 @@ type Layout =
   | "Horizontal Triptych"
   | "Vertical Triptych"
   | "2x2 Grid";
+
+  type BlurSettings = {
+  blurType: "gaussian" | "pixelated" | "mosaic";
+  blurIntensity: number;
+  brushSize: number;
+};
+
+type GifSettings = {
+  maxDuration: number;
+  fps: number;
+  quality: number;
+};
