@@ -88,3 +88,4 @@ type GifSettings = {
   fps: number;
   quality: number;
 };
+

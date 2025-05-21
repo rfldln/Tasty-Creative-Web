@@ -27,15 +27,18 @@ interface ModelFormData {
   [key: string]: any;
 }
 
-interface VideoClip {
-  file: File | null;
-  startTime: number;
-  endTime: number;
-  duration: number;
-  positionX?: number; // <-- must be optional or default to 0
-  positionY?: number;
-  scale?: number;
-}
+type VideoClip = {
+  files: {
+    file: File | null;
+    startTime: number;
+    endTime: number;
+    duration: number;
+    scale?: number;
+    positionX?: number;
+    positionY?: number;
+  }[];
+  currentFileIndex: number;
+};
 
 const BLUR_COOKIE_KEY = "blurSettings";
 const GIF_COOKIE_KEY = "gifSettings";
@@ -187,17 +190,23 @@ const GifMaker = () => {
     templates[selectedTemplate].cols * templates[selectedTemplate].rows;
 
   const [videoClips, setVideoClips] = useState<VideoClip[]>(
-    Array.from({ length: totalCells }, () => ({
-      file: null,
-      startTime: 0,
-      endTime: 5,
-      duration: 0,
-      positionX: 0,
-      positionY: 0,
-      scale: 1,
-    }))
+    Array(templates[selectedTemplate].cols * templates[selectedTemplate].rows)
+      .fill(null)
+      .map(() => ({
+        files: [
+          {
+            file: null,
+            startTime: 0,
+            endTime: 5,
+            duration: 0,
+            scale: 1,
+            positionX: 0,
+            positionY: 0,
+          },
+        ],
+        currentFileIndex: 0,
+      }))
   );
-
 
   const createFilterComplex = (
     layout: Layout,
@@ -226,11 +235,12 @@ const GifMaker = () => {
 
     const scale = (index: number) => {
       const clip = clips[index];
-      const scaleFactor = clip.scale || 1;
+      const fileData = clip.files[clip.currentFileIndex];
+      const scaleFactor = fileData.scale || 1;
       const scaledW = baseW * scaleFactor;
       const scaledH = baseH * scaleFactor;
-      const offsetX = (scaledW - baseW) / 2 - (clip.positionX || 0);
-      const offsetY = (scaledH - baseH) / 2 - (clip.positionY || 0);
+      const offsetX = (scaledW - baseW) / 2 - (fileData.positionX || 0);
+      const offsetY = (scaledH - baseH) / 2 - (fileData.positionY || 0);
 
       return `[${index}:v]scale=${scaledW}:${scaledH}:force_original_aspect_ratio=decrease,crop=${baseW}:${baseH}:${offsetX}:${offsetY}[v${index}];`;
     };
@@ -240,9 +250,9 @@ const GifMaker = () => {
     if (
       layout === "Single" &&
       clipCount === 1 &&
-      clips[0].positionX !== 0 &&
-      clips[0].positionY !== 0 &&
-      clips[0].scale !== 1
+      clips[0].files[clips[0].currentFileIndex].positionX !== 0 &&
+      clips[0].files[clips[0].currentFileIndex].positionY !== 0 &&
+      clips[0].files[clips[0].currentFileIndex].scale !== 1
     ) {
       return scale(0) + `${label(0)}fps=${fps},palettegen=stats_mode=diff[p]`;
     }
@@ -250,9 +260,9 @@ const GifMaker = () => {
     if (
       layout === "Single" &&
       clipCount === 1 &&
-      clips[0].positionX === 0 &&
-      clips[0].positionY === 0 &&
-      clips[0].scale === 1
+      clips[0].files[clips[0].currentFileIndex].positionX === 0 &&
+      clips[0].files[clips[0].currentFileIndex].positionY === 0 &&
+      clips[0].files[clips[0].currentFileIndex].scale === 1
     ) {
       return `fps=${fps},palettegen=stats_mode=diff[p]`;
     }
@@ -291,12 +301,12 @@ const GifMaker = () => {
 
     if (layout === "2x2 Grid" && clipCount === 4) {
       const layoutStr = clips
-        .map(
-          (clip) =>
-            `${Math.round((clip.positionX ?? 0) * baseW)}_${Math.round(
-              (clip.positionY ?? 0) * baseH
-            )}`
-        )
+        .map((clip) => {
+          const fileData = clip.files[clip.currentFileIndex];
+          return `${Math.round((fileData.positionX ?? 0) * baseW)}_${Math.round(
+            (fileData.positionY ?? 0) * baseH
+          )}`;
+        })
         .join("|");
 
       return (
@@ -340,11 +350,12 @@ const GifMaker = () => {
 
     const scale = (index: number) => {
       const clip = clips[index];
-      const scaleFactor = clip.scale || 1;
+      const fileData = clip.files[clip.currentFileIndex];
+      const scaleFactor = fileData.scale || 1;
       const scaledW = baseW * scaleFactor;
       const scaledH = baseH * scaleFactor;
-      const offsetX = (scaledW - baseW) / 2 - (clip.positionX || 0);
-      const offsetY = (scaledH - baseH) / 2 - (clip.positionY || 0);
+      const offsetX = (scaledW - baseW) / 2 - (fileData.positionX || 0);
+      const offsetY = (scaledH - baseH) / 2 - (fileData.positionY || 0);
 
       return `[${index}:v]scale=${scaledW}:${scaledH}:force_original_aspect_ratio=decrease,crop=${baseW}:${baseH}:${offsetX}:${offsetY}[v${index}];`;
     };
@@ -354,9 +365,9 @@ const GifMaker = () => {
     if (
       layout === "Single" &&
       clipCount === 1 &&
-      clips[0].positionX !== 0 &&
-      clips[0].positionY !== 0 &&
-      clips[0].scale !== 1
+      clips[0].files[clips[0].currentFileIndex].positionX !== 0 &&
+      clips[0].files[clips[0].currentFileIndex].positionY !== 0 &&
+      clips[0].files[clips[0].currentFileIndex].scale !== 1
     ) {
       return (
         scale(0) + `${label(0)}fps=${fps}[x];[x][1:v]paletteuse=dither=bayer`
@@ -366,9 +377,9 @@ const GifMaker = () => {
     if (
       layout === "Single" &&
       clipCount === 1 &&
-      clips[0].positionX === 0 &&
-      clips[0].positionY === 0 &&
-      clips[0].scale === 1
+      clips[0].files[clips[0].currentFileIndex].positionX === 0 &&
+      clips[0].files[clips[0].currentFileIndex].positionY === 0 &&
+      clips[0].files[clips[0].currentFileIndex].scale === 1
     ) {
       return `fps=${fps}[x];[x][1:v]paletteuse=dither=bayer`;
     }
@@ -407,12 +418,12 @@ const GifMaker = () => {
 
     if (layout === "2x2 Grid" && clipCount === 4) {
       const layoutStr = clips
-        .map(
-          (clip) =>
-            `${Math.round((clip.positionX ?? 0) * baseW)}_${Math.round(
-              (clip.positionY ?? 0) * baseH
-            )}`
-        )
+        .map((clip) => {
+          const fileData = clip.files[clip.currentFileIndex];
+          return `${Math.round((fileData.positionX ?? 0) * baseW)}_${Math.round(
+            (fileData.positionY ?? 0) * baseH
+          )}`;
+        })
         .join("|");
 
       return (
@@ -445,7 +456,9 @@ const GifMaker = () => {
     setProcessingProgress(0);
 
     try {
-      const validClips = videoClips.filter((clip) => clip.file);
+      const validClips = videoClips.filter(
+        (clip) => clip.files[clip.currentFileIndex]?.file
+      );
       if (validClips.length === 0) throw new Error("No video clips with files");
 
       const clipCount = validClips.length;
@@ -459,29 +472,90 @@ const GifMaker = () => {
         layout === "2x2 Grid" ? 4 : clipCount
       );
 
+      // Write all video files (including subsequent ones) to FFmpeg FS
       for (let i = 0; i < clipsToUse.length; i++) {
-        const data = await fetchFile(clipsToUse[i].file!);
-        ffmpeg.FS("writeFile", `input${i}.mp4`, data);
+        const clip = clipsToUse[i];
+        // Write the currently selected file (using currentFileIndex)
+        const currentFile = clip.files[clip.currentFileIndex].file;
+        if (currentFile) {
+          const data = await fetchFile(currentFile);
+          ffmpeg.FS("writeFile", `input${i}.mp4`, data);
+        }
+
+        // If there are subsequent videos, write them with different filenames
+        for (let j = 0; j < clip.files.length; j++) {
+          if (j !== clip.currentFileIndex && clip.files[j].file) {
+            const data = await fetchFile(clip.files[j].file!);
+            ffmpeg.FS("writeFile", `input${i}_${j}.mp4`, data);
+          }
+        }
       }
 
+      // Calculate durations - use the currently selected file's duration
       const durations = clipsToUse.map((c) =>
-        Math.min(gifSettings.maxDuration, c.endTime - c.startTime)
+        Math.min(
+          gifSettings.maxDuration,
+          c.files[c.currentFileIndex].endTime -
+            c.files[c.currentFileIndex].startTime
+        )
       );
       const duration = Math.min(...durations);
 
       setProcessingProgress(20);
 
-      const paletteInputs: string[] = [];
+      // Build the filter complex that will concatenate subsequent videos
+      const filterComplexParts = [];
+      const inputLabels = [];
+
       for (let i = 0; i < clipsToUse.length; i++) {
-        paletteInputs.push("-ss", String(clipsToUse[i].startTime));
-        paletteInputs.push("-t", String(duration));
-        paletteInputs.push("-i", `input${i}.mp4`);
+        const clip = clipsToUse[i];
+
+        if (clip.files.length === 1) {
+          // Single video - simple case
+          filterComplexParts.push(
+            `[${i}:v]trim=start=${clip.files[0].startTime}:end=${clip.files[0].endTime},setpts=PTS-STARTPTS[v${i}];`
+          );
+          inputLabels.push(`-i input${i}.mp4`);
+        } else {
+          // Multiple videos - need to concatenate
+          let concatFilter = "";
+          const concatInputs = [];
+
+          for (let j = 0; j < clip.files.length; j++) {
+            const file = clip.files[j];
+            const inputName =
+              j === clip.currentFileIndex
+                ? `input${i}.mp4`
+                : `input${i}_${j}.mp4`;
+
+            // Add input for this file
+            inputLabels.push(`-i ${inputName}`);
+
+            // Add trim filter for this segment
+            concatFilter += `[${i}:${j}]trim=start=${file.startTime}:end=${file.endTime},setpts=PTS-STARTPTS[v${i}${j}];`;
+            concatInputs.push(`[v${i}${j}]`);
+          }
+
+          // Add concatenation
+          concatFilter += `${concatInputs.join("")}concat=n=${
+            clip.files.length
+          }:v=1:a=0[v${i}];`;
+          filterComplexParts.push(concatFilter);
+        }
       }
 
+      // Add the layout composition
+      filterComplexParts.push(
+        createFilterComplex(layout, clipsToUse, gifSettings.fps)
+      );
+
+      const fullFilterComplex = filterComplexParts.join("");
+
+      // Generate palette
       await ffmpeg.run(
-        ...paletteInputs,
+        ...inputLabels,
         "-filter_complex",
-        createFilterComplex(layout, clipsToUse, gifSettings.fps),
+        fullFilterComplex,
         "-map",
         "[p]",
         "-y",
@@ -490,16 +564,11 @@ const GifMaker = () => {
 
       setProcessingProgress(60);
 
-      const gifInputs: string[] = [];
-      for (let i = 0; i < clipsToUse.length; i++) {
-        gifInputs.push("-ss", String(clipsToUse[i].startTime));
-        gifInputs.push("-t", String(duration));
-        gifInputs.push("-i", `input${i}.mp4`);
-      }
-      gifInputs.push("-i", "palette.png");
-
+      // Generate final GIF with palette
       await ffmpeg.run(
-        ...gifInputs,
+        ...inputLabels,
+        "-i",
+        "palette.png",
         "-filter_complex",
         createUseFilterComplex(layout, clipsToUse, gifSettings.fps),
         "-loop",
@@ -521,10 +590,14 @@ const GifMaker = () => {
       const shouldUseOriginalSize =
         layout === "Single" &&
         clipsToUse.length === 1 &&
-        clipsToUse.every(
-          (clip) =>
-            clip.positionX === 0 && clip.positionY === 0 && clip.scale === 1
-        );
+        clipsToUse.every((clip) => {
+          const fileData = clip.files[clip.currentFileIndex];
+          return (
+            fileData.positionX === 0 &&
+            fileData.positionY === 0 &&
+            fileData.scale === 1
+          );
+        });
 
       if (shouldUseOriginalSize) {
         // Dynamically extract size from the generated GIF
@@ -597,48 +670,45 @@ const GifMaker = () => {
   const handleVideoChange = (index: number, file: File | null) => {
     if (!file) return;
 
-    // Update the clips state immediately with just the file
-    setVideoClips((prev) => {
-      const newClips = [...prev];
-      newClips[index] = {
-        file: file,
-        startTime: 0,
-        endTime: Math.min(5, gifSettings.maxDuration), // Default to 5 seconds or max duration
-        duration: 0, // Will be updated once metadata is loaded
-        positionX: 0,
-        positionY: 0,
-        scale: 1,
-      };
-      return newClips;
-    });
+    // Create a video element to get the duration
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.src = URL.createObjectURL(file);
 
-    setActiveVideoIndex(index);
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+      URL.revokeObjectURL(video.src);
 
-    // Wait for the next render cycle before trying to access the video element
-    setTimeout(() => {
-      const videoEl = videoRefs.current[index];
-      if (videoEl) {
-        // Set up a one-time event listener for metadata
-        const handleMetadata = () => {
-          const videoDuration = videoEl.duration;
+      setVideoClips((prevClips) => {
+        const newClips = [...prevClips];
+        // For first upload, replace the first item in files array
+        // For subsequent uploads, it will be handled by the addVideoToSequence function
+        if (newClips[index].files[0].file === null) {
+          newClips[index] = {
+            files: [
+              {
+                file,
+                startTime: 0,
+                endTime: Math.min(5, duration),
+                duration,
+                scale: 1,
+                positionX: 0,
+                positionY: 0,
+              },
+            ],
+            currentFileIndex: 0,
+          };
+        }
+        return newClips;
+      });
 
-          setVideoClips((prev) => {
-            const newClips = [...prev];
-            newClips[index] = {
-              ...newClips[index],
-              endTime: Math.min(gifSettings.maxDuration, videoDuration),
-              duration: videoDuration,
-            };
-            return newClips;
-          });
+      setActiveVideoIndex(index);
+    };
 
-          // Remove the event listener once fired
-          videoEl.removeEventListener("loadedmetadata", handleMetadata);
-        };
-
-        videoEl.addEventListener("loadedmetadata", handleMetadata);
-      }
-    }, 100);
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      console.error("Error loading video metadata");
+    };
   };
 
   useEffect(() => {
@@ -688,30 +758,43 @@ const GifMaker = () => {
   const handleStartTimeChange = (index: number, value: number) => {
     setVideoClips((prev) => {
       const newClips = [...prev];
-      const clip = { ...newClips[index] };
+      const currentFileIndex = newClips[index].currentFileIndex;
+
+      // Update the specific file in the sequence
+      const fileData = { ...newClips[index].files[currentFileIndex] };
 
       // Ensure start time is less than end time
-      const newStartTime = Math.min(value, clip.endTime - 0.1);
-      clip.startTime = newStartTime;
+      const newStartTime = Math.min(value, fileData.endTime - 0.1);
+      fileData.startTime = newStartTime;
 
-      newClips[index] = clip;
+      // Update the modified file data back in the array
+      newClips[index].files[currentFileIndex] = fileData;
+
+      // Update video time
       updateVideoTime(index, newStartTime);
+
       return newClips;
     });
   };
 
-  // Handle slider changes for end time
   const handleEndTimeChange = (index: number, value: number) => {
     setVideoClips((prev) => {
       const newClips = [...prev];
-      const clip = { ...newClips[index] };
+      const currentFileIndex = newClips[index].currentFileIndex;
 
-      // Ensure end time is greater than start time
-      const newEndTime = Math.max(value, clip.startTime + 0.1);
-      clip.endTime = newEndTime;
+      // Update the specific file in the sequence
+      const fileData = { ...newClips[index].files[currentFileIndex] };
 
-      newClips[index] = clip;
-      updateVideoTime(index, newEndTime);
+      // Ensure end time is greater than start time and not exceeding duration
+      const newEndTime = Math.max(
+        Math.min(value, fileData.duration),
+        fileData.startTime + 0.1
+      );
+      fileData.endTime = newEndTime;
+
+      // Update the modified file data back in the array
+      newClips[index].files[currentFileIndex] = fileData;
+
       return newClips;
     });
   };
@@ -740,7 +823,10 @@ const GifMaker = () => {
       if (video) {
         try {
           // Make sure video is ready to play
-          video.currentTime = videoClips[activeVideoIndex].startTime;
+          video.currentTime =
+            videoClips[activeVideoIndex].files[
+              videoClips[activeVideoIndex].currentFileIndex
+            ].startTime;
 
           // Force immediate play attempt
           const playAttempt = video.play();
@@ -774,7 +860,9 @@ const GifMaker = () => {
     let animationFrameId: number;
 
     const checkTime = () => {
-      const { startTime, endTime } = videoClips[activeVideoIndex];
+      const currentFileIndex = videoClips[activeVideoIndex].currentFileIndex;
+      const { startTime, endTime } =
+        videoClips[activeVideoIndex].files[currentFileIndex];
       if (video.currentTime >= endTime) {
         video.currentTime = startTime;
         video.play();
@@ -782,8 +870,15 @@ const GifMaker = () => {
       animationFrameId = requestAnimationFrame(checkTime);
     };
 
-    if (videoClips[activeVideoIndex].file) {
-      video.currentTime = videoClips[activeVideoIndex].startTime;
+    if (
+      videoClips[activeVideoIndex].files[
+        videoClips[activeVideoIndex].currentFileIndex
+      ].file
+    ) {
+      video.currentTime =
+        videoClips[activeVideoIndex].files[
+          videoClips[activeVideoIndex].currentFileIndex
+        ].startTime;
       video.play().catch(console.error);
       animationFrameId = requestAnimationFrame(checkTime);
     }
@@ -817,7 +912,6 @@ const GifMaker = () => {
   };
 
   // ================== GIF Blur Processing ==================
-  console.log(gifFrames);
   // Extract frames from GIF
 
   // Update the extractGifFrames function
@@ -1647,8 +1741,6 @@ const GifMaker = () => {
     }
   }, [isGifLoaded]);
 
-  console.log(videoClips, "videoClips");
-
   return (
     <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
       <header className="text-center mb-12">
@@ -1692,81 +1784,119 @@ const GifMaker = () => {
         />
 
         {/* Timeframe Editor */}
-        {activeVideoIndex !== null && videoClips[activeVideoIndex]?.file && (
-          <div
-            id="timeframe-editor"
-            className="bg-gray-900 p-4 rounded-lg border border-gray-700 mb-6"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-blue-300 font-medium">Edit Timeframe</h3>
-              <button
-                onClick={togglePlayPause}
-                className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full"
-              >
-                {isPlaying ? (
-                  <Pause className="w-4 h-4" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-              </button>
-            </div>
+        {activeVideoIndex !== null &&
+          videoClips[activeVideoIndex]?.files[
+            videoClips[activeVideoIndex].currentFileIndex
+          ]?.file && (
+            <div
+              id="timeframe-editor"
+              className="bg-gray-900 p-4 rounded-lg border border-gray-700 mb-6"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-blue-300 font-medium">Edit Timeframe</h3>
+                <button
+                  onClick={togglePlayPause}
+                  className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full"
+                >
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
 
-            <div className="flex justify-between text-sm text-gray-400 mb-2">
-              <span>
-                Total: {formatTime(videoClips[activeVideoIndex].duration)}
-              </span>
-              <span>
-                Clip:{" "}
-                {formatTime(
-                  videoClips[activeVideoIndex].endTime -
-                    videoClips[activeVideoIndex].startTime
-                )}
-              </span>
-            </div>
+              <div className="flex justify-between text-sm text-gray-400 mb-2">
+                <span>
+                  Total:{" "}
+                  {formatTime(
+                    videoClips[activeVideoIndex].files[
+                      videoClips[activeVideoIndex].currentFileIndex
+                    ].duration
+                  )}
+                </span>
+                <span>
+                  Clip:{" "}
+                  {formatTime(
+                    videoClips[activeVideoIndex].files[
+                      videoClips[activeVideoIndex].currentFileIndex
+                    ].endTime -
+                      videoClips[activeVideoIndex].files[
+                        videoClips[activeVideoIndex].currentFileIndex
+                      ].startTime
+                  )}
+                </span>
+              </div>
 
-            {/* Start Time */}
-            <div className="mb-4">
-              <label className="text-sm text-gray-300 mb-1 block">
-                Start Time: {formatTime(videoClips[activeVideoIndex].startTime)}
-              </label>
-              <input
-                type="range"
-                min="0"
-                max={videoClips[activeVideoIndex].duration}
-                step="0.1"
-                value={videoClips[activeVideoIndex].startTime}
-                onChange={(e) =>
-                  handleStartTimeChange(
-                    activeVideoIndex,
-                    parseFloat(e.target.value)
-                  )
-                }
-                className="w-full accent-blue-500"
-              />
-            </div>
+              {/* Start Time */}
+              <div className="mb-4">
+                <label className="text-sm text-gray-300 mb-1 block">
+                  Start Time:{" "}
+                  {formatTime(
+                    videoClips[activeVideoIndex].files[
+                      videoClips[activeVideoIndex].currentFileIndex
+                    ].startTime
+                  )}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max={
+                    videoClips[activeVideoIndex].files[
+                      videoClips[activeVideoIndex].currentFileIndex
+                    ].duration
+                  }
+                  step="0.1"
+                  value={
+                    videoClips[activeVideoIndex].files[
+                      videoClips[activeVideoIndex].currentFileIndex
+                    ].startTime
+                  }
+                  onChange={(e) =>
+                    handleStartTimeChange(
+                      activeVideoIndex,
+                      parseFloat(e.target.value)
+                    )
+                  }
+                  className="w-full accent-blue-500"
+                />
+              </div>
 
-            {/* End Time */}
-            <div>
-              <label className="text-sm text-gray-300 mb-1 block">
-                End Time: {formatTime(videoClips[activeVideoIndex].endTime)}
-              </label>
-              <input
-                type="range"
-                min="0"
-                max={videoClips[activeVideoIndex].duration}
-                step="0.1"
-                value={videoClips[activeVideoIndex].endTime}
-                onChange={(e) =>
-                  handleEndTimeChange(
-                    activeVideoIndex,
-                    parseFloat(e.target.value)
-                  )
-                }
-                className="w-full accent-blue-500"
-              />
+              {/* End Time */}
+              <div>
+                <label className="text-sm text-gray-300 mb-1 block">
+                  End Time:{" "}
+                  {formatTime(
+                    videoClips[activeVideoIndex].files[
+                      videoClips[activeVideoIndex].currentFileIndex
+                    ].endTime
+                  )}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max={
+                    videoClips[activeVideoIndex].files[
+                      videoClips[activeVideoIndex].currentFileIndex
+                    ].duration
+                  }
+                  step="0.1"
+                  value={
+                    videoClips[activeVideoIndex].files[
+                      videoClips[activeVideoIndex].currentFileIndex
+                    ].endTime
+                  }
+                  onChange={(e) =>
+                    handleEndTimeChange(
+                      activeVideoIndex,
+                      parseFloat(e.target.value)
+                    )
+                  }
+                  className="w-full accent-blue-500"
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* GIF Settings */}
         <div className="mb-6">
@@ -1887,7 +2017,12 @@ const GifMaker = () => {
                 : "bg-blue-600 hover:bg-blue-500"
             } text-white px-4 py-2 rounded-lg transition-colors flex items-center`}
             onClick={createGif}
-            disabled={isProcessing || videoClips.every((clip) => !clip.file)}
+            disabled={
+              isProcessing ||
+              videoClips.every(
+                (clip) => !clip.files[clip.currentFileIndex]?.file
+              )
+            }
           >
             {isProcessing ? (
               <>
