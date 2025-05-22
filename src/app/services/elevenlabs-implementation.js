@@ -80,6 +80,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_8: {
+    name: "OF Carter Cameron's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Carter Cameron",
+        voiceId: "VN4OZ3qr3GaFjxvpE11z",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
