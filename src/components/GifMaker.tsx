@@ -431,7 +431,7 @@ const GifMaker = () => {
 
   // Function to create GIF
   const createGif = async () => {
-    if (!ffmpeg || !ffmpeg.isLoaded()) {
+    if (!ffmpeg || !ffmpeg.isLoaded()) {  
       console.error("FFmpeg not loaded");
       return;
     }
