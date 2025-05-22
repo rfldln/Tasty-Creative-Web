@@ -7,8 +7,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
 import { liveFlyerValidation } from "../../schema/zodValidationSchema";
+
+const STATIC_MODELS = [
+  "Alaya", "Alix", "Ally Lotti", "Amber MG", "Angela", "Autumn", "Ava", "Bri",
+  "Bronwin", "Coco", "Colby", "Cora", "Dan Dangler", "Emily Ray", "Emmie", "Essie",
+  "Forrest", "Gabrielle", "Ivy Wolfe", "Ivy Wren", "Jaileen", "Julianna", "Kait",
+  "Kass", "Kelly", "Kenzie", "Kimmy", "KKVSH", "Kyra", "Laila", "Lala", "McKinley",
+  "Mel", "Michelle", "MJ", "Nicole Aniston", "Rubi Rose", "Sage", "Salah", "Sarah",
+  "Sharna", "SINATRA", "Sirena", "Sky", "Sophie", "Tiauna", "Tita", "Victoria (V)",
+  "Kay", "Swedish Bella", "Tayy", "Sarah ill", "Carter", "Diva", "Nika", "Angel",
+  "Razz", "Sarah C", "Oakly", "Bella B", "Elsa", "Karmen", "Bentlee", "Mia", "Paige",
+  "Charlotte P", "Elle", "Hailey", "Hannah", "Harriet", "Korina", "Niah", "Marcie",
+  "Dakota", "Zoey", "Mia Swan", "Rebecca", "Tara West", "Swiggy", "Lolo",
+  "Ali Patience", "Grace", "Madison", "Victoria Cakes", "Ashley"
+];
 
 const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   formData,
@@ -19,28 +32,6 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   error,
   setFieldErrors,
 }) => {
-  const [models, setModels] = useState<Model[]>([]);
-  const [loadingModels, setLoadingModels] = useState(true);
-
-  useEffect(() => {
-    const fetchModels = async () => {
-      setLoadingModels(true);
-      try {
-        const response = await fetch("/api/models");
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setModels(data);
-        }
-      } catch (error) {
-        console.error("Error fetching models:", error);
-      } finally {
-        setLoadingModels(false);
-      }
-    };
-
-    fetchModels();
-  }, []);
-
   return (
     <div className="flex flex-col">
       <label htmlFor="model" className="text-sm text-gray-300 font-medium mb-1">
@@ -50,11 +41,9 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
       <Select
         value={formData.model}
         onValueChange={(value) => {
-          // Update form data first
           setFormData((prev) => ({ ...prev, model: value }));
 
-          // Now validate the updated value
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          // Validate
           const fieldSchema = (liveFlyerValidation.shape as any)["model"];
           if (fieldSchema) {
             const result = fieldSchema.safeParse(value);
@@ -65,9 +54,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
             }));
           }
         }}
-        disabled={
-          isLoading || isFetchingImage || !!webhookData || loadingModels
-        }
+        disabled={isLoading || isFetchingImage || !!webhookData}
       >
         <SelectTrigger
           className={cn(
@@ -75,18 +62,16 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
             { "border-red-500 !text-red-500": error }
           )}
         >
-          <SelectValue
-            placeholder={loadingModels ? "Loading models..." : "Select Model"}
-          />
+          <SelectValue placeholder="Select Model" />
         </SelectTrigger>
-        <SelectContent className="bg-black/90 border-white/10 text-gray-400 max-h-72">
-          {models.map((model, index) => (
+        <SelectContent className="bg-black/90 border-white/10 text-gray-400 max-h-72 overflow-y-auto">
+          {STATIC_MODELS.map((name, index) => (
             <SelectItem
               key={index}
-              value={model.name}
+              value={name}
               className="flex items-center justify-between py-2"
             >
-              {model.name}
+              {name}
             </SelectItem>
           ))}
         </SelectContent>

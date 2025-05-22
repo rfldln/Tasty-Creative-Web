@@ -11,18 +11,20 @@ interface GoogleAuthTokens {
 const SPREADSHEET_ID = process.env.GOOGLE_DRIVE_SHEET_MODEL_NAMES;
 const MODEL_HEADER = "Client Name";
 const MODEL_PROFILE = "Profile Link";
-const MODEL_STATUS = "Status"; // Add the status header
+const MODEL_STATUS = "Status";
 
 export async function GET(): Promise<NextResponse> {
   const cookieStore = await cookies();
   const tokensCookie = cookieStore.get("google_auth_tokens");
 
   if (!tokensCookie) {
+    console.warn("⚠️ No auth tokens found in cookies");
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   try {
     const tokens = JSON.parse(tokensCookie.value) as GoogleAuthTokens;
+    console.log("✅ Parsed Google tokens:", tokens);
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -41,44 +43,49 @@ export async function GET(): Promise<NextResponse> {
       auth: oauth2Client,
     });
 
-    // First, get the sheet metadata to work with
+    console.log("📄 Fetching spreadsheet metadata...");
     const spreadsheet = await sheets.spreadsheets.get({
       spreadsheetId: SPREADSHEET_ID,
     });
 
-    // Make sure we have sheets
     if (!spreadsheet.data.sheets || spreadsheet.data.sheets.length === 0) {
+      console.warn("⚠️ No sheets found in spreadsheet");
       return NextResponse.json([], { status: 200 });
     }
 
-    // Get the first sheet's title
     const firstSheetTitle = spreadsheet.data.sheets[0]?.properties?.title;
+    console.log("📝 First sheet title:", firstSheetTitle);
+
     if (!firstSheetTitle) {
       return NextResponse.json([], { status: 200 });
     }
 
-    // Now get the data with a proper range
+    console.log("📊 Fetching sheet values...");
     const sheetData = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: `${firstSheetTitle}!A:Z`,
     });
 
-    // Handle potentially null or undefined values
     const values = sheetData.data.values ?? [];
+    console.log(`📦 Retrieved ${values.length} rows`);
 
     if (values.length === 0) {
       return NextResponse.json([], { status: 200 });
     }
 
-    // Find all column headers
     const headers: string[] = values[0] as string[];
+    console.log("🔎 Sheet headers:", headers);
 
-    // Get the indexes for name, profile, and status
     const nameIndex = headers.indexOf(MODEL_HEADER);
     const profileIndex = headers.indexOf(MODEL_PROFILE);
     const statusIndex = headers.indexOf(MODEL_STATUS);
 
     if (nameIndex === -1 || profileIndex === -1 || statusIndex === -1) {
+      console.warn("⚠️ Required columns missing:", {
+        nameIndex,
+        profileIndex,
+        statusIndex,
+      });
       return NextResponse.json([], { status: 200 });
     }
 
@@ -87,21 +94,21 @@ export async function GET(): Promise<NextResponse> {
     for (let i = 1; i < values.length; i++) {
       const row = values[i] as string[];
       const name = row[nameIndex]?.trim();
-      const profile = row[profileIndex]?.trim() || ""; // allow missing profiles
-      const status = row[statusIndex]?.trim() || "Unknown"; // Default to "Unknown" if status is empty
+      const profile = row[profileIndex]?.trim() || "";
+      const status = row[statusIndex]?.trim() || "Unknown";
 
       if (name) {
         models.push({ name, profile, status });
       }
     }
 
+    console.log("✅ Models fetched:", models.length);
     return NextResponse.json(models, { status: 200 });
   } catch (error) {
     console.error("❌ Error fetching models:", error);
 
-    // Enhanced error logging
     if (error && typeof error === "object" && "response" in error) {
-      console.error("Response details:", error.response);
+      console.error("🧾 Error response details:", (error as any).response);
     }
 
     return NextResponse.json(
