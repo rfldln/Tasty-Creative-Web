@@ -53,7 +53,7 @@ export const API_KEY_PROFILES = {
     voices: [
       {
         name: "OF Bronwin",
-        voiceId: "rFfKB0Jvn1Pj082TgJl2",
+        voiceId: "bbY4EbJ4diWPBBc5gWZS",
         category: "professional",
       },
     ],
@@ -65,6 +65,28 @@ export const API_KEY_PROFILES = {
       {
         name: "OF Nicole",
         voiceId: "h29VgKFSX37NZ0jnbcKH",
+        category: "professional",
+      },
+    ],
+  },
+  account_7: {
+    name: "OF Sarah's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Sarah",
+        voiceId: "ULzbjES9G4G63lk8H4rI",
+        category: "professional",
+      },
+    ],
+  },
+  account_8: {
+    name: "OF Carter Cameron's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Carter Cameron",
+        voiceId: "VN4OZ3qr3GaFjxvpE11z",
         category: "professional",
       },
     ],
