@@ -240,8 +240,8 @@ const GifMaker = () => {
     if (
       layout === "Single" &&
       clipCount === 1 &&
-      clips[0].positionX !== 0 &&
-      clips[0].positionY !== 0 &&
+      clips[0].positionX !== 0 ||
+      clips[0].positionY !== 0 ||
       clips[0].scale !== 1
     ) {
       return scale(0) + `${label(0)}fps=${fps},palettegen=stats_mode=diff[p]`;
@@ -354,8 +354,8 @@ const GifMaker = () => {
     if (
       layout === "Single" &&
       clipCount === 1 &&
-      clips[0].positionX !== 0 &&
-      clips[0].positionY !== 0 &&
+      clips[0].positionX !== 0 ||
+      clips[0].positionY !== 0 ||
       clips[0].scale !== 1
     ) {
       return (
