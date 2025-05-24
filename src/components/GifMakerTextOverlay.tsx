@@ -5,9 +5,11 @@ import FontSelector from "./FontSelector";
 const GifMakerTextOverlay = ({
   gifUrl,
   formData,
+  setWebhookData,
 }: {
   gifUrl: string;
   formData: ModelFormData | undefined;
+  setWebhookData?: (data: any) => void;
 }) => {
   const [text, setText] = useState("Your text here");
   const [fontSize, setFontSize] = useState(24);
@@ -29,8 +31,7 @@ const GifMakerTextOverlay = ({
 
   const lastCheckTimestamp = useRef(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [webhookData, setWebhookData] = useState<any>(null);
-  console.log("Webhook Data:", webhookData);
+
   const checkInterval = useRef<NodeJS.Timeout | null>(null);
   const handleImageLoad = () => {
     if (imageRef.current) {
@@ -127,11 +128,11 @@ const GifMakerTextOverlay = ({
       }
 
       if (result.timestamp > lastCheckTimestamp.current) {
-        setWebhookData(result.data);
-
-        lastCheckTimestamp.current = result.timestamp;
-
+        if (setWebhookData) {
+          setWebhookData(result.data);
+        }
         stopChecking();
+        lastCheckTimestamp.current = result.timestamp;
       }
     } catch (error) {
       console.error("Error fetching webhook data:", error);

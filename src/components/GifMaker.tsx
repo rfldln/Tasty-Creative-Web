@@ -101,6 +101,7 @@ const GifMaker = () => {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null);
+  const [webhookData, setWebhookData] = useState<any>(null);
   const [error, setError] = useState("");
   const [isReady, setIsReady] = useState(false);
   const [dimensions, setDimensions] = useState({
@@ -109,6 +110,12 @@ const GifMaker = () => {
   });
 
   const [isDrawing, setIsDrawing] = useState(false);
+
+  useEffect(() => {
+    if (webhookData) {
+      setGifUrl(`/api/be/proxy?path=${btoa(webhookData.filePath)}`);
+    }
+  }, [webhookData]);
 
   const [blurSettings, setBlurSettings] = useState<BlurSettings>(() => {
     const cookie = Cookies.get(BLUR_COOKIE_KEY);
@@ -1864,6 +1871,7 @@ const GifMaker = () => {
               reconstructGif={reconstructGif}
               isGifProcessing={isGifProcessing}
               formData={formData}
+              setWebhookData={setWebhookData}
             />
           </div>
         )}
