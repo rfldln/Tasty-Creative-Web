@@ -132,6 +132,7 @@ const GifMakerTextOverlay = ({
           setWebhookData(result.data);
         }
         stopChecking();
+        setIsLoading(false);
         lastCheckTimestamp.current = result.timestamp;
       }
     } catch (error) {
@@ -289,7 +290,7 @@ const GifMakerTextOverlay = ({
       {/* Send Button */}
       <button
         onClick={sendToWebhook}
-        // disabled={isLoading}
+        disabled={isLoading}
         className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
       >
         {isLoading ? "Applying..." : "Apply Text Overlay"}
