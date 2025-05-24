@@ -91,6 +91,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_9: {
+    name: "OF Sinatra's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Sinatra",
+        voiceId: "9uOCBpX1fiXU98ucq1oF",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
