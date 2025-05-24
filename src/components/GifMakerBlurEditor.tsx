@@ -1,4 +1,4 @@
-import { Eraser, Sliders, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import React from "react";
 
 type GifMakerBlurEditorProps = {
@@ -33,9 +33,9 @@ const GifMakerBlurEditor = ({
   setBlurType,
   setBlurIntensity,
   setBrushSize,
-  clearMask,
+
   isGifLoaded,
-  processAllFrames,
+
   reconstructGif,
   isGifProcessing,
 }: GifMakerBlurEditorProps) => {

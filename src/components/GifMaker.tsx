@@ -20,7 +20,8 @@ import { parseGIF, decompressFrames } from "gifuct-js";
 import GIF from "gif.js";
 import Cookies from "js-cookie";
 import GifMakerVideoCropper from "./GifMakerVideoCropper";
-import GifMakerBlurEditor from "./GifMakerBlurEditor";
+import GifMakerEditorSelector from "./GIfMakerEditorSelector";
+import ModelsDropdown from "./ModelsDropdown";
 
 // Define TypeScript interfaces
 interface ModelFormData {
@@ -198,7 +199,6 @@ const GifMaker = () => {
     }))
   );
 
-
   const createFilterComplex = (
     layout: Layout,
     clips: VideoClip[],
@@ -238,9 +238,7 @@ const GifMaker = () => {
     const label = (i: number) => `[v${i}]`;
 
     if (
-      layout === "Single" &&
-      clipCount === 1 &&
-      clips[0].positionX !== 0 ||
+      (layout === "Single" && clipCount === 1 && clips[0].positionX !== 0) ||
       clips[0].positionY !== 0 ||
       clips[0].scale !== 1
     ) {
@@ -352,9 +350,7 @@ const GifMaker = () => {
     const label = (i: number) => `[v${i}]`;
 
     if (
-      layout === "Single" &&
-      clipCount === 1 &&
-      clips[0].positionX !== 0 ||
+      (layout === "Single" && clipCount === 1 && clips[0].positionX !== 0) ||
       clips[0].positionY !== 0 ||
       clips[0].scale !== 1
     ) {
@@ -431,7 +427,7 @@ const GifMaker = () => {
 
   // Function to create GIF
   const createGif = async () => {
-    if (!ffmpeg || !ffmpeg.isLoaded()) {  
+    if (!ffmpeg || !ffmpeg.isLoaded()) {
       console.error("FFmpeg not loaded");
       return;
     }
@@ -1662,12 +1658,16 @@ const GifMaker = () => {
 
       {/* Model Selection (placeholder) */}
       <div className="bg-gray-800/50 rounded-xl p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
-        <h2 className="text-xl font-semibold mb-4 text-blue-300">
-          Select Model
-        </h2>
-        {/* ModelsDropdown component would go here */}
-        <div className="bg-gray-700 p-3 rounded-lg">
-          <p className="text-gray-300">Model selection placeholder</p>
+        <div className="col-span-2">
+          <ModelsDropdown
+            formData={formData}
+            setFormData={setFormData}
+            // isLoading={isLoading}
+            // isFetchingImage={isFetchingImage}
+            // webhookData={webhookData}
+            // error={fieldErrors.model}
+            // setFieldErrors={setFieldErrors}
+          />
         </div>
       </div>
 
@@ -1847,7 +1847,8 @@ const GifMaker = () => {
               </div>
             </div>
 
-            <GifMakerBlurEditor
+            <GifMakerEditorSelector
+              gifUrl={gifUrl}
               canvasBlurRef={canvasBlurRef}
               maskCanvasRef={maskCanvasRef}
               startDrawing={startDrawing}
@@ -1862,6 +1863,7 @@ const GifMaker = () => {
               processAllFrames={processAllFrames}
               reconstructGif={reconstructGif}
               isGifProcessing={isGifProcessing}
+              formData={formData}
             />
           </div>
         )}
