@@ -192,16 +192,6 @@ export default function FTTFlyer() {
     }, 2000);
   };
 
-  // Effect to stop checking when webhookData is updated
-  useEffect(() => {
-    const totalTemplates = Number(formData.noOfTemplate);
-    if (itemReceived === totalTemplates) {
-      // setIsProcessing(false);
-
-      stopChecking();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [webhookData]);
 
   // Check for initial data on mount
 
@@ -212,6 +202,18 @@ export default function FTTFlyer() {
     }
     setIsFetchingImage(false);
   };
+
+    // Effect to stop checking when webhookData is updated
+  useEffect(() => {
+    const totalTemplates = Number(formData.noOfTemplate);
+    if (itemReceived === totalTemplates) {
+      // setIsProcessing(false);
+
+      stopChecking();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [webhookData]);
+
 
   const checkAuthStatus = async () => {
     try {

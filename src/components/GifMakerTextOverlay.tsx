@@ -27,6 +27,11 @@ const GifMakerTextOverlay = ({
   const requestId = uuidv4(); // Generate unique ID
   const data = formData;
 
+  const lastCheckTimestamp = useRef(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [webhookData, setWebhookData] = useState<any>(null);
+  console.log("Webhook Data:", webhookData);
+  const checkInterval = useRef<NodeJS.Timeout | null>(null);
   const handleImageLoad = () => {
     if (imageRef.current) {
       const { naturalWidth, naturalHeight } = imageRef.current;
@@ -84,8 +89,7 @@ const GifMakerTextOverlay = ({
       formData.append("fontSize", fontSize.toString());
       formData.append("positionX", position.x.toString());
       formData.append("positionY", position.y.toString());
-      formData.append("requestId", requestId); // Add the unique ID to the form data
-
+      formData.append("requestId", requestId);
       const response = await fetch(
         "https://n8n.tastycreative.xyz/webhook/a43d0bda-d09e-41c6-88fe-41c47891d7cd",
         {
@@ -95,15 +99,62 @@ const GifMakerTextOverlay = ({
       );
 
       if (response.ok) {
-        alert("GIF sent successfully!");
+        // alert("GIF sent successfully!");
+        startChecking(requestId);
       } else {
         alert("Failed to send GIF");
       }
     } catch (error) {
       console.error("Error sending GIF:", error);
       alert("Error sending GIF");
-    } finally {
-      setIsLoading(false);
+    }
+  };
+
+  const fetchWebhookData = async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/webhook?requestId=${requestId}`);
+
+      if (!response.ok) {
+        console.error("Webhook data request failed:", response.statusText);
+        return;
+      }
+
+      const result = await response.json();
+
+      if (!result || !result.data) {
+        console.warn("No data found for requestId:", requestId);
+        return;
+      }
+
+      if (result.timestamp > lastCheckTimestamp.current) {
+        setWebhookData(result.data);
+
+        lastCheckTimestamp.current = result.timestamp;
+
+        stopChecking();
+      }
+    } catch (error) {
+      console.error("Error fetching webhook data:", error);
+    }
+  };
+
+  const startChecking = (requestId: string) => {
+    if (checkInterval.current) {
+      clearInterval(checkInterval.current);
+      checkInterval.current = null;
+    }
+
+    checkInterval.current = setInterval(() => {
+      fetchWebhookData(requestId);
+    }, 2000);
+  };
+
+  // Check for initial data on mount
+
+  const stopChecking = () => {
+    if (checkInterval.current) {
+      clearInterval(checkInterval.current);
+      checkInterval.current = null;
     }
   };
 
@@ -233,15 +284,6 @@ const GifMakerTextOverlay = ({
           )}
         </div>
       </div>
-
-      {/* Instructions */}
-      {/* <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <strong>Instructions:</strong> Drag the text to reposition it, use the
-          sliders to adjust font size and position, then click send to webhook
-          to submit the data.
-        </p>
-      </div> */}
 
       {/* Send Button */}
       <button
