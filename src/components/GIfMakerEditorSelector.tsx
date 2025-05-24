@@ -24,6 +24,7 @@ type GifMakerEditorSelectorProps = {
   isGifProcessing: boolean;
   isDrawing?: boolean;
   formData?: ModelFormData;
+  setWebhookData?: (data: any) => void;
 };
 
 const GifMakerEditorSelector = ({
@@ -43,6 +44,7 @@ const GifMakerEditorSelector = ({
   reconstructGif,
   isGifProcessing,
   formData,
+  setWebhookData,
 }: GifMakerEditorSelectorProps) => {
   const [activeEditor, setActiveEditor] = useState("blur");
 
@@ -103,7 +105,11 @@ const GifMakerEditorSelector = ({
 
         {activeEditor === "text" && (
           <div className="mt-2">
-            <GifMakerTextOverlay gifUrl={gifUrl} formData={formData}/>
+            <GifMakerTextOverlay
+              gifUrl={gifUrl}
+              formData={formData}
+              setWebhookData={setWebhookData}
+            />
           </div>
         )}
       </div>
