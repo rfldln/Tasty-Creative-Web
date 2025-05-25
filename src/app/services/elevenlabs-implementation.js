@@ -113,6 +113,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_11: {
+    name: "OF Oakly's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Oakly",
+        voiceId: "kus39ZcFKueIyzRe8jdP",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
