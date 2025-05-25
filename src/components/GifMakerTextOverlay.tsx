@@ -6,12 +6,17 @@ const GifMakerTextOverlay = ({
   gifUrl,
   formData,
   setWebhookData,
-  handleUndo,
+  gifUrlHistory,
+  setGifUrlHistory,
+  setGifUrl,
 }: {
   gifUrl: string;
   formData: ModelFormData | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setWebhookData?: (data: any) => void;
-  handleUndo?: () => void;
+  gifUrlHistory: string[];
+  setGifUrlHistory: (urls: string[]) => void;
+  setGifUrl: (url: string) => void;
 }) => {
   const [text, setText] = useState("Your text here");
   const [fontSize, setFontSize] = useState(24);
@@ -21,6 +26,7 @@ const GifMakerTextOverlay = ({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFont, setSelectedFont] = useState<string>("Bebas Neue");
   const [selectedTextStyle, setSelectedTextStyle] = useState<string>("TS_1");
+  const [isUndoing, setIsUndoing] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{
     width: number;
     height: number;
@@ -164,6 +170,19 @@ const GifMakerTextOverlay = ({
     }
   };
 
+  const handleUndo = () => {
+    setIsUndoing(true);
+    if (gifUrlHistory.length > 1) {
+      const newHistory = [...gifUrlHistory];
+      newHistory.pop(); // Remove the last URL
+      setGifUrlHistory(newHistory);
+      setGifUrl(newHistory[newHistory.length - 1] || "");
+      setIsUndoing(false);
+    } else {
+      setIsUndoing(false);
+    }
+  };
+
   return (
     <div className="w-full mx-auto p-6 bg-gray-900 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
@@ -301,7 +320,7 @@ const GifMakerTextOverlay = ({
           disabled={isLoading}
           className="w-full bg-red-600 col-span-1 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
         >
-          {isLoading ? "Undoing..." : "Undo"}
+          {isUndoing ? "Undoing..." : "Undo Last Action"}
         </button>
         <button
           onClick={sendToWebhook}
