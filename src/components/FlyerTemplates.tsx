@@ -5,13 +5,7 @@ import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
 import { X } from "lucide-react";
 
-interface DriveFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  webViewLink: string;
-  thumbnailLink?: string;
-}
+
 
 export default function FlyerTemplates({
   flyer,

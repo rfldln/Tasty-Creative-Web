@@ -18,6 +18,7 @@ const GifMakerTextOverlay = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFont, setSelectedFont] = useState<string>("Bebas Neue");
+  const [selectedTextStyle, setSelectedTextStyle] = useState<string>("TS_1");
   const [imageDimensions, setImageDimensions] = useState<{
     width: number;
     height: number;
@@ -91,6 +92,7 @@ const GifMakerTextOverlay = ({
       formData.append("positionX", position.x.toString());
       formData.append("positionY", position.y.toString());
       formData.append("requestId", requestId);
+      formData.append("selectedTextStyle", selectedTextStyle);
       const response = await fetch(
         "https://n8n.tastycreative.xyz/webhook/a43d0bda-d09e-41c6-88fe-41c47891d7cd",
         {
@@ -185,6 +187,9 @@ const GifMakerTextOverlay = ({
             selectedFont={selectedFont}
             setSelectedFont={setSelectedFont}
           />
+        </div>
+        <div>
+          <TextStyleTemplates setSelectedTextStyle={setSelectedTextStyle} />
         </div>
 
         <div>
@@ -302,6 +307,7 @@ const GifMakerTextOverlay = ({
 export default GifMakerTextOverlay;
 
 import { useEffect } from "react";
+import TextStyleTemplates from "./TextStyleTemplates";
 
 function DynamicFontLoader({ font }: { font: string }) {
   useEffect(() => {
