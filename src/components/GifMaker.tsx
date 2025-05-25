@@ -96,6 +96,7 @@ export const templates: Record<
 
 const GifMaker = () => {
   const [formData, setFormData] = useState<ModelFormData>({});
+  const [gifUrlHistory, setGifUrlHistory] = useState<string[]>([]);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState("single");
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -115,8 +116,23 @@ const GifMaker = () => {
   useEffect(() => {
     if (webhookData) {
       setGifUrl(`/api/be/proxy?path=${btoa(webhookData.filePath)}`);
+      setGifUrlHistory((prev) => {
+        const newHistory = [...prev, webhookData.filePath];
+        return newHistory;
+      });
     }
   }, [webhookData]);
+
+  const handleUndo = () => {
+    if (gifUrlHistory.length > 1) {
+      const newHistory = [...gifUrlHistory];
+      newHistory.pop(); // Remove the last URL
+      setGifUrlHistory(newHistory);
+      setGifUrl(newHistory[newHistory.length - 1] || null);
+    } else {
+      setGifUrl(null);
+    }
+  };
 
   const [blurSettings, setBlurSettings] = useState<BlurSettings>(() => {
     const cookie = Cookies.get(BLUR_COOKIE_KEY);
@@ -270,7 +286,9 @@ const GifMaker = () => {
       return (
         scale(0) +
         scale(1) +
-        `${label(0)}${label(1)}hstack=inputs=2,fps=${fps},palettegen=stats_mode=diff[p]`
+        `${label(0)}${label(
+          1
+        )}hstack=inputs=2,fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -279,7 +297,9 @@ const GifMaker = () => {
         scale(0) +
         scale(1) +
         scale(2) +
-        `${label(0)}${label(1)}${label(2)}hstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
+        `${label(0)}${label(1)}${label(
+          2
+        )}hstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -288,7 +308,9 @@ const GifMaker = () => {
         scale(0) +
         scale(1) +
         scale(2) +
-        `${label(0)}${label(1)}${label(2)}vstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
+        `${label(0)}${label(1)}${label(
+          2
+        )}vstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -307,7 +329,9 @@ const GifMaker = () => {
         scale(1) +
         scale(2) +
         scale(3) +
-        `${label(0)}${label(1)}${label(2)}${label(3)}xstack=inputs=4:layout=${layoutStr},fps=${fps},palettegen=stats_mode=diff[p]`
+        `${label(0)}${label(1)}${label(2)}${label(
+          3
+        )}xstack=inputs=4:layout=${layoutStr},fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -379,7 +403,9 @@ const GifMaker = () => {
       return (
         scale(0) +
         scale(1) +
-        `${label(0)}${label(1)}hstack=inputs=2,fps=${fps}[x];[x][2:v]paletteuse=dither=bayer`
+        `${label(0)}${label(
+          1
+        )}hstack=inputs=2,fps=${fps}[x];[x][2:v]paletteuse=dither=bayer`
       );
     }
 
@@ -388,7 +414,9 @@ const GifMaker = () => {
         scale(0) +
         scale(1) +
         scale(2) +
-        `${label(0)}${label(1)}${label(2)}hstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+        `${label(0)}${label(1)}${label(
+          2
+        )}hstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
       );
     }
 
@@ -397,7 +425,9 @@ const GifMaker = () => {
         scale(0) +
         scale(1) +
         scale(2) +
-        `${label(0)}${label(1)}${label(2)}vstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+        `${label(0)}${label(1)}${label(
+          2
+        )}vstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
       );
     }
 
@@ -416,7 +446,9 @@ const GifMaker = () => {
         scale(1) +
         scale(2) +
         scale(3) +
-        `${label(0)}${label(1)}${label(2)}${label(3)}xstack=inputs=4:layout=${layoutStr},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
+        `${label(0)}${label(1)}${label(2)}${label(
+          3
+        )}xstack=inputs=4:layout=${layoutStr},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
       );
     }
 
@@ -561,6 +593,10 @@ const GifMaker = () => {
 
       const url = URL.createObjectURL(gifBlob);
       setGifUrl(url);
+      setGifUrlHistory((prev) => {
+        const newHistory = [...prev, url];
+        return newHistory;
+      });
       await extractGifFrames(gifBlob, width, height);
 
       for (let i = 0; i < clipsToUse.length; i++) {
@@ -1424,6 +1460,10 @@ const GifMaker = () => {
 
         const url = URL.createObjectURL(blob);
         setGifUrl(url);
+        setGifUrlHistory((prev) => {
+          const newHistory = [...prev, url];
+          return newHistory;
+        });
         setIsGifProcessing(false);
         console.log("GIF successfully reconstructed");
       });
@@ -1880,6 +1920,7 @@ const GifMaker = () => {
               isGifProcessing={isGifProcessing}
               formData={formData}
               setWebhookData={setWebhookData}
+              handleUndo={handleUndo}
             />
           </div>
         )}

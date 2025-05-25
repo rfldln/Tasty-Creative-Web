@@ -6,10 +6,12 @@ const GifMakerTextOverlay = ({
   gifUrl,
   formData,
   setWebhookData,
+  handleUndo,
 }: {
   gifUrl: string;
   formData: ModelFormData | undefined;
   setWebhookData?: (data: any) => void;
+  handleUndo?: () => void;
 }) => {
   const [text, setText] = useState("Your text here");
   const [fontSize, setFontSize] = useState(24);
@@ -293,13 +295,22 @@ const GifMakerTextOverlay = ({
       </div>
 
       {/* Send Button */}
-      <button
-        onClick={sendToWebhook}
-        disabled={isLoading}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-      >
-        {isLoading ? "Applying..." : "Apply Text Overlay"}
-      </button>
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          onClick={handleUndo}
+          disabled={isLoading}
+          className="w-full bg-red-600 col-span-1 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+        >
+          {isLoading ? "Undoing..." : "Undo"}
+        </button>
+        <button
+          onClick={sendToWebhook}
+          disabled={isLoading}
+          className="w-full bg-blue-600 col-span-2 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+        >
+          {isLoading ? "Applying..." : "Apply Text Overlay"}
+        </button>
+      </div>
     </div>
   );
 };
