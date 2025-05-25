@@ -117,7 +117,7 @@ const GifMaker = () => {
     if (webhookData) {
       setGifUrl(`/api/be/proxy?path=${btoa(webhookData.filePath)}`);
       setGifUrlHistory((prev) => {
-        const newHistory = [...prev, webhookData.filePath];
+        const newHistory = [...prev, `/api/be/proxy?path=${btoa(webhookData.filePath)}`];
         return newHistory;
       });
     }
