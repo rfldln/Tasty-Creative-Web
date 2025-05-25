@@ -280,7 +280,7 @@ const GifMakerTextOverlay = ({
                 left: `${position.x}px`,
                 top: `${position.y}px`,
                 fontSize: `${fontSize}px`,
-                letterSpacing: "2px",
+                letterSpacing: "1px",
                 userSelect: "none",
                 fontFamily: selectedFont,
               }}
