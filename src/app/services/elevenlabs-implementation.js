@@ -102,6 +102,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_10: {
+    name: "OF Michelle G's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Michelle G",
+        voiceId: "UlQs9FTJdozvn09jdKkY",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
