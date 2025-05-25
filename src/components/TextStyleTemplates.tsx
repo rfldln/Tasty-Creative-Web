@@ -165,7 +165,7 @@ const TextStyleTemplates = ({
                 </div>
               ) : (
                 <img
-                  src={`/api/image-proxy?id=${file.id}`}
+                  src={`/api/image-proxy?id=${selectedFile.id}`}
                   alt={`Preview of ${selectedFile.name}`}
                   className="w-full h-full object-contain"
                   loading="lazy"
