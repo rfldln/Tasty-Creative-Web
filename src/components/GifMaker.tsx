@@ -22,6 +22,7 @@ import Cookies from "js-cookie";
 import GifMakerVideoCropper from "./GifMakerVideoCropper";
 import GifMakerEditorSelector from "./GIfMakerEditorSelector";
 import ModelsDropdown from "./ModelsDropdown";
+import { GifMakerVideoTimeline } from "./GifMakerVideoTimeline";
 
 // Define TypeScript interfaces
 interface ModelFormData {
@@ -106,6 +107,9 @@ const GifMaker = () => {
   const [error, setError] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [startTime, setStartTime] = useState(2);
+  const [endTime, setEndTime] = useState(8);
   const [dimensions, setDimensions] = useState({
     width: 0,
     height: 0,
@@ -123,16 +127,7 @@ const GifMaker = () => {
     }
   }, [webhookData]);
 
-  const handleUndo = () => {
-    if (gifUrlHistory.length > 1) {
-      const newHistory = [...gifUrlHistory];
-      newHistory.pop(); // Remove the last URL
-      setGifUrlHistory(newHistory);
-      setGifUrl(newHistory[newHistory.length - 1] || null);
-    } else {
-      setGifUrl(null);
-    }
-  };
+
 
   const [blurSettings, setBlurSettings] = useState<BlurSettings>(() => {
     const cookie = Cookies.get(BLUR_COOKIE_KEY);
@@ -1747,79 +1742,28 @@ const GifMaker = () => {
 
         {/* Timeframe Editor */}
         {activeVideoIndex !== null && videoClips[activeVideoIndex]?.file && (
-          <div
-            id="timeframe-editor"
-            className="bg-gray-900 p-4 rounded-lg border border-gray-700 mb-6"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-blue-300 font-medium">Edit Timeframe</h3>
-              <button
-                onClick={togglePlayPause}
-                className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full"
-              >
-                {isPlaying ? (
-                  <Pause className="w-4 h-4" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-              </button>
-            </div>
+          <>
+            <GifMakerVideoTimeline
+              videoFile={videoClips[activeVideoIndex].file}
+              duration={videoClips[activeVideoIndex].duration}
+              startTime={videoClips[activeVideoIndex].startTime}
+              endTime={videoClips[activeVideoIndex].endTime}
+              currentTime={currentTime}
+              isPlaying={isPlaying}
+              onStartTimeChange={setStartTime}
+              onEndTimeChange={setEndTime}
+              onCurrentTimeChange={setCurrentTime}
+              onPlayPause={() => setIsPlaying(!isPlaying)}
+            />
 
-            <div className="flex justify-between text-sm text-gray-400 mb-2">
-              <span>
-                Total: {formatTime(videoClips[activeVideoIndex].duration)}
-              </span>
-              <span>
-                Clip:{" "}
-                {formatTime(
-                  videoClips[activeVideoIndex].endTime -
-                    videoClips[activeVideoIndex].startTime
-                )}
-              </span>
+            <div className="mt-4 p-4 bg-gray-800 rounded text-white text-sm">
+              <h4 className="font-bold mb-2">Debug Info:</h4>
+              <p>Start: {startTime.toFixed(1)}s</p>
+              <p>End: {endTime.toFixed(1)}s</p>
+              <p>Current: {currentTime.toFixed(1)}s</p>
+              <p>Playing: {isPlaying ? "Yes" : "No"}</p>
             </div>
-
-            {/* Start Time */}
-            <div className="mb-4">
-              <label className="text-sm text-gray-300 mb-1 block">
-                Start Time: {formatTime(videoClips[activeVideoIndex].startTime)}
-              </label>
-              <input
-                type="range"
-                min="0"
-                max={videoClips[activeVideoIndex].duration}
-                step="0.1"
-                value={videoClips[activeVideoIndex].startTime}
-                onChange={(e) =>
-                  handleStartTimeChange(
-                    activeVideoIndex,
-                    parseFloat(e.target.value)
-                  )
-                }
-                className="w-full accent-blue-500"
-              />
-            </div>
-
-            {/* End Time */}
-            <div>
-              <label className="text-sm text-gray-300 mb-1 block">
-                End Time: {formatTime(videoClips[activeVideoIndex].endTime)}
-              </label>
-              <input
-                type="range"
-                min="0"
-                max={videoClips[activeVideoIndex].duration}
-                step="0.1"
-                value={videoClips[activeVideoIndex].endTime}
-                onChange={(e) =>
-                  handleEndTimeChange(
-                    activeVideoIndex,
-                    parseFloat(e.target.value)
-                  )
-                }
-                className="w-full accent-blue-500"
-              />
-            </div>
-          </div>
+          </>
         )}
 
         {/* GIF Settings */}
@@ -1920,7 +1864,9 @@ const GifMaker = () => {
               isGifProcessing={isGifProcessing}
               formData={formData}
               setWebhookData={setWebhookData}
-              handleUndo={handleUndo}
+              gifUrlHistory={gifUrlHistory}
+              setGifUrlHistory={setGifUrlHistory}
+              setGifUrl={setGifUrl}
             />
           </div>
         )}

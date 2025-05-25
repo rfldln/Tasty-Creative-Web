@@ -25,7 +25,9 @@ type GifMakerEditorSelectorProps = {
   isDrawing?: boolean;
   formData?: ModelFormData;
   setWebhookData?: (data: any) => void;
-  handleUndo?: () => void;
+  gifUrlHistory: string[];
+  setGifUrlHistory: (urls: string[]) => void;
+  setGifUrl: (url: string) => void;
 };
 
 const GifMakerEditorSelector = ({
@@ -46,7 +48,9 @@ const GifMakerEditorSelector = ({
   isGifProcessing,
   formData,
   setWebhookData,
-  handleUndo
+  gifUrlHistory,
+  setGifUrlHistory,
+  setGifUrl
 }: GifMakerEditorSelectorProps) => {
   const [activeEditor, setActiveEditor] = useState("blur");
 
@@ -111,7 +115,9 @@ const GifMakerEditorSelector = ({
               gifUrl={gifUrl}
               formData={formData}
               setWebhookData={setWebhookData}
-              handleUndo={handleUndo}
+              gifUrlHistory={gifUrlHistory}
+              setGifUrlHistory={setGifUrlHistory}
+              setGifUrl={setGifUrl}
             />
           </div>
         )}
