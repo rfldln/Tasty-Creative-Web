@@ -103,6 +103,7 @@ const GifMaker = () => {
   const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null);
   const [webhookData, setWebhookData] = useState<any>(null);
   const [error, setError] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -244,31 +245,32 @@ const GifMaker = () => {
 
     const label = (i: number) => `[v${i}]`;
 
-    if (
-      (layout === "Single" && clipCount === 1 && clips[0].positionX !== 0) ||
-      clips[0].positionY !== 0 ||
-      clips[0].scale !== 1
-    ) {
-      return scale(0) + `${label(0)}fps=${fps},palettegen=stats_mode=diff[p]`;
-    }
+    if (layout === "Single") {
+      const clip = clips[0];
+      if (
+        clipCount === 1 &&
+        (clip.positionX !== 0 || clip.positionY !== 0 || clip.scale !== 1)
+      ) {
+        return scale(0) + `${label(0)}fps=${fps},palettegen=stats_mode=diff[p]`;
+      }
 
-    if (
-      layout === "Single" &&
-      clipCount === 1 &&
-      clips[0].positionX === 0 &&
-      clips[0].positionY === 0 &&
-      clips[0].scale === 1
-    ) {
-      return `fps=${fps},palettegen=stats_mode=diff[p]`;
+      if (
+        clipCount === 1 &&
+        clip.positionX === 0 &&
+        clip.positionY === 0 &&
+        clip.scale === 1
+      ) {
+        return `fps=${fps},palettegen=stats_mode=diff[p]`;
+      }
+
+      throw new Error("Single layout must have exactly one clip");
     }
 
     if (layout === "Side by Side" && clipCount === 2) {
       return (
         scale(0) +
         scale(1) +
-        `${label(0)}${label(
-          1
-        )}hstack=inputs=2,fps=${fps},palettegen=stats_mode=diff[p]`
+        `${label(0)}${label(1)}hstack=inputs=2,fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -277,9 +279,7 @@ const GifMaker = () => {
         scale(0) +
         scale(1) +
         scale(2) +
-        `${label(0)}${label(1)}${label(
-          2
-        )}hstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
+        `${label(0)}${label(1)}${label(2)}hstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -288,9 +288,7 @@ const GifMaker = () => {
         scale(0) +
         scale(1) +
         scale(2) +
-        `${label(0)}${label(1)}${label(
-          2
-        )}vstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
+        `${label(0)}${label(1)}${label(2)}vstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -309,9 +307,7 @@ const GifMaker = () => {
         scale(1) +
         scale(2) +
         scale(3) +
-        `${label(0)}${label(1)}${label(2)}${label(
-          3
-        )}xstack=inputs=4:layout=${layoutStr},fps=${fps},palettegen=stats_mode=diff[p]`
+        `${label(0)}${label(1)}${label(2)}${label(3)}xstack=inputs=4:layout=${layoutStr},fps=${fps},palettegen=stats_mode=diff[p]`
       );
     }
 
@@ -356,33 +352,34 @@ const GifMaker = () => {
 
     const label = (i: number) => `[v${i}]`;
 
-    if (
-      (layout === "Single" && clipCount === 1 && clips[0].positionX !== 0) ||
-      clips[0].positionY !== 0 ||
-      clips[0].scale !== 1
-    ) {
-      return (
-        scale(0) + `${label(0)}fps=${fps}[x];[x][1:v]paletteuse=dither=bayer`
-      );
-    }
+    if (layout === "Single") {
+      const clip = clips[0];
+      if (
+        clipCount === 1 &&
+        (clip.positionX !== 0 || clip.positionY !== 0 || clip.scale !== 1)
+      ) {
+        return (
+          scale(0) + `${label(0)}fps=${fps}[x];[x][1:v]paletteuse=dither=bayer`
+        );
+      }
 
-    if (
-      layout === "Single" &&
-      clipCount === 1 &&
-      clips[0].positionX === 0 &&
-      clips[0].positionY === 0 &&
-      clips[0].scale === 1
-    ) {
-      return `fps=${fps}[x];[x][1:v]paletteuse=dither=bayer`;
+      if (
+        clipCount === 1 &&
+        clip.positionX === 0 &&
+        clip.positionY === 0 &&
+        clip.scale === 1
+      ) {
+        return `fps=${fps}[x];[x][1:v]paletteuse=dither=bayer`;
+      }
+
+      throw new Error("Single layout must have exactly one clip");
     }
 
     if (layout === "Side by Side" && clipCount === 2) {
       return (
         scale(0) +
         scale(1) +
-        `${label(0)}${label(
-          1
-        )}hstack=inputs=2,fps=${fps}[x];[x][2:v]paletteuse=dither=bayer`
+        `${label(0)}${label(1)}hstack=inputs=2,fps=${fps}[x];[x][2:v]paletteuse=dither=bayer`
       );
     }
 
@@ -391,9 +388,7 @@ const GifMaker = () => {
         scale(0) +
         scale(1) +
         scale(2) +
-        `${label(0)}${label(1)}${label(
-          2
-        )}hstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+        `${label(0)}${label(1)}${label(2)}hstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
       );
     }
 
@@ -402,9 +397,7 @@ const GifMaker = () => {
         scale(0) +
         scale(1) +
         scale(2) +
-        `${label(0)}${label(1)}${label(
-          2
-        )}vstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+        `${label(0)}${label(1)}${label(2)}vstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
       );
     }
 
@@ -423,9 +416,7 @@ const GifMaker = () => {
         scale(1) +
         scale(2) +
         scale(3) +
-        `${label(0)}${label(1)}${label(2)}${label(
-          3
-        )}xstack=inputs=4:layout=${layoutStr},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
+        `${label(0)}${label(1)}${label(2)}${label(3)}xstack=inputs=4:layout=${layoutStr},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
       );
     }
 
@@ -810,7 +801,7 @@ const GifMaker = () => {
   // Function to download the generated GIF
   const downloadGif = async () => {
     if (!gifUrl) return;
-
+    setIsDownloading(true);
     try {
       const response = await fetch(gifUrl);
 
@@ -830,6 +821,8 @@ const GifMaker = () => {
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error("Download failed", err);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -1863,7 +1856,8 @@ const GifMaker = () => {
                   onClick={downloadGif}
                   className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
                 >
-                  <Download className="w-4 h-4 mr-2" /> Download GIF
+                  <Download className="w-4 h-4 mr-2" />{" "}
+                  {isDownloading ? "Downloading..." : "Download GIF"}
                 </button>
               </div>
             </div>

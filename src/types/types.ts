@@ -88,3 +88,11 @@ type GifSettings = {
   fps: number;
   quality: number;
 };
+
+interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  webViewLink: string;
+  thumbnailLink?: string;
+}
