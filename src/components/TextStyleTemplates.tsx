@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { FileImage, AlertCircle, Loader2 } from "lucide-react";
-import Image from "next/image";
 
 interface DriveFile {
   id: string;
@@ -136,28 +135,13 @@ const TextStyleTemplates = ({
                     <FileImage className="w-6 h-6 text-gray-400" />
                   </div>
                 ) : (
-                  <Image
-                    width={150}
-                    height={120}
-                    src={file.thumbnailLink}
+                  <img
+                    src={`/api/image-proxy?id=${file.id}`}
                     alt={`Preview of ${file.name}`}
                     className="w-full h-full object-contain"
-                    onError={() => handleImageError(file.id)}
-                    onLoad={() => handleImageLoad(file.id)}
                     loading="lazy"
                   />
                 )}
-
-                {/* Selection Indicator - positioned in top right */}
-                {/* <div className="absolute -top-1 -right-1">
-                  {selectedFile?.id === file.id ? (
-                    <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                    </div>
-                  ) : (
-                    <div className="w-4 h-4 border-2 border-gray-300 bg-white rounded-full"></div>
-                  )}
-                </div> */}
               </div>
 
               {/* Centered File Name */}
@@ -180,7 +164,7 @@ const TextStyleTemplates = ({
                   <FileImage className="w-6 h-6 text-white" />
                 </div>
               ) : (
-                <Image
+                <img
                   width={150}
                   height={120}
                   src={selectedFile.thumbnailLink}
