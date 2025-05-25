@@ -808,15 +808,29 @@ const GifMaker = () => {
   }, [totalCells]);
 
   // Function to download the generated GIF
-  const downloadGif = () => {
+  const downloadGif = async () => {
     if (!gifUrl) return;
 
-    const link = document.createElement("a");
-    link.href = gifUrl;
-    link.download = `OnlyFans_${selectedTemplate}_${new Date().getTime()}.gif`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const response = await fetch(gifUrl);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch the GIF");
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `OnlyFans_${selectedTemplate}_${Date.now()}.gif`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Download failed", err);
+    }
   };
 
   // ================== GIF Blur Processing ==================
