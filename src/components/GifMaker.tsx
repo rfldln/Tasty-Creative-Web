@@ -649,24 +649,28 @@ const GifMaker = () => {
     return new Uint8Array(await file.arrayBuffer());
   };
 
+  const objectUrlsRef = useRef<string[]>([]);
   const handleVideoChange = (index: number, file: File | null) => {
     if (!file) return;
 
-    // Create a temporary video element to get duration immediately
+    const objectUrl = URL.createObjectURL(file);
+    objectUrlsRef.current.push(objectUrl); // Track for cleanup
+
     const tempVideo = document.createElement("video");
-    tempVideo.src = URL.createObjectURL(file);
+    tempVideo.src = objectUrl;
 
     tempVideo.addEventListener("loadedmetadata", () => {
       const videoDuration = tempVideo.duration;
 
-      // Update the clips state with all info including duration
+      // Don't revoke yet — we're going to use this URL in the grid!
       setVideoClips((prev) => {
         const newClips = [...prev];
         newClips[index] = {
           file: file,
+          objectUrl, // Store the object URL for rendering
           startTime: 0,
           endTime: Math.min(gifSettings.maxDuration, videoDuration),
-          duration: videoDuration, // Set duration immediately
+          duration: videoDuration,
           positionX: 0,
           positionY: 0,
           scale: 1,
@@ -674,18 +678,26 @@ const GifMaker = () => {
         return newClips;
       });
 
-      // Clean up
-      URL.revokeObjectURL(tempVideo.src);
-
-      // Set as active video
+      tempVideo.remove();
       setActiveVideoIndex(index);
     });
 
     tempVideo.addEventListener("error", () => {
       console.error("Failed to load video metadata");
-      URL.revokeObjectURL(tempVideo.src);
+      tempVideo.remove();
+      URL.revokeObjectURL(objectUrl);
+      objectUrlsRef.current = objectUrlsRef.current.filter(
+        (url) => url !== objectUrl
+      );
     });
   };
+
+  useEffect(() => {
+    return () => {
+      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      objectUrlsRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     // Dynamic import within useEffect to avoid SSR issues

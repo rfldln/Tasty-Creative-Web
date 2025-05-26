@@ -169,6 +169,31 @@ const GifMakerVideoCropper = ({
     return () => window.removeEventListener("resize", updateContainerSize);
   }, [selectedTemplate]);
 
+  useEffect(() => {
+    const videoEls = videoRefs.current;
+    const handlers: (() => void)[] = [];
+
+    videoEls.forEach((video, i) => {
+      if (!video || i === activeVideoIndex || !videoClips[i]) return;
+
+      const clip = videoClips[i];
+      const loopHandler = () => {
+        if (video.currentTime >= clip.endTime) {
+          video.currentTime = clip.startTime;
+        }
+      };
+
+      video.addEventListener("timeupdate", loopHandler);
+      video.play().catch(() => {});
+      handlers.push(() => video.removeEventListener("timeupdate", loopHandler));
+    });
+
+    return () => {
+      videoRefs.current.forEach((video) => video?.pause());
+      handlers.forEach((cleanup) => cleanup());
+    };
+  }, [videoRefs, videoClips, activeVideoIndex]);
+
   // Video overlay with optimized drag handling
   const renderVideoOverlay = (index: number) => {
     if (!videoClips[index]?.file) return null;
@@ -307,7 +332,6 @@ const GifMakerVideoCropper = ({
                                 }
                               };
 
-                              video.addEventListener("timeupdate", loopVideo);
                               video.play().catch(() => {});
 
                               // Clean up when video changes
