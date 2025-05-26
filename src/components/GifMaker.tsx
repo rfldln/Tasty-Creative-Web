@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   Grid2X2,
   Columns2,
   Columns3,
   Square,
   Rows3,
-  Play,
-  Pause,
   Download,
   Loader2,
-  Eraser,
-  Sliders,
 } from "lucide-react";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import dynamic from "next/dynamic";
@@ -108,8 +110,7 @@ const GifMaker = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [startTime, setStartTime] = useState(2);
-  const [endTime, setEndTime] = useState(8);
+
   const [dimensions, setDimensions] = useState({
     width: 0,
     height: 0,
@@ -121,13 +122,14 @@ const GifMaker = () => {
     if (webhookData) {
       setGifUrl(`/api/be/proxy?path=${btoa(webhookData.filePath)}`);
       setGifUrlHistory((prev) => {
-        const newHistory = [...prev, `/api/be/proxy?path=${btoa(webhookData.filePath)}`];
+        const newHistory = [
+          ...prev,
+          `/api/be/proxy?path=${btoa(webhookData.filePath)}`,
+        ];
         return newHistory;
       });
     }
   }, [webhookData]);
-
-
 
   const [blurSettings, setBlurSettings] = useState<BlurSettings>(() => {
     const cookie = Cookies.get(BLUR_COOKIE_KEY);
@@ -198,11 +200,10 @@ const GifMaker = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [activeVideoIndex, setActiveVideoIndex] = useState<number | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   // Additional ref for the output video grid
   const outputGridRef = useRef<HTMLDivElement>(null);
-
   const totalCells =
     templates[selectedTemplate].cols * templates[selectedTemplate].rows;
 
@@ -217,6 +218,36 @@ const GifMaker = () => {
       scale: 1,
     }))
   );
+
+  const videoUrls = useMemo(() => {
+    return videoClips.map((clip) =>
+      clip.file ? URL.createObjectURL(clip.file) : null
+    );
+  }, [videoClips.map((clip) => clip.file?.name).join(",")]);
+
+  const handleCurrentTimeChange = useCallback(
+    (time: number) => {
+      // Only update if the change is significant (more than 0.1 seconds)
+      setCurrentTime((prevTime) => {
+        if (Math.abs(prevTime - time) > 0.05) {
+          // Update the video element directly
+          if (activeVideoIndex !== null && videoRefs.current) {
+            const activeVideo = videoRefs.current[activeVideoIndex];
+            if (activeVideo && activeVideo.readyState >= 2) {
+              activeVideo.currentTime = time;
+            }
+          }
+          return time;
+        }
+        return prevTime;
+      });
+    },
+    [activeVideoIndex]
+  );
+  // Add play/pause handler
+  const handlePlayPause = useCallback(() => {
+    setIsPlaying((prev) => !prev);
+  }, []);
 
   const createFilterComplex = (
     layout: Layout,
@@ -618,53 +649,55 @@ const GifMaker = () => {
     return new Uint8Array(await file.arrayBuffer());
   };
 
-  // Function to handle video file selection
+  const objectUrlsRef = useRef<string[]>([]);
   const handleVideoChange = (index: number, file: File | null) => {
     if (!file) return;
 
-    // Update the clips state immediately with just the file
-    setVideoClips((prev) => {
-      const newClips = [...prev];
-      newClips[index] = {
-        file: file,
-        startTime: 0,
-        endTime: Math.min(5, gifSettings.maxDuration), // Default to 5 seconds or max duration
-        duration: 0, // Will be updated once metadata is loaded
-        positionX: 0,
-        positionY: 0,
-        scale: 1,
-      };
-      return newClips;
+    const objectUrl = URL.createObjectURL(file);
+    objectUrlsRef.current.push(objectUrl); // Track for cleanup
+
+    const tempVideo = document.createElement("video");
+    tempVideo.src = objectUrl;
+
+    tempVideo.addEventListener("loadedmetadata", () => {
+      const videoDuration = tempVideo.duration;
+
+      // Don't revoke yet — we're going to use this URL in the grid!
+      setVideoClips((prev) => {
+        const newClips = [...prev];
+        newClips[index] = {
+          file: file,
+          objectUrl, // Store the object URL for rendering
+          startTime: 0,
+          endTime: Math.min(gifSettings.maxDuration, videoDuration),
+          duration: videoDuration,
+          positionX: 0,
+          positionY: 0,
+          scale: 1,
+        };
+        return newClips;
+      });
+
+      tempVideo.remove();
+      setActiveVideoIndex(index);
     });
 
-    setActiveVideoIndex(index);
-
-    // Wait for the next render cycle before trying to access the video element
-    setTimeout(() => {
-      const videoEl = videoRefs.current[index];
-      if (videoEl) {
-        // Set up a one-time event listener for metadata
-        const handleMetadata = () => {
-          const videoDuration = videoEl.duration;
-
-          setVideoClips((prev) => {
-            const newClips = [...prev];
-            newClips[index] = {
-              ...newClips[index],
-              endTime: Math.min(gifSettings.maxDuration, videoDuration),
-              duration: videoDuration,
-            };
-            return newClips;
-          });
-
-          // Remove the event listener once fired
-          videoEl.removeEventListener("loadedmetadata", handleMetadata);
-        };
-
-        videoEl.addEventListener("loadedmetadata", handleMetadata);
-      }
-    }, 100);
+    tempVideo.addEventListener("error", () => {
+      console.error("Failed to load video metadata");
+      tempVideo.remove();
+      URL.revokeObjectURL(objectUrl);
+      objectUrlsRef.current = objectUrlsRef.current.filter(
+        (url) => url !== objectUrl
+      );
+    });
   };
+
+  useEffect(() => {
+    return () => {
+      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      objectUrlsRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     // Dynamic import within useEffect to avoid SSR issues
@@ -702,121 +735,39 @@ const GifMaker = () => {
     };
   }, []);
 
-  // Update video time when slider changes
-  const updateVideoTime = (index: number, time: number) => {
-    if (videoRefs.current[index]) {
-      videoRefs.current[index]!.currentTime = time;
-    }
-  };
-
-  // Handle slider changes for start time
-  const handleStartTimeChange = (index: number, value: number) => {
-    setVideoClips((prev) => {
-      const newClips = [...prev];
-      const clip = { ...newClips[index] };
-
-      // Ensure start time is less than end time
-      const newStartTime = Math.min(value, clip.endTime - 0.1);
-      clip.startTime = newStartTime;
-
-      newClips[index] = clip;
-      updateVideoTime(index, newStartTime);
-      return newClips;
-    });
-  };
+  // Update video clips when timeline changes
+  const handleStartTimeChange = useCallback(
+    (time: number) => {
+      setVideoClips((prev) => {
+        const newClips = [...prev];
+        if (activeVideoIndex !== null) {
+          newClips[activeVideoIndex] = {
+            ...newClips[activeVideoIndex],
+            startTime: time,
+          };
+        }
+        return newClips;
+      });
+    },
+    [activeVideoIndex]
+  );
 
   // Handle slider changes for end time
-  const handleEndTimeChange = (index: number, value: number) => {
-    setVideoClips((prev) => {
-      const newClips = [...prev];
-      const clip = { ...newClips[index] };
-
-      // Ensure end time is greater than start time
-      const newEndTime = Math.max(value, clip.startTime + 0.1);
-      clip.endTime = newEndTime;
-
-      newClips[index] = clip;
-      updateVideoTime(index, newEndTime);
-      return newClips;
-    });
-  };
-
-  // Format time in MM:SS format
-  const formatTime = (timeInSeconds: number): string => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-  // Play/Pause the active video
-  const togglePlayPause = () => {
-    if (activeVideoIndex === null || !videoRefs.current[activeVideoIndex])
-      return;
-
-    const video = videoRefs.current[activeVideoIndex];
-
-    if (isPlaying) {
-      video?.pause();
-      setIsPlaying(false);
-    } else {
-      // Set video to start time and play
-      if (video) {
-        try {
-          // Make sure video is ready to play
-          video.currentTime = videoClips[activeVideoIndex].startTime;
-
-          // Force immediate play attempt
-          const playAttempt = video.play();
-          if (playAttempt) {
-            playAttempt
-              .then(() => {
-                setIsPlaying(true);
-                console.log("Video playing successfully");
-              })
-              .catch((err) => {
-                console.error("Play error:", err);
-                setIsPlaying(false);
-              });
-          } else {
-            setIsPlaying(true);
-          }
-        } catch (err) {
-          console.error("Error during play attempt:", err);
-          setIsPlaying(false);
+  const handleEndTimeChange = useCallback(
+    (time: number) => {
+      setVideoClips((prev) => {
+        const newClips = [...prev];
+        if (activeVideoIndex !== null) {
+          newClips[activeVideoIndex] = {
+            ...newClips[activeVideoIndex],
+            endTime: time,
+          };
         }
-      }
-    }
-  };
-
-  // Handle video playback reaching the end time
-  useEffect(() => {
-    if (activeVideoIndex === null) return;
-    const video = videoRefs.current[activeVideoIndex];
-    if (!video) return;
-
-    let animationFrameId: number;
-
-    const checkTime = () => {
-      const { startTime, endTime } = videoClips[activeVideoIndex];
-      if (video.currentTime >= endTime) {
-        video.currentTime = startTime;
-        video.play();
-      }
-      animationFrameId = requestAnimationFrame(checkTime);
-    };
-
-    if (videoClips[activeVideoIndex].file) {
-      video.currentTime = videoClips[activeVideoIndex].startTime;
-      video.play().catch(console.error);
-      animationFrameId = requestAnimationFrame(checkTime);
-    }
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [activeVideoIndex, videoClips]);
+        return newClips;
+      });
+    },
+    [activeVideoIndex]
+  );
 
   // Reset video refs when template changes
   useEffect(() => {
@@ -858,7 +809,7 @@ const GifMaker = () => {
   };
 
   // ================== GIF Blur Processing ==================
-  console.log(gifFrames);
+
   // Extract frames from GIF
 
   // Update the extractGifFrames function
@@ -1249,69 +1200,6 @@ const GifMaker = () => {
   const [originalGifData, setOriginalGifData] =
     useState<OriginalGifData | null>(null);
 
-  // // Example of how to apply blur to all frames
-  // const applyBlurToFrames = () => {
-  //   if (!gifFrames.length) return;
-
-  //   setIsProcessing(true);
-
-  //   try {
-  //     const blurredFrames = gifFrames.map((frame) => {
-  //       const canvas = document.createElement("canvas");
-  //       canvas.width = frame.width;
-  //       canvas.height = frame.height;
-
-  //       const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  //       if (!ctx) throw new Error("Could not get canvas context");
-
-  //       // Draw the frame to the canvas
-  //       ctx.putImageData(frame, 0, 0);
-
-  //       // Apply blur using CSS filter
-  //       ctx.filter = `blur(${blurAmount}px)`;
-
-  //       // Draw the frame again to apply the filter
-  //       // Need to use a temp canvas because filters can't be applied directly to ImageData
-  //       const tempCanvas = document.createElement("canvas");
-  //       tempCanvas.width = frame.width;
-  //       tempCanvas.height = frame.height;
-
-  //       const tempCtx = tempCanvas.getContext("2d");
-  //       if (!tempCtx) throw new Error("Could not get temp canvas context");
-
-  //       tempCtx.putImageData(frame, 0, 0);
-
-  //       // Clear and redraw with filter
-  //       ctx.clearRect(0, 0, canvas.width, canvas.height);
-  //       ctx.drawImage(tempCanvas, 0, 0);
-
-  //       // Reset filter
-  //       ctx.filter = "none";
-
-  //       // Get the blurred ImageData
-  //       return ctx.getImageData(0, 0, frame.width, frame.height);
-  //     });
-
-  //     setGifFrames(blurredFrames);
-
-  //     // Update the current frame display
-  //     if (currentFrameIndex < blurredFrames.length) {
-  //       displayFrame(currentFrameIndex);
-  //     } else {
-  //       displayFrame(0);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error applying blur:", error);
-  //     setError(
-  //       `Failed to apply blur: ${
-  //         error instanceof Error ? error.message : String(error)
-  //       }`
-  //     );
-  //   } finally {
-  //     setIsProcessing(false);
-  //   }
-  // };
-
   // Reconstruct GIF from processed frames
   const reconstructGif = async () => {
     if (!gifFrames.length || !originalGifData) {
@@ -1675,24 +1563,66 @@ const GifMaker = () => {
     }
   };
 
-  // const downloadProcessedGif = () => {
-  //   if (!gifUrl) return;
-
-  //   const link = document.createElement("a");
-  //   link.href = gifUrl;
-  //   link.download = `OnlyFans_blurred_${new Date().getTime()}.gif`;
-  //   document.body.appendChild(link);
-  //   link.click();
-  //   document.body.removeChild(link);
-  // };
-
   useEffect(() => {
     if (isGifLoaded) {
       displayFrame(0);
     }
   }, [isGifLoaded]);
 
-  console.log(videoClips, "videoClips");
+  useEffect(() => {
+    if (activeVideoIndex === null || !videoRefs.current) return;
+
+    const activeVideo = videoRefs.current[activeVideoIndex];
+    if (!activeVideo || !videoClips[activeVideoIndex]?.file) return;
+
+    const clip = videoClips[activeVideoIndex];
+    let rafId: number | undefined = undefined;
+    let lastUpdateTime = 0;
+
+    // Update function that runs on each frame
+    const updateTime = () => {
+      if (!activeVideo.paused && !activeVideo.ended) {
+        // Check if we've reached the end time
+        if (activeVideo.currentTime >= clip.endTime) {
+          activeVideo.currentTime = clip.startTime;
+        }
+
+        // Only update state every 100ms to reduce re-renders
+        const now = performance.now();
+        if (now - lastUpdateTime > 100) {
+          setCurrentTime(activeVideo.currentTime);
+          lastUpdateTime = now;
+        }
+
+        rafId = requestAnimationFrame(updateTime);
+      }
+    };
+
+    if (isPlaying) {
+      // Ensure video is at correct position before playing
+      if (Math.abs(activeVideo.currentTime - currentTime) > 0.1) {
+        activeVideo.currentTime = currentTime;
+      }
+
+      activeVideo.play().catch((err) => {
+        console.error("Play error:", err);
+        setIsPlaying(false);
+      });
+
+      updateTime();
+    } else {
+      activeVideo.pause();
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+    }
+
+    return () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [isPlaying, activeVideoIndex, videoClips, currentTime]);
 
   return (
     <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
@@ -1708,15 +1638,7 @@ const GifMaker = () => {
       {/* Model Selection (placeholder) */}
       <div className="bg-gray-800/50 rounded-xl p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
         <div className="col-span-2">
-          <ModelsDropdown
-            formData={formData}
-            setFormData={setFormData}
-            // isLoading={isLoading}
-            // isFetchingImage={isFetchingImage}
-            // webhookData={webhookData}
-            // error={fieldErrors.model}
-            // setFieldErrors={setFieldErrors}
-          />
+          <ModelsDropdown formData={formData} setFormData={setFormData} />
         </div>
       </div>
 
@@ -1738,34 +1660,32 @@ const GifMaker = () => {
           setDimensions={(width: number, height: number) =>
             setDimensions({ width, height })
           }
+          currentTime={currentTime}
+          isPlaying={isPlaying}
+          onCurrentTimeChange={handleCurrentTimeChange}
+          videoUrls={videoUrls}
         />
 
         {/* Timeframe Editor */}
-        {activeVideoIndex !== null && videoClips[activeVideoIndex]?.file && (
-          <>
+        {activeVideoIndex !== null &&
+          videoClips[activeVideoIndex]?.file &&
+          videoClips[activeVideoIndex]?.duration > 0 && (
             <GifMakerVideoTimeline
+              key={`timeline-${activeVideoIndex}-${videoClips[activeVideoIndex].file?.name}`}
               videoFile={videoClips[activeVideoIndex].file}
               duration={videoClips[activeVideoIndex].duration}
               startTime={videoClips[activeVideoIndex].startTime}
               endTime={videoClips[activeVideoIndex].endTime}
               currentTime={currentTime}
               isPlaying={isPlaying}
-              onStartTimeChange={setStartTime}
-              onEndTimeChange={setEndTime}
-              onCurrentTimeChange={setCurrentTime}
-              onPlayPause={() => setIsPlaying(!isPlaying)}
+              onStartTimeChange={handleStartTimeChange}
+              onEndTimeChange={handleEndTimeChange}
+              onCurrentTimeChange={handleCurrentTimeChange}
+              onPlayPause={handlePlayPause}
+              setMaxDuration={setMaxDuration}
+              maxDuration={gifSettings.maxDuration}
             />
-
-            <div className="mt-4 p-4 bg-gray-800 rounded text-white text-sm">
-              <h4 className="font-bold mb-2">Debug Info:</h4>
-              <p>Start: {startTime.toFixed(1)}s</p>
-              <p>End: {endTime.toFixed(1)}s</p>
-              <p>Current: {currentTime.toFixed(1)}s</p>
-              <p>Playing: {isPlaying ? "Yes" : "No"}</p>
-            </div>
-          </>
-        )}
-
+          )}
         {/* GIF Settings */}
         <div className="mb-6">
           <h3 className="text-gray-300 mb-2 font-medium">GIF Settings</h3>

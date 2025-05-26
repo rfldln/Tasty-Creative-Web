@@ -40,6 +40,10 @@ type GifMakerVideoCropperProps = {
   handleVideoChange: (index: number, file: File | null) => void;
   totalCells: number;
   setDimensions: (width: number, height: number) => void;
+  currentTime?: number;
+  isPlaying?: boolean;
+  onCurrentTimeChange?: (time: number) => void;
+  videoUrls: (string | null)[];
 };
 
 const GifMakerVideoCropper = ({
@@ -56,6 +60,8 @@ const GifMakerVideoCropper = ({
   handleVideoChange,
   totalCells,
   setDimensions,
+  currentTime = 0,
+  videoUrls,
 }: GifMakerVideoCropperProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const baseHeight = 360;
@@ -162,6 +168,31 @@ const GifMakerVideoCropper = ({
     window.addEventListener("resize", updateContainerSize);
     return () => window.removeEventListener("resize", updateContainerSize);
   }, [selectedTemplate]);
+
+  useEffect(() => {
+    const videoEls = videoRefs.current;
+    const handlers: (() => void)[] = [];
+
+    videoEls.forEach((video, i) => {
+      if (!video || i === activeVideoIndex || !videoClips[i]) return;
+
+      const clip = videoClips[i];
+      const loopHandler = () => {
+        if (video.currentTime >= clip.endTime) {
+          video.currentTime = clip.startTime;
+        }
+      };
+
+      video.addEventListener("timeupdate", loopHandler);
+      video.play().catch(() => {});
+      handlers.push(() => video.removeEventListener("timeupdate", loopHandler));
+    });
+
+    return () => {
+      videoRefs.current.forEach((video) => video?.pause());
+      handlers.forEach((cleanup) => cleanup());
+    };
+  }, [videoRefs, videoClips, activeVideoIndex]);
 
   // Video overlay with optimized drag handling
   const renderVideoOverlay = (index: number) => {
@@ -274,38 +305,44 @@ const GifMakerVideoCropper = ({
                       >
                         <video
                           ref={(el) => {
-                            if (!el || !videoClips[i]?.file) return;
+                            if (!el) return;
                             videoRefs.current[i] = el;
-
-                            let animationFrameId: number;
-                            const loopPlayback = () => {
-                              if (el.currentTime >= videoClips[i].endTime) {
-                                el.currentTime = videoClips[i].startTime;
-                                el.play().catch(() => {});
-                              }
-                              animationFrameId =
-                                requestAnimationFrame(loopPlayback);
-                            };
-
-                            el.addEventListener("loadeddata", () => {
-                              el.currentTime = videoClips[i].startTime;
-                              el.play().catch(() => {});
-                              loopPlayback();
-                            });
-
-                            el.addEventListener("emptied", () => {
-                              cancelAnimationFrame(animationFrameId);
-                            });
                           }}
-                          src={
-                            videoClips[i].file
-                              ? URL.createObjectURL(videoClips[i].file)
-                              : ""
-                          }
+                          src={videoUrls[i] || ""}
                           className="absolute inset-0 w-full h-full object-contain"
                           muted
                           playsInline
-                          loop={false}
+                          onLoadedMetadata={(e) => {
+                            const video = e.currentTarget;
+
+                            if (i === activeVideoIndex) {
+                              // For active video, just set initial time
+                              video.currentTime =
+                                currentTime || videoClips[i].startTime;
+                              // Don't play - let parent control
+                            } else {
+                              // For non-active videos, set up preview loop
+                              video.currentTime = videoClips[i].startTime;
+
+                              const loopVideo = () => {
+                                if (
+                                  video.currentTime >= videoClips[i].endTime
+                                ) {
+                                  video.currentTime = videoClips[i].startTime;
+                                }
+                              };
+
+                              video.play().catch(() => {});
+
+                              // Clean up when video changes
+                              return () => {
+                                video.removeEventListener(
+                                  "timeupdate",
+                                  loopVideo
+                                );
+                              };
+                            }
+                          }}
                         />
                         {renderVideoOverlay(i)}
                       </div>
@@ -450,30 +487,12 @@ const GifMakerVideoCropper = ({
                 </div>
               </div>
             </div>
-
-            {/* <button
-              className="w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-gray-300"
-              onClick={() => {
-                setVideoClips((prevClips) => {
-                  const newClips = [...prevClips];
-                  newClips[activeVideoIndex] = {
-                    ...newClips[activeVideoIndex],
-                    scale: 1,
-                    positionX: 0,
-                    positionY: 0,
-                  };
-                  return newClips;
-                });
-              }}
-            >
-              Reset Position & Scale
-            </button> */}
           </div>
         </div>
       )}
 
       {/* Output Dimensions Display */}
-      <div id="output-dimensions" className="mb-6">
+      {/* <div id="output-dimensions" className="mb-6">
         <h3 className="text-gray-300 mb-2 font-medium">Output Dimensions</h3>
         <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 text-gray-300">
           <div className="grid grid-cols-2 gap-4">
@@ -491,7 +510,7 @@ const GifMakerVideoCropper = ({
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
     </>
   );
 };
