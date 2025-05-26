@@ -39,6 +39,7 @@ interface VideoClip {
   positionX?: number; // <-- must be optional or default to 0
   positionY?: number;
   scale?: number;
+  objectUrl?: string | null; // Store object URL for rendering
 }
 
 const BLUR_COOKIE_KEY = "blurSettings";
@@ -216,6 +217,7 @@ const GifMaker = () => {
       positionX: 0,
       positionY: 0,
       scale: 1,
+      objectUrl: null, // Store object URL for rendering
     }))
   );
 
