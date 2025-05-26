@@ -279,7 +279,11 @@ export const GifMakerVideoTimeline = ({
       } else if (isDragging === "end") {
         onEndTimeChange?.(Math.max(newValue, startTime + 0.1));
       } else if (isDragging === "current") {
-        onCurrentTimeChange?.(newValue);
+        const clampedTime = Math.max(
+          startTime,
+          Math.min(actualEndTime, newValue)
+        );
+        onCurrentTimeChange?.(clampedTime);
       }
     },
     [
@@ -318,7 +322,10 @@ export const GifMakerVideoTimeline = ({
 
     const rect = timelineRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
-    const clickTime = (clickX / rect.width) * duration;
+    let clickTime = (clickX / rect.width) * duration;
+
+    // Clamp the clickTime within startTime and actualEndTime
+    clickTime = Math.max(startTime, Math.min(actualEndTime, clickTime));
 
     onCurrentTimeChange?.(clickTime);
   };
@@ -334,7 +341,9 @@ export const GifMakerVideoTimeline = ({
   }, [actualEndTime, startTime]);
 
   useEffect(() => {
-    onEndTimeChange?.(Math.max(maxDuration, startTime + 0.1));
+    if (!isDragging) {
+      onEndTimeChange?.(Math.max(maxDuration, startTime + 0.1));
+    }
   }, [maxDuration]);
 
   return (

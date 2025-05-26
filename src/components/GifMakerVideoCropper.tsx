@@ -61,8 +61,6 @@ const GifMakerVideoCropper = ({
   totalCells,
   setDimensions,
   currentTime = 0,
-  isPlaying = false,
-  onCurrentTimeChange,
   videoUrls,
 }: GifMakerVideoCropperProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -470,7 +468,7 @@ const GifMakerVideoCropper = ({
       )}
 
       {/* Output Dimensions Display */}
-      <div id="output-dimensions" className="mb-6">
+      {/* <div id="output-dimensions" className="mb-6">
         <h3 className="text-gray-300 mb-2 font-medium">Output Dimensions</h3>
         <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 text-gray-300">
           <div className="grid grid-cols-2 gap-4">
@@ -488,7 +486,7 @@ const GifMakerVideoCropper = ({
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
     </>
   );
 };

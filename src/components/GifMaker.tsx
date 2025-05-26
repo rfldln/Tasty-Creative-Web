@@ -13,12 +13,8 @@ import {
   Columns3,
   Square,
   Rows3,
-  Play,
-  Pause,
   Download,
   Loader2,
-  Eraser,
-  Sliders,
 } from "lucide-react";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import dynamic from "next/dynamic";
@@ -114,15 +110,13 @@ const GifMaker = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [startTime, setStartTime] = useState(2);
-  const [endTime, setEndTime] = useState(8);
+
   const [dimensions, setDimensions] = useState({
     width: 0,
     height: 0,
   });
 
   const [isDrawing, setIsDrawing] = useState(false);
-  const animationFrameRef = useRef<number>(0);
 
   useEffect(() => {
     if (webhookData) {
@@ -204,8 +198,6 @@ const GifMaker = () => {
 
   // Canvas ref for capturing frames
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const activeVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const [activeVideoIndex, setActiveVideoIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -731,13 +723,6 @@ const GifMaker = () => {
     };
   }, []);
 
-  // Update video time when slider changes
-  const updateVideoTime = (index: number, time: number) => {
-    if (videoRefs.current[index]) {
-      videoRefs.current[index]!.currentTime = time;
-    }
-  };
-
   // Update video clips when timeline changes
   const handleStartTimeChange = useCallback(
     (time: number) => {
@@ -771,83 +756,6 @@ const GifMaker = () => {
     },
     [activeVideoIndex]
   );
-
-  // Format time in MM:SS format
-  const formatTime = (timeInSeconds: number): string => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-  // Play/Pause the active video
-  const togglePlayPause = () => {
-    if (activeVideoIndex === null || !videoRefs.current[activeVideoIndex])
-      return;
-
-    const video = videoRefs.current[activeVideoIndex];
-
-    if (isPlaying) {
-      video?.pause();
-      setIsPlaying(false);
-    } else {
-      // Set video to start time and play
-      if (video) {
-        try {
-          // Make sure video is ready to play
-          video.currentTime = videoClips[activeVideoIndex].startTime;
-
-          // Force immediate play attempt
-          const playAttempt = video.play();
-          if (playAttempt) {
-            playAttempt
-              .then(() => {
-                setIsPlaying(true);
-                console.log("Video playing successfully");
-              })
-              .catch((err) => {
-                console.error("Play error:", err);
-                setIsPlaying(false);
-              });
-          } else {
-            setIsPlaying(true);
-          }
-        } catch (err) {
-          console.error("Error during play attempt:", err);
-          setIsPlaying(false);
-        }
-      }
-    }
-  };
-
-  // Handle video playback reaching the end time
-  // useEffect(() => {
-  //   if (activeVideoIndex === null) return;
-  //   const video = videoRefs.current[activeVideoIndex];
-  //   if (!video) return;
-
-  //   let animationFrameId: number;
-
-  //   const checkTime = () => {
-  //     const { startTime, endTime } = videoClips[activeVideoIndex];
-  //     if (video.currentTime >= endTime) {
-  //       video.currentTime = startTime;
-  //       video.play();
-  //     }
-  //     animationFrameId = requestAnimationFrame(checkTime);
-  //   };
-
-  //   if (videoClips[activeVideoIndex].file) {
-  //     video.currentTime = videoClips[activeVideoIndex].startTime;
-  //     video.play().catch(console.error);
-  //     animationFrameId = requestAnimationFrame(checkTime);
-  //   }
-
-  //   return () => {
-  //     cancelAnimationFrame(animationFrameId);
-  //   };
-  // }, [activeVideoIndex, videoClips]);
 
   // Reset video refs when template changes
   useEffect(() => {
