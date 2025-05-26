@@ -13,6 +13,8 @@ type VideoTimelineProps = {
   onCurrentTimeChange?: (time: number) => void;
   onPlayPause?: () => void;
   targetWidth?: number;
+  setMaxDuration: (duration: number) => void;
+  maxDuration: number;
 };
 
 export const GifMakerVideoTimeline = ({
@@ -27,6 +29,8 @@ export const GifMakerVideoTimeline = ({
   onCurrentTimeChange,
   onPlayPause,
   targetWidth = 120,
+  setMaxDuration,
+  maxDuration,
 }: VideoTimelineProps) => {
   const [frames, setFrames] = useState<{ time: number; src: string }[]>([]);
   const [isDragging, setIsDragging] = useState<
@@ -323,6 +327,15 @@ export const GifMakerVideoTimeline = ({
   const startPercent = duration > 0 ? (startTime / duration) * 100 : 0;
   const endPercent = duration > 0 ? (actualEndTime / duration) * 100 : 100;
   const currentPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  useEffect(() => {
+    const duration = actualEndTime - startTime;
+    setMaxDuration(+duration.toFixed(2));
+  }, [actualEndTime, startTime]);
+
+  useEffect(() => {
+    onEndTimeChange?.(Math.max(maxDuration, startTime + 0.1));
+  }, [maxDuration]);
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">

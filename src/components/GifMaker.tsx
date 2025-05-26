@@ -1751,7 +1751,7 @@ const GifMaker = () => {
           videoClips[activeVideoIndex]?.file &&
           videoClips[activeVideoIndex]?.duration > 0 && (
             <GifMakerVideoTimeline
-              key={`timeline-${activeVideoIndex}-${videoClips[activeVideoIndex].file?.name}`} // Add key to force re-render
+              key={`timeline-${activeVideoIndex}-${videoClips[activeVideoIndex].file?.name}`}
               videoFile={videoClips[activeVideoIndex].file}
               duration={videoClips[activeVideoIndex].duration}
               startTime={videoClips[activeVideoIndex].startTime}
@@ -1762,6 +1762,8 @@ const GifMaker = () => {
               onEndTimeChange={handleEndTimeChange}
               onCurrentTimeChange={handleCurrentTimeChange}
               onPlayPause={handlePlayPause}
+              setMaxDuration={setMaxDuration}
+              maxDuration={gifSettings.maxDuration}
             />
           )}
         {/* GIF Settings */}
