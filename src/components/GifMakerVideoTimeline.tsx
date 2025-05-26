@@ -70,15 +70,17 @@ export const GifMakerVideoTimeline = ({
 
     try {
       // Create multiple video elements for parallel processing
-      const videoPool = Array(3).fill(null).map(() => {
-        const video = document.createElement("video");
-        video.src = videoUrl;
-        video.crossOrigin = "anonymous";
-        video.muted = true;
-        video.playsInline = true;
-        video.preload = "metadata";
-        return video;
-      });
+      const videoPool = Array(3)
+        .fill(null)
+        .map(() => {
+          const video = document.createElement("video");
+          video.src = videoUrl;
+          video.crossOrigin = "anonymous";
+          video.muted = true;
+          video.playsInline = true;
+          video.preload = "metadata";
+          return video;
+        });
 
       // Wait for all videos to load metadata
       await Promise.all(
@@ -97,7 +99,7 @@ export const GifMakerVideoTimeline = ({
                 },
                 { once: true }
               );
-              
+
               video.addEventListener(
                 "error",
                 () => {
@@ -106,7 +108,7 @@ export const GifMakerVideoTimeline = ({
                 },
                 { once: true }
               );
-              
+
               video.load();
             })
         )
@@ -119,19 +121,21 @@ export const GifMakerVideoTimeline = ({
       const targetHeight = Math.round(targetWidth / aspectRatio);
 
       // Create canvas pool for parallel rendering
-      const canvasPool = Array(3).fill(null).map(() => {
-        const canvas = document.createElement("canvas");
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-        return {
-          canvas,
-          ctx: canvas.getContext("2d", { 
-            willReadFrequently: false,
-            alpha: false,
-            desynchronized: true 
-          })
-        };
-      });
+      const canvasPool = Array(3)
+        .fill(null)
+        .map(() => {
+          const canvas = document.createElement("canvas");
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          return {
+            canvas,
+            ctx: canvas.getContext("2d", {
+              willReadFrequently: false,
+              alpha: false,
+              desynchronized: true,
+            }),
+          };
+        });
 
       // Function to extract a single frame
       const extractFrame = async (
@@ -150,7 +154,7 @@ export const GifMakerVideoTimeline = ({
 
           const seekHandler = () => {
             clearTimeout(timeout);
-            
+
             try {
               ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
               const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
@@ -167,8 +171,9 @@ export const GifMakerVideoTimeline = ({
       };
 
       // Extract frames in batches for better performance
-      const frameTimes = Array.from({ length: frameCount }, (_, i) => 
-        (duration / (frameCount - 1)) * i
+      const frameTimes = Array.from(
+        { length: frameCount },
+        (_, i) => (duration / (frameCount - 1)) * i
       );
 
       const batchSize = 3;
@@ -190,10 +195,12 @@ export const GifMakerVideoTimeline = ({
         });
 
         const batchResults = await Promise.all(batchPromises);
-        const validFrames = batchResults.filter((f): f is { time: number; src: string } => f !== null);
-        
+        const validFrames = batchResults.filter(
+          (f): f is { time: number; src: string } => f !== null
+        );
+
         extractedFrames.push(...validFrames);
-        
+
         // Update UI progressively
         if (!abortSignal.aborted) {
           setFrames([...extractedFrames]);
@@ -203,11 +210,10 @@ export const GifMakerVideoTimeline = ({
       console.log(`Extracted ${extractedFrames.length} frames successfully`);
 
       // Clean up video elements
-      videoPool.forEach(video => {
+      videoPool.forEach((video) => {
         video.src = "";
         video.load();
       });
-
     } catch (err) {
       if (!abortSignal.aborted) {
         console.error("Frame extraction failed:", err);
@@ -356,7 +362,7 @@ export const GifMakerVideoTimeline = ({
         {/* Frame Thumbnails with Interactive Timeline */}
         <div
           ref={timelineRef}
-          className="relative flex rounded-lg overflow-hidden bg-gray-800 border border-gray-600 cursor-pointer min-h-[80px]"
+          className="relative flex rounded-md overflow-hidden bg-gray-800 border border-gray-600 cursor-pointer min-h-[80px]"
           onClick={handleTimelineClick}
         >
           {!videoFile || duration === 0 ? (
@@ -376,7 +382,7 @@ export const GifMakerVideoTimeline = ({
               {Array.from({ length: frameCount }).map((_, index) => {
                 const frame = frames[index];
                 const frameTime = (duration / (frameCount - 1)) * index;
-                
+
                 return (
                   <div key={index} className="flex-1 relative">
                     {frame ? (
@@ -431,34 +437,48 @@ export const GifMakerVideoTimeline = ({
                 }}
               />
 
-              {/* Start Time Handle */}
+              {/* Start Time Handle - Drawer Style */}
               <div
-                className="absolute top-0 bottom-0 w-1 bg-blue-400 cursor-col-resize z-30 hover:bg-blue-300 transition-colors"
+                className="absolute top-0 bottom-0 cursor-col-resize z-30 group"
                 style={{ left: `${startPercent}%` }}
                 onMouseDown={(e) => handleMouseDown(e, "start")}
               >
-                <div className="absolute -top-2 -left-2 w-5 h-5 bg-blue-400 rounded-full border-2 border-white hover:bg-blue-300 transition-colors shadow-lg" />
+                {/* Handle Body */}
+                <div className="absolute  -left-2 w-4 h-full bg-blue-500 rounded-sm border border-blue-400 shadow-lg group-hover:bg-blue-400 transition-colors">
+                  {/* Center Line (drawer handle) */}
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-0.5 h-8 bg-white rounded-full opacity-80"></div>
+                </div>
+                {/* Time Label */}
                 <div className="absolute -bottom-8 -left-8 text-xs text-gray-300 bg-gray-900 px-2 py-1 rounded whitespace-nowrap border border-blue-400">
                   {formatTime(startTime)}
                 </div>
               </div>
 
-              {/* End Time Handle */}
+              {/* End Time Handle - Drawer Style */}
               <div
-                className="absolute top-0 bottom-0 w-1 bg-blue-400 cursor-col-resize z-30 hover:bg-blue-300 transition-colors"
+                className="absolute top-0 bottom-0 cursor-col-resize z-30 group"
                 style={{ left: `${endPercent}%` }}
                 onMouseDown={(e) => handleMouseDown(e, "end")}
               >
-                <div className="absolute -top-2 -left-2 w-5 h-5 bg-blue-400 rounded-full border-2 border-white hover:bg-blue-300 transition-colors shadow-lg" />
+                {/* Handle Body */}
+                <div className="absolute  -left-2 w-4 h-full bg-blue-500 rounded-sm border border-blue-400 shadow-lg group-hover:bg-blue-400 transition-colors">
+                  {/* Center Line (drawer handle) */}
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-0.5 h-8 bg-white rounded-full opacity-80"></div>
+                </div>
+                {/* Time Label */}
                 <div className="absolute -bottom-8 -left-6 text-xs text-gray-300 bg-gray-900 px-2 py-1 rounded whitespace-nowrap border border-blue-400">
                   {formatTime(actualEndTime)}
                 </div>
               </div>
 
-              {/* Playhead (draggable current time) */}
+              {/* Playhead (smooth transitioning current time) */}
               <div
-                className="absolute w-1 h-full cursor-col-resize z-40 bg-white rounded-sm shadow-lg"
-                style={{ left: `calc(${currentPercent}% - 2px)` }}
+                className="absolute w-1 h-full cursor-col-resize z-40 transition-all bg-white rounded-sm shadow-lg"
+                style={{
+                  left: `calc(${currentPercent}% - 2px)`,
+                  transition:
+                    isDragging === "current" ? "none" : "left 0.15s ease-out",
+                }}
                 onMouseDown={(e) => handleMouseDown(e, "current")}
               />
             </>
