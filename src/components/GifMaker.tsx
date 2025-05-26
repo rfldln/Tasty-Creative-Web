@@ -1295,7 +1295,7 @@ const GifMaker = () => {
         frameCanvas.width = frameWidth;
         frameCanvas.height = frameHeight;
 
-        // Create a new ImageData from our modified frame.
+        // Create a new ImageData from our modified frame
         // Use the edited frame data from gifFrames
         const modifiedFrame = gifFrames[i];
 
