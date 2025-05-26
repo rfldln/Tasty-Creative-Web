@@ -797,7 +797,7 @@ const GifMaker = () => {
   };
 
   // ================== GIF Blur Processing ==================
-  console.log(gifFrames);
+
   // Extract frames from GIF
 
   // Update the extractGifFrames function
