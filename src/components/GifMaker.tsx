@@ -1912,24 +1912,6 @@ const GifMaker = () => {
         {/* Generated GIF Preview */}
         {gifUrl && (
           <div className="mb-6">
-            <h3 className="text-gray-300 mb-2 font-medium">Generated GIF</h3>
-            <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
-              <div className="flex flex-col items-center">
-                <img
-                  src={gifUrl}
-                  alt="Generated GIF"
-                  className="max-w-full rounded-lg mb-4"
-                />
-                <button
-                  onClick={downloadGif}
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
-                >
-                  <Download className="w-4 h-4 mr-2" />{" "}
-                  {isDownloading ? "Downloading..." : "Download GIF"}
-                </button>
-              </div>
-            </div>
-
             <GifMakerEditorSelector
               gifUrl={gifUrl}
               canvasBlurRef={canvasBlurRef}
@@ -1952,6 +1934,24 @@ const GifMaker = () => {
               setGifUrlHistory={setGifUrlHistory}
               setGifUrl={setGifUrl}
             />
+
+            <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 mt-2">
+              <h3 className="text-gray-300 mb-2 font-medium">Generated GIF</h3>
+              <div className="flex flex-col items-center">
+                <img
+                  src={gifUrl}
+                  alt="Generated GIF"
+                  className="max-w-full rounded-lg mb-4"
+                />
+                <button
+                  onClick={downloadGif}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />{" "}
+                  {isDownloading ? "Downloading..." : "Download GIF"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
