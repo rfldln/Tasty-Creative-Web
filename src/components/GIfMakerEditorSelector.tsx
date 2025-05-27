@@ -50,7 +50,7 @@ const GifMakerEditorSelector = ({
   setWebhookData,
   gifUrlHistory,
   setGifUrlHistory,
-  setGifUrl
+  setGifUrl,
 }: GifMakerEditorSelectorProps) => {
   const [activeEditor, setActiveEditor] = useState("blur");
 
@@ -105,6 +105,10 @@ const GifMakerEditorSelector = ({
               processAllFrames={processAllFrames}
               reconstructGif={reconstructGif}
               isGifProcessing={isGifProcessing}
+              gifUrl={gifUrl}
+              setGifUrlHistory={setGifUrlHistory}
+              setGifUrl={setGifUrl}
+              gifUrlHistory={gifUrlHistory}
             />
           </div>
         )}

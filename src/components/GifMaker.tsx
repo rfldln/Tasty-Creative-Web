@@ -25,6 +25,7 @@ import GifMakerVideoCropper from "./GifMakerVideoCropper";
 import GifMakerEditorSelector from "./GIfMakerEditorSelector";
 import ModelsDropdown from "./ModelsDropdown";
 import { GifMakerVideoTimeline } from "./GifMakerVideoTimeline";
+import GifMakerGifSettings from "./GifMakerGifSettings";
 
 // Define TypeScript interfaces
 interface ModelFormData {
@@ -107,10 +108,12 @@ const GifMaker = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null);
   const [webhookData, setWebhookData] = useState<any>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isGifSettingsOpen, setIsGifSettingsOpen] = useState(false);
+  const [originalFrames, setOriginalFrames] = useState<ImageData[]>([]);
 
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -634,6 +637,7 @@ const GifMaker = () => {
       ffmpeg.FS("unlink", "output.gif");
 
       setProcessingProgress(100);
+      setError(null);
     } catch (err) {
       console.error("GIF creation error:", err);
       setError(
@@ -655,8 +659,13 @@ const GifMaker = () => {
   const handleVideoChange = (index: number, file: File | null) => {
     if (!file) return;
 
+    // Clean up previous video URL if exists
+    if (videoUrls[index]) {
+      URL.revokeObjectURL(videoUrls[index]);
+    }
+
     const objectUrl = URL.createObjectURL(file);
-    objectUrlsRef.current.push(objectUrl); // Track for cleanup
+    objectUrlsRef.current.push(objectUrl);
 
     const tempVideo = document.createElement("video");
     tempVideo.src = objectUrl;
@@ -664,18 +673,28 @@ const GifMaker = () => {
     tempVideo.addEventListener("loadedmetadata", () => {
       const videoDuration = tempVideo.duration;
 
-      // Don't revoke yet — we're going to use this URL in the grid!
       setVideoClips((prev) => {
         const newClips = [...prev];
+        // Preserve existing start/end times if switching files on the same index
+        const existingClip = newClips[index];
+        const hasExistingTimes =
+          existingClip &&
+          existingClip.file &&
+          existingClip.startTime !== 0 &&
+          existingClip.endTime !== existingClip.duration;
+
         newClips[index] = {
           file: file,
-          objectUrl, // Store the object URL for rendering
-          startTime: 0,
-          endTime: Math.min(gifSettings.maxDuration, videoDuration),
+          startTime: hasExistingTimes
+            ? Math.min(existingClip.startTime, videoDuration)
+            : 0,
+          endTime: hasExistingTimes
+            ? Math.min(existingClip.endTime, videoDuration)
+            : Math.min(gifSettings.maxDuration, videoDuration),
           duration: videoDuration,
-          positionX: 0,
-          positionY: 0,
-          scale: 1,
+          positionX: existingClip?.positionX || 0,
+          positionY: existingClip?.positionY || 0,
+          scale: existingClip?.scale || 1,
         };
         return newClips;
       });
@@ -742,16 +761,53 @@ const GifMaker = () => {
     (time: number) => {
       setVideoClips((prev) => {
         const newClips = [...prev];
-        if (activeVideoIndex !== null) {
+        if (activeVideoIndex !== null && newClips[activeVideoIndex]) {
+          const clip = newClips[activeVideoIndex];
+
+          // Clamp the new start time to valid bounds
+          let newStartTime = Math.max(0, Math.min(time, clip.duration - 0.1));
+          let newEndTime = clip.endTime;
+
+          // Calculate current duration
+          const currentDuration = clip.endTime - clip.startTime;
+
+          // If we have a duration close to max, maintain it as a sliding window
+          if (currentDuration >= gifSettings.maxDuration - 0.1) {
+            // Maintain the max duration by moving end time with start time
+            newEndTime = newStartTime + gifSettings.maxDuration;
+
+            // If end time would exceed video duration, adjust both
+            if (newEndTime > clip.duration) {
+              newEndTime = clip.duration;
+              newStartTime = Math.max(0, newEndTime - gifSettings.maxDuration);
+            }
+          } else {
+            // Duration is less than max, just ensure we don't exceed max
+            if (newEndTime - newStartTime > gifSettings.maxDuration) {
+              newEndTime = newStartTime + gifSettings.maxDuration;
+            }
+          }
+
+          // Final validation
+          newStartTime = Math.max(
+            0,
+            Math.min(newStartTime, clip.duration - 0.1)
+          );
+          newEndTime = Math.max(
+            newStartTime + 0.1,
+            Math.min(newEndTime, clip.duration)
+          );
+
           newClips[activeVideoIndex] = {
-            ...newClips[activeVideoIndex],
-            startTime: time,
+            ...clip,
+            startTime: newStartTime,
+            endTime: newEndTime,
           };
         }
         return newClips;
       });
     },
-    [activeVideoIndex]
+    [activeVideoIndex, gifSettings.maxDuration]
   );
 
   // Handle slider changes for end time
@@ -759,16 +815,63 @@ const GifMaker = () => {
     (time: number) => {
       setVideoClips((prev) => {
         const newClips = [...prev];
-        if (activeVideoIndex !== null) {
+        if (activeVideoIndex !== null && newClips[activeVideoIndex]) {
+          const clip = newClips[activeVideoIndex];
+
+          // Clamp the new end time to valid bounds
+          let newEndTime = Math.max(0.1, Math.min(time, clip.duration));
+          let newStartTime = clip.startTime;
+
+          // Calculate current duration
+          const currentDuration = clip.endTime - clip.startTime;
+
+          // If we have a duration close to max, maintain it as a sliding window
+          if (currentDuration >= gifSettings.maxDuration - 0.1) {
+            // Maintain the max duration by moving start time with end time
+            newStartTime = newEndTime - gifSettings.maxDuration;
+
+            // If start time would go below 0, adjust both
+            if (newStartTime < 0) {
+              newStartTime = 0;
+              newEndTime = Math.min(gifSettings.maxDuration, clip.duration);
+            }
+          } else {
+            // Duration is less than max, just ensure we don't exceed max
+            if (newEndTime - newStartTime > gifSettings.maxDuration) {
+              newStartTime = newEndTime - gifSettings.maxDuration;
+              if (newStartTime < 0) {
+                newStartTime = 0;
+                newEndTime = Math.min(gifSettings.maxDuration, clip.duration);
+              }
+            }
+          }
+
+          // Ensure minimum clip duration (0.1 seconds)
+          if (newEndTime - newStartTime < 0.1) {
+            if (newEndTime < clip.duration) {
+              newEndTime = newStartTime + 0.1;
+            } else {
+              newStartTime = newEndTime - 0.1;
+            }
+          }
+
+          // Final validation
+          newStartTime = Math.max(0, newStartTime);
+          newEndTime = Math.min(
+            clip.duration,
+            Math.max(newStartTime + 0.1, newEndTime)
+          );
+
           newClips[activeVideoIndex] = {
-            ...newClips[activeVideoIndex],
-            endTime: time,
+            ...clip,
+            startTime: newStartTime,
+            endTime: newEndTime,
           };
         }
         return newClips;
       });
     },
-    [activeVideoIndex]
+    [activeVideoIndex, gifSettings.maxDuration]
   );
 
   // Reset video refs when template changes
@@ -822,6 +925,7 @@ const GifMaker = () => {
   ) => {
     // Reset all blur editor state
     setGifFrames([]);
+    setOriginalFrames([]);
     setCurrentFrameIndex(0);
     setIsGifLoaded(false);
 
@@ -1002,7 +1106,6 @@ const GifMaker = () => {
       setIsGifProcessing(false);
     }
   };
-  // Display a specific frame
   const displayFrame = (index: number) => {
     // Validate frames array exists and has content
     if (!Array.isArray(gifFrames)) {
@@ -1050,7 +1153,10 @@ const GifMaker = () => {
 
     // Update mask canvas dimensions to match
     const maskCanvas = maskCanvasRef.current;
-    if (maskCanvas) {
+    if (
+      maskCanvas &&
+      (maskCanvas.width !== frameWidth || maskCanvas.height !== frameHeight)
+    ) {
       maskCanvas.width = frameWidth;
       maskCanvas.height = frameHeight;
     }
@@ -1338,10 +1444,10 @@ const GifMaker = () => {
 
       // Handle rendering completion
       gif.on("finished", (blob: Blob) => {
-        // Clean up previous URL if it exists
-        if (gifUrl) {
-          URL.revokeObjectURL(gifUrl);
-        }
+        // // Clean up previous URL if it exists
+        // if (gifUrl) {
+        //   URL.revokeObjectURL(gifUrl);
+        // }
 
         const url = URL.createObjectURL(blob);
         setGifUrl(url);
@@ -1350,13 +1456,13 @@ const GifMaker = () => {
           return newHistory;
         });
         setIsGifProcessing(false);
-        console.log("GIF successfully reconstructed");
+        clearMask();
       });
 
-      // Handle rendering progress
-      gif.on("progress", (p: number) => {
-        console.log(`GIF rendering progress: ${Math.round(p * 100)}%`);
-      });
+      // // Handle rendering progress
+      // gif.on("progress", (p: number) => {
+      //   console.log(`GIF rendering progress: ${Math.round(p * 100)}%`);
+      // });
 
       // Handle rendering errors
       gif.on("abort", () => {
@@ -1463,7 +1569,6 @@ const GifMaker = () => {
   };
 
   // Handle drawing on the mask
-  // Handle drawing on the mask
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasBlurRef.current;
     if (!canvas) return;
@@ -1483,17 +1588,21 @@ const GifMaker = () => {
 
     setIsDrawing(true);
     drawMask(getMousePos(e));
-    // Don't call processAllFrames here, as we'll do it on draw and stopDrawing
+
+    // Show initial preview
+    if (isGifLoaded && originalFrames.length > 0) {
+      applyBlurToCurrentFramePreview();
+    }
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = async () => {
     if (isDrawing) {
       setIsDrawing(false);
-      if (isGifLoaded) {
-        // Apply the final mask to the current frame
-        applyBlurToCurrentFrame();
-        // Save the changes to all frames
-        processAllFrames();
+
+      try {
+        await processAllFrames();
+      } catch (error) {
+        console.error("Error in stopDrawing:", error);
       }
     }
   };
@@ -1504,10 +1613,63 @@ const GifMaker = () => {
     // Draw the mask at the current position
     drawMask(getMousePos(e));
 
-    // Apply blur to the current frame in real-time for visual feedback
-    if (isGifLoaded) {
-      applyBlurToCurrentFrame();
+    // Show preview on current frame only
+    if (isGifLoaded && originalFrames.length > 0) {
+      applyBlurToCurrentFramePreview();
     }
+  };
+
+  // Add this new function for preview
+  const applyBlurToCurrentFramePreview = () => {
+    if (
+      !originalFrames.length ||
+      currentFrameIndex < 0 ||
+      currentFrameIndex >= originalFrames.length
+    )
+      return;
+
+    const canvas = canvasBlurRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas) return;
+
+    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+    if (!maskCtx) return;
+
+    // Get the mask data
+    const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Create a copy from the original frame for preview
+    const frameData = new ImageData(
+      new Uint8ClampedArray(originalFrames[currentFrameIndex].data),
+      originalFrames[currentFrameIndex].width,
+      originalFrames[currentFrameIndex].height
+    );
+
+    // Apply blur based on mask
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const i = (y * canvas.width + x) * 4;
+
+        // If pixel is in the mask (non-transparent)
+        if (maskData.data[i + 3] > 0) {
+          if (blurSettings.blurType === "pixelated") {
+            applyPixelatedBlur(x, y, frameData);
+          } else if (blurSettings.blurType === "gaussian") {
+            applyGaussianBlur(x, y, frameData);
+          } else if (blurSettings.blurType === "mosaic") {
+            applyMosaicBlur(x, y, frameData);
+          }
+        }
+      }
+    }
+
+    // Display the preview without saving it
+    ctx.putImageData(frameData, 0, 0);
   };
 
   const getMousePos = (e: React.MouseEvent | React.TouchEvent) => {
@@ -1537,31 +1699,36 @@ const GifMaker = () => {
     maskCtx.beginPath();
     maskCtx.arc(pos.x, pos.y, blurSettings.brushSize, 0, Math.PI * 2);
     maskCtx.fill();
-
-    // Immediately apply blur to the current frame
-    applyBlurToCurrentFrame();
   };
 
-  const clearMask = () => {
+  const clearMask = async () => {
     const maskCanvas = maskCanvasRef.current;
     if (!maskCanvas) return;
 
     const maskCtx = maskCanvas.getContext("2d");
     if (!maskCtx) return;
 
-    // Just clear the entire mask canvas — this makes it fully transparent
+    // Clear the mask canvas
     maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
 
-    // Optionally force re-render of the original frame (if necessary)
-    if (isGifLoaded && gifFrames.length > 0) {
-      const originalFrame = gifFrames[currentFrameIndex];
-      const canvas = canvasBlurRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.putImageData(originalFrame, 0, 0);
-        }
-      }
+    // Restore all frames to original state
+    if (isGifLoaded && originalFrames.length > 0) {
+      setGifFrames(
+        originalFrames.map(
+          (frame) =>
+            new ImageData(
+              new Uint8ClampedArray(frame.data),
+              frame.width,
+              frame.height
+            )
+        )
+      );
+
+      // Display the current frame
+      displayFrame(currentFrameIndex);
+
+      // Reconstruct the GIF with original frames
+      await reconstructGif();
     }
   };
 
@@ -1575,21 +1742,25 @@ const GifMaker = () => {
     if (activeVideoIndex === null || !videoRefs.current) return;
 
     const activeVideo = videoRefs.current[activeVideoIndex];
-    if (!activeVideo || !videoClips[activeVideoIndex]?.file) return;
-
     const clip = videoClips[activeVideoIndex];
+
+    // Add safety checks
+    if (!activeVideo || !clip?.file || !clip.duration) return;
+
     let rafId: number | undefined = undefined;
     let lastUpdateTime = 0;
 
-    // Update function that runs on each frame
     const updateTime = () => {
       if (!activeVideo.paused && !activeVideo.ended) {
+        // Ensure we have valid clip data
+        const currentClip = videoClips[activeVideoIndex];
+        if (!currentClip) return;
+
         // Check if we've reached the end time
-        if (activeVideo.currentTime >= clip.endTime) {
-          activeVideo.currentTime = clip.startTime;
+        if (activeVideo.currentTime >= currentClip.endTime) {
+          activeVideo.currentTime = currentClip.startTime;
         }
 
-        // Only update state every 100ms to reduce re-renders
         const now = performance.now();
         if (now - lastUpdateTime > 100) {
           setCurrentTime(activeVideo.currentTime);
@@ -1602,8 +1773,12 @@ const GifMaker = () => {
 
     if (isPlaying) {
       // Ensure video is at correct position before playing
-      if (Math.abs(activeVideo.currentTime - currentTime) > 0.1) {
-        activeVideo.currentTime = currentTime;
+      const targetTime = Math.max(
+        clip.startTime,
+        Math.min(currentTime, clip.endTime)
+      );
+      if (Math.abs(activeVideo.currentTime - targetTime) > 0.1) {
+        activeVideo.currentTime = targetTime;
       }
 
       activeVideo.play().catch((err) => {
@@ -1625,6 +1800,44 @@ const GifMaker = () => {
       }
     };
   }, [isPlaying, activeVideoIndex, videoClips, currentTime]);
+
+  // Add this after the gifSettings state
+  useEffect(() => {
+    // When max duration changes, ensure all clips respect the new limit
+    setVideoClips((prev) => {
+      return prev.map((clip) => {
+        if (!clip.file) return clip;
+
+        const currentDuration = clip.endTime - clip.startTime;
+        if (currentDuration <= gifSettings.maxDuration) {
+          return clip; // Already within limits
+        }
+
+        // Adjust end time to respect new max duration
+        return {
+          ...clip,
+          endTime: Math.min(
+            clip.startTime + gifSettings.maxDuration,
+            clip.duration
+          ),
+        };
+      });
+    });
+  }, [gifSettings.maxDuration]);
+
+  useEffect(() => {
+    if (activeVideoIndex !== null && videoClips[activeVideoIndex]?.file) {
+      const clip = videoClips[activeVideoIndex];
+      // Set current time to the clip's start time when switching videos
+      setCurrentTime(clip.startTime);
+
+      // Also update the actual video element if it exists
+      const activeVideo = videoRefs.current[activeVideoIndex];
+      if (activeVideo && activeVideo.readyState >= 2) {
+        activeVideo.currentTime = clip.startTime;
+      }
+    }
+  }, [activeVideoIndex]);
 
   return (
     <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
@@ -1673,7 +1886,6 @@ const GifMaker = () => {
           videoClips[activeVideoIndex]?.file &&
           videoClips[activeVideoIndex]?.duration > 0 && (
             <GifMakerVideoTimeline
-              key={`timeline-${activeVideoIndex}-${videoClips[activeVideoIndex].file?.name}`}
               videoFile={videoClips[activeVideoIndex].file}
               duration={videoClips[activeVideoIndex].duration}
               startTime={videoClips[activeVideoIndex].startTime}
@@ -1686,66 +1898,18 @@ const GifMaker = () => {
               onPlayPause={handlePlayPause}
               setMaxDuration={setMaxDuration}
               maxDuration={gifSettings.maxDuration}
+              setIsGifSettingsOpen={setIsGifSettingsOpen}
             />
           )}
         {/* GIF Settings */}
-        <div className="mb-6">
-          <h3 className="text-gray-300 mb-2 font-medium">GIF Settings</h3>
-          <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
-            <div className="mb-2">
-              <label className="text-sm text-gray-300 mb-1 block">
-                Maximum Duration (seconds): {gifSettings.maxDuration}s
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                step="1"
-                value={gifSettings.maxDuration}
-                onChange={(e) => setMaxDuration(parseInt(e.target.value))}
-                className="w-full accent-blue-500"
-              />
-            </div>
-
-            <div className="mb-2">
-              <label className="text-sm text-gray-300 mb-1 block">
-                GIF Framerate: {gifSettings.fps} fps
-              </label>
-              <input
-                type="range"
-                min="5"
-                max="30"
-                step="1"
-                value={gifSettings.fps}
-                onChange={(e) => setFps(parseInt(e.target.value))}
-                className="w-full accent-blue-500"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Higher framerates result in smoother animation but larger file
-                size
-              </p>
-            </div>
-
-            <div className="mb-2">
-              <label className="text-sm text-gray-300 mb-1 block">
-                Quality: {gifSettings.quality}
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="20"
-                step="1"
-                value={gifSettings.quality}
-                onChange={(e) => setQuality(parseInt(e.target.value))}
-                className="w-full accent-blue-500"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Higher quality results in better image quality but larger file
-                size
-              </p>
-            </div>
-          </div>
-        </div>
+        {isGifSettingsOpen && (
+          <GifMakerGifSettings
+            gifSettings={gifSettings}
+            setMaxDuration={setMaxDuration}
+            setFps={setFps}
+            setQuality={setQuality}
+          />
+        )}
 
         {/* Generated GIF Preview */}
         {gifUrl && (
@@ -1793,8 +1957,14 @@ const GifMaker = () => {
           </div>
         )}
 
+        {error && error.includes("Check if the path exists") && (
+          <p className="text-red-500 text-sm">
+            Make sure to scale your video to fit the outline!
+          </p>
+        )}
+
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3">
+        <div className="flex justify-end space-x-3 mt-5">
           <button
             className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-colors"
             onClick={() => {
