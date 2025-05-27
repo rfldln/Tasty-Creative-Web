@@ -25,6 +25,7 @@ import GifMakerVideoCropper from "./GifMakerVideoCropper";
 import GifMakerEditorSelector from "./GIfMakerEditorSelector";
 import ModelsDropdown from "./ModelsDropdown";
 import { GifMakerVideoTimeline } from "./GifMakerVideoTimeline";
+import GifMakerGifSettings from "./GifMakerGifSettings";
 
 // Define TypeScript interfaces
 interface ModelFormData {
@@ -110,6 +111,7 @@ const GifMaker = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isGifSettingsOpen, setIsGifSettingsOpen] = useState(false);
 
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -1684,66 +1686,18 @@ const GifMaker = () => {
               onPlayPause={handlePlayPause}
               setMaxDuration={setMaxDuration}
               maxDuration={gifSettings.maxDuration}
+              setIsGifSettingsOpen={setIsGifSettingsOpen}
             />
           )}
         {/* GIF Settings */}
-        <div className="mb-6">
-          <h3 className="text-gray-300 mb-2 font-medium">GIF Settings</h3>
-          <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
-            <div className="mb-2">
-              <label className="text-sm text-gray-300 mb-1 block">
-                Maximum Duration (seconds): {gifSettings.maxDuration}s
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                step="1"
-                value={gifSettings.maxDuration}
-                onChange={(e) => setMaxDuration(parseInt(e.target.value))}
-                className="w-full accent-blue-500"
-              />
-            </div>
-
-            <div className="mb-2">
-              <label className="text-sm text-gray-300 mb-1 block">
-                GIF Framerate: {gifSettings.fps} fps
-              </label>
-              <input
-                type="range"
-                min="5"
-                max="30"
-                step="1"
-                value={gifSettings.fps}
-                onChange={(e) => setFps(parseInt(e.target.value))}
-                className="w-full accent-blue-500"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Higher framerates result in smoother animation but larger file
-                size
-              </p>
-            </div>
-
-            <div className="mb-2">
-              <label className="text-sm text-gray-300 mb-1 block">
-                Quality: {gifSettings.quality}
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="20"
-                step="1"
-                value={gifSettings.quality}
-                onChange={(e) => setQuality(parseInt(e.target.value))}
-                className="w-full accent-blue-500"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Higher quality results in better image quality but larger file
-                size
-              </p>
-            </div>
-          </div>
-        </div>
+        {isGifSettingsOpen && (
+          <GifMakerGifSettings
+            gifSettings={gifSettings}
+            setMaxDuration={setMaxDuration}
+            setFps={setFps}
+            setQuality={setQuality}
+          />
+        )}
 
         {/* Generated GIF Preview */}
         {gifUrl && (
@@ -1792,7 +1746,7 @@ const GifMaker = () => {
         )}
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3">
+        <div className="flex justify-end space-x-3 mt-5">
           <button
             className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-colors"
             onClick={() => {

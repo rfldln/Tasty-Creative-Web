@@ -347,6 +347,37 @@ const GifMakerVideoCropper = ({
                         {renderVideoOverlay(i)}
                       </div>
 
+                      {activeVideoIndex !== null &&
+                        videoClips[activeVideoIndex]?.file && (
+                          <div className="absolute right-0 bottom-12 -mr-[41px] opacity-70 hover:opacity-100 transition-all duration-300">
+                            <div className="flex flex-col items-end text-end justify-end ">
+                              <input
+                                type="range"
+                                min="0.1"
+                                max="3"
+                                step="0.05"
+                                value={videoClips[activeVideoIndex].scale || 1}
+                                onChange={(e) =>
+                                  handleVideoScale(
+                                    activeVideoIndex,
+                                    parseFloat(e.target.value)
+                                  )
+                                }
+                                className="h-32 vertical-slider text-blue-500 accent-blue-500"
+                                style={{
+                                  WebkitAppearance: "slider-vertical",
+                                }}
+                              />
+                            </div>
+                            {/* <div className="w-16 bg-gray-700 p-2 text-center rounded">
+                              {(
+                                (videoClips[activeVideoIndex].scale || 1) * 100
+                              ).toFixed(0)}
+                              %
+                            </div> */}
+                          </div>
+                        )}
+
                       <div className="absolute bottom-2 right-2 flex gap-2 z-30">
                         <button
                           className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full"
@@ -412,7 +443,7 @@ const GifMakerVideoCropper = ({
       </div>
 
       {/* Scale Controls */}
-      {activeVideoIndex !== null && videoClips[activeVideoIndex]?.file && (
+      {/* {activeVideoIndex !== null && videoClips[activeVideoIndex]?.file && (
         <div className="mb-6">
           <h3 className="text-gray-300 mb-2 font-medium">
             Video Position & Scale
@@ -421,27 +452,32 @@ const GifMakerVideoCropper = ({
             <div className="mb-4">
               <label className="block text-sm text-gray-300 mb-1">Scale</label>
               <div className="flex items-center">
-                <input
-                  type="range"
-                  min="0.1"
-                  max="3"
-                  step="0.05"
-                  value={videoClips[activeVideoIndex].scale || 1}
-                  onChange={(e) =>
-                    handleVideoScale(
-                      activeVideoIndex,
-                      parseFloat(e.target.value)
-                    )
-                  }
-                  className="flex-1 mr-3"
-                />
+                <div className="flex flex-col items-center mr-3">
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="3"
+                    step="0.05"
+                    value={videoClips[activeVideoIndex].scale || 1}
+                    onChange={(e) =>
+                      handleVideoScale(
+                        activeVideoIndex,
+                        parseFloat(e.target.value)
+                      )
+                    }
+                    className="h-32 vertical-slider"
+                    style={{
+                      WebkitAppearance: "slider-vertical",
+                    }}
+                  />
+                </div>
                 <div className="w-16 bg-gray-700 p-2 text-center rounded">
                   {((videoClips[activeVideoIndex].scale || 1) * 100).toFixed(0)}
                   %
                 </div>
               </div>
             </div>
-
+            
             <div className="mb-4">
               <p className="text-sm text-gray-300 mb-2">Position</p>
               <div className="grid grid-cols-2 gap-4">
@@ -489,7 +525,7 @@ const GifMakerVideoCropper = ({
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Output Dimensions Display */}
       {/* <div id="output-dimensions" className="mb-6">

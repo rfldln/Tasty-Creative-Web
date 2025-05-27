@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Settings2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type VideoTimelineProps = {
   videoFile: File | null;
@@ -15,6 +16,7 @@ type VideoTimelineProps = {
   targetWidth?: number;
   setMaxDuration: (duration: number) => void;
   maxDuration: number;
+  setIsGifSettingsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export const GifMakerVideoTimeline = ({
@@ -31,6 +33,7 @@ export const GifMakerVideoTimeline = ({
   targetWidth = 120,
   setMaxDuration,
   maxDuration,
+  setIsGifSettingsOpen,
 }: VideoTimelineProps) => {
   const [frames, setFrames] = useState<{ time: number; src: string }[]>([]);
   const [isDragging, setIsDragging] = useState<
@@ -359,9 +362,19 @@ export const GifMakerVideoTimeline = ({
             </div>
           )}
           <button
+            type="button"
+            onClick={() => setIsGifSettingsOpen((prev: boolean) => !prev)}
+            className={cn(
+              "bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-full transition-colors active:bg-gray-500"
+            )}
+            aria-label="Toggle GIF Settings"
+          >
+            <Settings2 className="w-4 h-4" />
+          </button>
+          <button
             onClick={onPlayPause}
             disabled={isProcessing || !videoFile}
-            className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-2 rounded-full transition-colors"
+            className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700  disabled:cursor-not-allowed text-white p-2 rounded-full transition-colors"
           >
             {isPlaying ? (
               <Pause className="w-4 h-4" />
