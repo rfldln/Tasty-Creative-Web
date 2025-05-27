@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 
 type GifMakerBlurEditorProps = {
   canvasBlurRef: React.RefObject<HTMLCanvasElement | null>;
@@ -21,6 +21,10 @@ type GifMakerBlurEditorProps = {
   reconstructGif: () => void;
   isGifProcessing: boolean;
   isDrawing?: boolean;
+  setGifUrl: (url: string) => void;
+  gifUrlHistory: string[];
+  setGifUrlHistory: (urls: string[]) => void;
+  gifUrl: string;
 };
 
 const GifMakerBlurEditor = ({
@@ -33,29 +37,59 @@ const GifMakerBlurEditor = ({
   setBlurType,
   setBlurIntensity,
   setBrushSize,
-
   isGifLoaded,
-
+  gifUrl,
   reconstructGif,
   isGifProcessing,
+  setGifUrl,
+  gifUrlHistory,
+  setGifUrlHistory,
 }: GifMakerBlurEditorProps) => {
+  const [isUndoing, setIsUndoing] = useState(false);
+
+  const handleUndo = () => {
+    setIsUndoing(true);
+    if (gifUrlHistory.length > 1) {
+      const newHistory = [...gifUrlHistory];
+      newHistory.pop(); // Remove the last URL
+      setGifUrlHistory(newHistory);
+      setGifUrl(newHistory[newHistory.length - 1] || "");
+      setIsUndoing(false);
+    } else {
+      setIsUndoing(false);
+    }
+  };
   return (
     <div className="mt-6 bg-gray-900 p-4 rounded-lg border border-gray-700">
       <h3 className="text-gray-300 mb-4 font-medium">Blur Editor</h3>
 
-      {/* Drawing canvas (visible) */}
+      {/* Drawing canvas container with GIF background */}
       <div
         className="relative cursor-crosshair"
         style={{ maxWidth: "100%", overflow: "auto" }}
       >
-        {/* Main canvas that displays the GIF frame */}
+        {/* Animated GIF as background (bottom layer) */}
+        {gifUrl && (
+          <img
+            src={gifUrl}
+            alt="GIF preview"
+            className="max-w-full border border-gray-600 rounded-lg"
+            style={{ display: "block" }}
+          />
+        )}
+
+        {/* Main canvas that displays the current frame (middle layer) */}
         <canvas
           ref={canvasBlurRef}
-          className="max-w-full border border-gray-600 rounded-lg"
-          style={{ cursor: "crosshair" }}
+          className="absolute top-0 left-0 max-w-full border border-gray-600 rounded-lg"
+          style={{
+            cursor: "crosshair",
+            opacity: 0.0, // Make it semi-transparent to see the GIF underneath
+            zIndex: 5,
+          }}
         />
 
-        {/* Mask canvas that sits on top for drawing */}
+        {/* Mask canvas for drawing (top layer) */}
         <canvas
           ref={maskCanvasRef}
           onMouseDown={startDrawing}
@@ -65,11 +99,12 @@ const GifMakerBlurEditor = ({
           onTouchStart={startDrawing}
           onTouchMove={draw}
           onTouchEnd={stopDrawing}
-          className="absolute top-0 left-0 opacity-50"
+          className="absolute top-0 left-0"
           style={{
             maxWidth: "100%",
-            pointerEvents: "auto", // Make sure it receives events
-            zIndex: 10, // Ensure it's above the main canvas
+            pointerEvents: "auto",
+            zIndex: 10,
+            opacity: 0.5, // Semi-transparent to see what you're drawing
           }}
         />
       </div>
@@ -123,29 +158,18 @@ const GifMakerBlurEditor = ({
               className="w-full accent-blue-500"
             />
           </div>
-
-          {/* Actions */}
-          {/* <div className="flex items-end space-x-2">
-            <button
-              onClick={() => {
-                clearMask();
-              }}
-              className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg flex items-center justify-center"
-            >
-              <Eraser className="w-4 h-4 mr-2" /> Clear
-            </button>
-            <button
-              onClick={() => (isGifLoaded ? processAllFrames() : null)}
-              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg flex items-center justify-center"
-            >
-              <Sliders className="w-4 h-4 mr-2" /> Apply to All Frames
-            </button>
-          </div> */}
         </div>
       </div>
 
       {/* Save Blurred GIF */}
-      <div className="mt-4 flex justify-center">
+      <div className="mt-4  justify-center grid grid-cols-3 gap-4">
+        <button
+          onClick={handleUndo}
+          disabled={isUndoing}
+          className="w-full bg-red-600 col-span-1 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+        >
+          {isUndoing ? "Undoing..." : "Undo Last Action"}
+        </button>
         <button
           onClick={reconstructGif}
           disabled={isGifProcessing || !isGifLoaded}
@@ -153,7 +177,7 @@ const GifMakerBlurEditor = ({
             isGifProcessing
               ? "bg-purple-800"
               : "bg-purple-600 hover:bg-purple-500"
-          } text-white px-4 py-2 rounded-lg transition-colors flex items-center`}
+          } text-white px-4 py-2 rounded-lg transition-colors flex col-span-2 items-center`}
         >
           {isGifProcessing ? (
             <>
@@ -161,7 +185,7 @@ const GifMakerBlurEditor = ({
               Processing...
             </>
           ) : (
-            <>Proccess Blur GIF</>
+            <p className="w-full text-center">Process Blur GIF</p>
           )}
         </button>
       </div>

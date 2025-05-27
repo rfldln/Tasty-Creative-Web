@@ -107,11 +107,12 @@ const GifMaker = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null);
   const [webhookData, setWebhookData] = useState<any>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [isGifSettingsOpen, setIsGifSettingsOpen] = useState(false);
+  const [originalFrames, setOriginalFrames] = useState<ImageData[]>([]);
 
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -634,6 +635,7 @@ const GifMaker = () => {
       ffmpeg.FS("unlink", "output.gif");
 
       setProcessingProgress(100);
+      setError(null);
     } catch (err) {
       console.error("GIF creation error:", err);
       setError(
@@ -921,6 +923,7 @@ const GifMaker = () => {
   ) => {
     // Reset all blur editor state
     setGifFrames([]);
+    setOriginalFrames([]);
     setCurrentFrameIndex(0);
     setIsGifLoaded(false);
 
@@ -1101,7 +1104,6 @@ const GifMaker = () => {
       setIsGifProcessing(false);
     }
   };
-  // Display a specific frame
   const displayFrame = (index: number) => {
     // Validate frames array exists and has content
     if (!Array.isArray(gifFrames)) {
@@ -1149,7 +1151,10 @@ const GifMaker = () => {
 
     // Update mask canvas dimensions to match
     const maskCanvas = maskCanvasRef.current;
-    if (maskCanvas) {
+    if (
+      maskCanvas &&
+      (maskCanvas.width !== frameWidth || maskCanvas.height !== frameHeight)
+    ) {
       maskCanvas.width = frameWidth;
       maskCanvas.height = frameHeight;
     }
@@ -1437,10 +1442,10 @@ const GifMaker = () => {
 
       // Handle rendering completion
       gif.on("finished", (blob: Blob) => {
-        // Clean up previous URL if it exists
-        if (gifUrl) {
-          URL.revokeObjectURL(gifUrl);
-        }
+        // // Clean up previous URL if it exists
+        // if (gifUrl) {
+        //   URL.revokeObjectURL(gifUrl);
+        // }
 
         const url = URL.createObjectURL(blob);
         setGifUrl(url);
@@ -1449,13 +1454,13 @@ const GifMaker = () => {
           return newHistory;
         });
         setIsGifProcessing(false);
-        console.log("GIF successfully reconstructed");
+        clearMask();
       });
 
-      // Handle rendering progress
-      gif.on("progress", (p: number) => {
-        console.log(`GIF rendering progress: ${Math.round(p * 100)}%`);
-      });
+      // // Handle rendering progress
+      // gif.on("progress", (p: number) => {
+      //   console.log(`GIF rendering progress: ${Math.round(p * 100)}%`);
+      // });
 
       // Handle rendering errors
       gif.on("abort", () => {
@@ -1562,7 +1567,6 @@ const GifMaker = () => {
   };
 
   // Handle drawing on the mask
-  // Handle drawing on the mask
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasBlurRef.current;
     if (!canvas) return;
@@ -1582,17 +1586,21 @@ const GifMaker = () => {
 
     setIsDrawing(true);
     drawMask(getMousePos(e));
-    // Don't call processAllFrames here, as we'll do it on draw and stopDrawing
+
+    // Show initial preview
+    if (isGifLoaded && originalFrames.length > 0) {
+      applyBlurToCurrentFramePreview();
+    }
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = async () => {
     if (isDrawing) {
       setIsDrawing(false);
-      if (isGifLoaded) {
-        // Apply the final mask to the current frame
-        applyBlurToCurrentFrame();
-        // Save the changes to all frames
-        processAllFrames();
+
+      try {
+        await processAllFrames();
+      } catch (error) {
+        console.error("Error in stopDrawing:", error);
       }
     }
   };
@@ -1603,10 +1611,63 @@ const GifMaker = () => {
     // Draw the mask at the current position
     drawMask(getMousePos(e));
 
-    // Apply blur to the current frame in real-time for visual feedback
-    if (isGifLoaded) {
-      applyBlurToCurrentFrame();
+    // Show preview on current frame only
+    if (isGifLoaded && originalFrames.length > 0) {
+      applyBlurToCurrentFramePreview();
     }
+  };
+
+  // Add this new function for preview
+  const applyBlurToCurrentFramePreview = () => {
+    if (
+      !originalFrames.length ||
+      currentFrameIndex < 0 ||
+      currentFrameIndex >= originalFrames.length
+    )
+      return;
+
+    const canvas = canvasBlurRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas) return;
+
+    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+    if (!maskCtx) return;
+
+    // Get the mask data
+    const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Create a copy from the original frame for preview
+    const frameData = new ImageData(
+      new Uint8ClampedArray(originalFrames[currentFrameIndex].data),
+      originalFrames[currentFrameIndex].width,
+      originalFrames[currentFrameIndex].height
+    );
+
+    // Apply blur based on mask
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const i = (y * canvas.width + x) * 4;
+
+        // If pixel is in the mask (non-transparent)
+        if (maskData.data[i + 3] > 0) {
+          if (blurSettings.blurType === "pixelated") {
+            applyPixelatedBlur(x, y, frameData);
+          } else if (blurSettings.blurType === "gaussian") {
+            applyGaussianBlur(x, y, frameData);
+          } else if (blurSettings.blurType === "mosaic") {
+            applyMosaicBlur(x, y, frameData);
+          }
+        }
+      }
+    }
+
+    // Display the preview without saving it
+    ctx.putImageData(frameData, 0, 0);
   };
 
   const getMousePos = (e: React.MouseEvent | React.TouchEvent) => {
@@ -1636,31 +1697,36 @@ const GifMaker = () => {
     maskCtx.beginPath();
     maskCtx.arc(pos.x, pos.y, blurSettings.brushSize, 0, Math.PI * 2);
     maskCtx.fill();
-
-    // Immediately apply blur to the current frame
-    applyBlurToCurrentFrame();
   };
 
-  const clearMask = () => {
+  const clearMask = async () => {
     const maskCanvas = maskCanvasRef.current;
     if (!maskCanvas) return;
 
     const maskCtx = maskCanvas.getContext("2d");
     if (!maskCtx) return;
 
-    // Just clear the entire mask canvas — this makes it fully transparent
+    // Clear the mask canvas
     maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
 
-    // Optionally force re-render of the original frame (if necessary)
-    if (isGifLoaded && gifFrames.length > 0) {
-      const originalFrame = gifFrames[currentFrameIndex];
-      const canvas = canvasBlurRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.putImageData(originalFrame, 0, 0);
-        }
-      }
+    // Restore all frames to original state
+    if (isGifLoaded && originalFrames.length > 0) {
+      setGifFrames(
+        originalFrames.map(
+          (frame) =>
+            new ImageData(
+              new Uint8ClampedArray(frame.data),
+              frame.width,
+              frame.height
+            )
+        )
+      );
+
+      // Display the current frame
+      displayFrame(currentFrameIndex);
+
+      // Reconstruct the GIF with original frames
+      await reconstructGif();
     }
   };
 
@@ -1887,6 +1953,12 @@ const GifMaker = () => {
               setGifUrl={setGifUrl}
             />
           </div>
+        )}
+
+        {error && error.includes("Check if the path exists") && (
+          <p className="text-red-500 text-sm">
+            Make sure to scale your video to fit the outline!
+          </p>
         )}
 
         {/* Action Buttons */}
