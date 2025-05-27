@@ -312,29 +312,29 @@ const GifMakerVideoCropper = ({
                           className="absolute inset-0 w-full h-full object-contain"
                           muted
                           playsInline
+                          autoPlay={i === activeVideoIndex}
                           onLoadedMetadata={(e) => {
                             const video = e.currentTarget;
+                            const clip = videoClips[i];
 
                             if (i === activeVideoIndex) {
-                              // For active video, just set initial time
-                              video.currentTime =
-                                currentTime || videoClips[i].startTime;
-                              // Don't play - let parent control
+                              // For active video, set to current time or start time
+                              video.currentTime = currentTime || clip.startTime;
+                              // Don't auto-play - let parent control
                             } else {
                               // For non-active videos, set up preview loop
-                              video.currentTime = videoClips[i].startTime;
+                              video.currentTime = clip.startTime;
 
                               const loopVideo = () => {
-                                if (
-                                  video.currentTime >= videoClips[i].endTime
-                                ) {
-                                  video.currentTime = videoClips[i].startTime;
+                                if (video.currentTime >= clip.endTime) {
+                                  video.currentTime = clip.startTime;
                                 }
                               };
 
+                              video.addEventListener("timeupdate", loopVideo);
                               video.play().catch(() => {});
 
-                              // Clean up when video changes
+                              // Return cleanup function
                               return () => {
                                 video.removeEventListener(
                                   "timeupdate",
@@ -347,36 +347,31 @@ const GifMakerVideoCropper = ({
                         {renderVideoOverlay(i)}
                       </div>
 
-                      {activeVideoIndex !== null &&
-                        videoClips[activeVideoIndex]?.file && (
-                          <div className="absolute right-0 bottom-12 -mr-[41px] opacity-70 hover:opacity-100 transition-all duration-300">
-                            <div className="flex flex-col items-end text-end justify-end ">
-                              <input
-                                type="range"
-                                min="0.1"
-                                max="3"
-                                step="0.05"
-                                value={videoClips[activeVideoIndex].scale || 1}
-                                onChange={(e) =>
-                                  handleVideoScale(
-                                    activeVideoIndex,
-                                    parseFloat(e.target.value)
-                                  )
-                                }
-                                className="h-32 vertical-slider text-blue-500 accent-blue-500"
-                                style={{
-                                  WebkitAppearance: "slider-vertical",
-                                }}
-                              />
-                            </div>
-                            {/* <div className="w-16 bg-gray-700 p-2 text-center rounded">
-                              {(
-                                (videoClips[activeVideoIndex].scale || 1) * 100
-                              ).toFixed(0)}
-                              %
-                            </div> */}
+                      {videoClips[i]?.file && activeVideoIndex === i && (
+                        <div
+                          key={`slider-${i}`}
+                          className="absolute right-0 bottom-12 -mr-[41px] opacity-70 hover:opacity-100 transition-all duration-300"
+                        >
+                          <div className="flex flex-col items-end text-end justify-end">
+                            <input
+                              name={i.toString()}
+                              id={`video-scale-${i}`}
+                              type="range"
+                              min="0.1"
+                              max="3"
+                              step="0.05"
+                              value={videoClips[i].scale || 1}
+                              onChange={(e) =>
+                                handleVideoScale(i, parseFloat(e.target.value))
+                              }
+                              className="h-32 vertical-slider text-blue-500 accent-blue-500"
+                              style={{
+                                WebkitAppearance: "slider-vertical",
+                              }}
+                            />
                           </div>
-                        )}
+                        </div>
+                      )}
 
                       <div className="absolute bottom-2 right-2 flex gap-2 z-30">
                         <button

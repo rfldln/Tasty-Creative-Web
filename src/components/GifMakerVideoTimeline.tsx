@@ -25,13 +25,12 @@ export const GifMakerVideoTimeline = ({
   startTime = 0,
   endTime = null,
   currentTime = 0,
-  isPlaying = false,
+  isPlaying = true,
   onStartTimeChange,
   onEndTimeChange,
   onCurrentTimeChange,
   onPlayPause,
   targetWidth = 120,
-  setMaxDuration,
   maxDuration,
   setIsGifSettingsOpen,
 }: VideoTimelineProps) => {
@@ -264,7 +263,6 @@ export const GifMakerVideoTimeline = ({
     );
     e.preventDefault();
   };
-
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isDragging || !timelineRef.current) return;
@@ -278,9 +276,12 @@ export const GifMakerVideoTimeline = ({
       );
 
       if (isDragging === "start") {
-        onStartTimeChange?.(Math.min(newValue, actualEndTime - 0.1));
+        // Simply pass the new value - let the parent handle the sliding window logic
+        onStartTimeChange?.(newValue);
       } else if (isDragging === "end") {
-        onEndTimeChange?.(Math.max(newValue, startTime + 0.1));
+        // Simply pass the new value - the parent component will handle the logic
+        // of dragging the start time if needed
+        onEndTimeChange?.(newValue);
       } else if (isDragging === "current") {
         const clampedTime = Math.max(
           startTime,
@@ -327,8 +328,14 @@ export const GifMakerVideoTimeline = ({
     const clickX = e.clientX - rect.left;
     let clickTime = (clickX / rect.width) * duration;
 
-    // Clamp the clickTime within startTime and actualEndTime
-    clickTime = Math.max(startTime, Math.min(actualEndTime, clickTime));
+    // Clamp the clickTime within the valid range considering max duration
+    const validStart = Math.max(0, actualEndTime - maxDuration);
+    const validEnd = Math.min(duration, startTime + maxDuration);
+
+    clickTime = Math.max(
+      Math.max(startTime, validStart),
+      Math.min(Math.min(actualEndTime, validEnd), clickTime)
+    );
 
     onCurrentTimeChange?.(clickTime);
   };
@@ -338,16 +345,22 @@ export const GifMakerVideoTimeline = ({
   const endPercent = duration > 0 ? (actualEndTime / duration) * 100 : 100;
   const currentPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  useEffect(() => {
-    const duration = actualEndTime - startTime;
-    setMaxDuration(+duration.toFixed(2));
-  }, [actualEndTime, startTime]);
+  // useEffect(() => {
+  //   if (!isDragging && maxDuration > 0) {
+  //     // Ensure endTime is valid and within bounds
+  //     const validEndTime = Math.min(
+  //       Math.max(startTime + 0.1, maxDuration + startTime),
+  //       duration
+  //     );
+  //     onEndTimeChange?.(validEndTime);
+  //   }
+  // }, [maxDuration, startTime, duration, isDragging, onEndTimeChange]);
 
-  useEffect(() => {
-    if (!isDragging) {
-      onEndTimeChange?.(Math.max(maxDuration, startTime + 0.1));
-    }
-  }, [maxDuration]);
+  // useEffect(() => {
+  //   if (!isDragging) {
+  //     onEndTimeChange?.(Math.max(maxDuration, startTime + 0.1));
+  //   }
+  // }, [maxDuration]);
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
@@ -388,8 +401,8 @@ export const GifMakerVideoTimeline = ({
       {/* Time Info */}
       <div className="flex justify-between text-sm text-gray-400 mb-4">
         <span>Total: {formatTime(duration)}</span>
-        <span>Selected: {formatTime(actualEndTime - startTime)}</span>
         <span>Current: {formatTime(currentTime)}</span>
+        <span>Duration: {formatTime(actualEndTime - startTime)}</span>
       </div>
 
       {/* Timeline Container */}

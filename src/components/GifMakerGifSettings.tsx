@@ -23,7 +23,7 @@ const GifMakerGifSettings = ({
       <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
         <div className="mb-2">
           <label className="text-sm text-gray-300 mb-1 block">
-            Maximum Duration (seconds): {gifSettings.maxDuration}s
+            Duration (seconds): {gifSettings.maxDuration}s
           </label>
           <input
             type="range"

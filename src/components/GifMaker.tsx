@@ -655,8 +655,13 @@ const GifMaker = () => {
   const handleVideoChange = (index: number, file: File | null) => {
     if (!file) return;
 
+    // Clean up previous video URL if exists
+    if (videoUrls[index]) {
+      URL.revokeObjectURL(videoUrls[index]);
+    }
+
     const objectUrl = URL.createObjectURL(file);
-    objectUrlsRef.current.push(objectUrl); // Track for cleanup
+    objectUrlsRef.current.push(objectUrl);
 
     const tempVideo = document.createElement("video");
     tempVideo.src = objectUrl;
@@ -664,18 +669,28 @@ const GifMaker = () => {
     tempVideo.addEventListener("loadedmetadata", () => {
       const videoDuration = tempVideo.duration;
 
-      // Don't revoke yet — we're going to use this URL in the grid!
       setVideoClips((prev) => {
         const newClips = [...prev];
+        // Preserve existing start/end times if switching files on the same index
+        const existingClip = newClips[index];
+        const hasExistingTimes =
+          existingClip &&
+          existingClip.file &&
+          existingClip.startTime !== 0 &&
+          existingClip.endTime !== existingClip.duration;
+
         newClips[index] = {
           file: file,
-          objectUrl, // Store the object URL for rendering
-          startTime: 0,
-          endTime: Math.min(gifSettings.maxDuration, videoDuration),
+          startTime: hasExistingTimes
+            ? Math.min(existingClip.startTime, videoDuration)
+            : 0,
+          endTime: hasExistingTimes
+            ? Math.min(existingClip.endTime, videoDuration)
+            : Math.min(gifSettings.maxDuration, videoDuration),
           duration: videoDuration,
-          positionX: 0,
-          positionY: 0,
-          scale: 1,
+          positionX: existingClip?.positionX || 0,
+          positionY: existingClip?.positionY || 0,
+          scale: existingClip?.scale || 1,
         };
         return newClips;
       });
@@ -742,16 +757,53 @@ const GifMaker = () => {
     (time: number) => {
       setVideoClips((prev) => {
         const newClips = [...prev];
-        if (activeVideoIndex !== null) {
+        if (activeVideoIndex !== null && newClips[activeVideoIndex]) {
+          const clip = newClips[activeVideoIndex];
+
+          // Clamp the new start time to valid bounds
+          let newStartTime = Math.max(0, Math.min(time, clip.duration - 0.1));
+          let newEndTime = clip.endTime;
+
+          // Calculate current duration
+          const currentDuration = clip.endTime - clip.startTime;
+
+          // If we have a duration close to max, maintain it as a sliding window
+          if (currentDuration >= gifSettings.maxDuration - 0.1) {
+            // Maintain the max duration by moving end time with start time
+            newEndTime = newStartTime + gifSettings.maxDuration;
+
+            // If end time would exceed video duration, adjust both
+            if (newEndTime > clip.duration) {
+              newEndTime = clip.duration;
+              newStartTime = Math.max(0, newEndTime - gifSettings.maxDuration);
+            }
+          } else {
+            // Duration is less than max, just ensure we don't exceed max
+            if (newEndTime - newStartTime > gifSettings.maxDuration) {
+              newEndTime = newStartTime + gifSettings.maxDuration;
+            }
+          }
+
+          // Final validation
+          newStartTime = Math.max(
+            0,
+            Math.min(newStartTime, clip.duration - 0.1)
+          );
+          newEndTime = Math.max(
+            newStartTime + 0.1,
+            Math.min(newEndTime, clip.duration)
+          );
+
           newClips[activeVideoIndex] = {
-            ...newClips[activeVideoIndex],
-            startTime: time,
+            ...clip,
+            startTime: newStartTime,
+            endTime: newEndTime,
           };
         }
         return newClips;
       });
     },
-    [activeVideoIndex]
+    [activeVideoIndex, gifSettings.maxDuration]
   );
 
   // Handle slider changes for end time
@@ -759,16 +811,63 @@ const GifMaker = () => {
     (time: number) => {
       setVideoClips((prev) => {
         const newClips = [...prev];
-        if (activeVideoIndex !== null) {
+        if (activeVideoIndex !== null && newClips[activeVideoIndex]) {
+          const clip = newClips[activeVideoIndex];
+
+          // Clamp the new end time to valid bounds
+          let newEndTime = Math.max(0.1, Math.min(time, clip.duration));
+          let newStartTime = clip.startTime;
+
+          // Calculate current duration
+          const currentDuration = clip.endTime - clip.startTime;
+
+          // If we have a duration close to max, maintain it as a sliding window
+          if (currentDuration >= gifSettings.maxDuration - 0.1) {
+            // Maintain the max duration by moving start time with end time
+            newStartTime = newEndTime - gifSettings.maxDuration;
+
+            // If start time would go below 0, adjust both
+            if (newStartTime < 0) {
+              newStartTime = 0;
+              newEndTime = Math.min(gifSettings.maxDuration, clip.duration);
+            }
+          } else {
+            // Duration is less than max, just ensure we don't exceed max
+            if (newEndTime - newStartTime > gifSettings.maxDuration) {
+              newStartTime = newEndTime - gifSettings.maxDuration;
+              if (newStartTime < 0) {
+                newStartTime = 0;
+                newEndTime = Math.min(gifSettings.maxDuration, clip.duration);
+              }
+            }
+          }
+
+          // Ensure minimum clip duration (0.1 seconds)
+          if (newEndTime - newStartTime < 0.1) {
+            if (newEndTime < clip.duration) {
+              newEndTime = newStartTime + 0.1;
+            } else {
+              newStartTime = newEndTime - 0.1;
+            }
+          }
+
+          // Final validation
+          newStartTime = Math.max(0, newStartTime);
+          newEndTime = Math.min(
+            clip.duration,
+            Math.max(newStartTime + 0.1, newEndTime)
+          );
+
           newClips[activeVideoIndex] = {
-            ...newClips[activeVideoIndex],
-            endTime: time,
+            ...clip,
+            startTime: newStartTime,
+            endTime: newEndTime,
           };
         }
         return newClips;
       });
     },
-    [activeVideoIndex]
+    [activeVideoIndex, gifSettings.maxDuration]
   );
 
   // Reset video refs when template changes
@@ -1575,21 +1674,25 @@ const GifMaker = () => {
     if (activeVideoIndex === null || !videoRefs.current) return;
 
     const activeVideo = videoRefs.current[activeVideoIndex];
-    if (!activeVideo || !videoClips[activeVideoIndex]?.file) return;
-
     const clip = videoClips[activeVideoIndex];
+
+    // Add safety checks
+    if (!activeVideo || !clip?.file || !clip.duration) return;
+
     let rafId: number | undefined = undefined;
     let lastUpdateTime = 0;
 
-    // Update function that runs on each frame
     const updateTime = () => {
       if (!activeVideo.paused && !activeVideo.ended) {
+        // Ensure we have valid clip data
+        const currentClip = videoClips[activeVideoIndex];
+        if (!currentClip) return;
+
         // Check if we've reached the end time
-        if (activeVideo.currentTime >= clip.endTime) {
-          activeVideo.currentTime = clip.startTime;
+        if (activeVideo.currentTime >= currentClip.endTime) {
+          activeVideo.currentTime = currentClip.startTime;
         }
 
-        // Only update state every 100ms to reduce re-renders
         const now = performance.now();
         if (now - lastUpdateTime > 100) {
           setCurrentTime(activeVideo.currentTime);
@@ -1602,8 +1705,12 @@ const GifMaker = () => {
 
     if (isPlaying) {
       // Ensure video is at correct position before playing
-      if (Math.abs(activeVideo.currentTime - currentTime) > 0.1) {
-        activeVideo.currentTime = currentTime;
+      const targetTime = Math.max(
+        clip.startTime,
+        Math.min(currentTime, clip.endTime)
+      );
+      if (Math.abs(activeVideo.currentTime - targetTime) > 0.1) {
+        activeVideo.currentTime = targetTime;
       }
 
       activeVideo.play().catch((err) => {
@@ -1625,6 +1732,44 @@ const GifMaker = () => {
       }
     };
   }, [isPlaying, activeVideoIndex, videoClips, currentTime]);
+
+  // Add this after the gifSettings state
+  useEffect(() => {
+    // When max duration changes, ensure all clips respect the new limit
+    setVideoClips((prev) => {
+      return prev.map((clip) => {
+        if (!clip.file) return clip;
+
+        const currentDuration = clip.endTime - clip.startTime;
+        if (currentDuration <= gifSettings.maxDuration) {
+          return clip; // Already within limits
+        }
+
+        // Adjust end time to respect new max duration
+        return {
+          ...clip,
+          endTime: Math.min(
+            clip.startTime + gifSettings.maxDuration,
+            clip.duration
+          ),
+        };
+      });
+    });
+  }, [gifSettings.maxDuration]);
+
+  useEffect(() => {
+    if (activeVideoIndex !== null && videoClips[activeVideoIndex]?.file) {
+      const clip = videoClips[activeVideoIndex];
+      // Set current time to the clip's start time when switching videos
+      setCurrentTime(clip.startTime);
+
+      // Also update the actual video element if it exists
+      const activeVideo = videoRefs.current[activeVideoIndex];
+      if (activeVideo && activeVideo.readyState >= 2) {
+        activeVideo.currentTime = clip.startTime;
+      }
+    }
+  }, [activeVideoIndex]);
 
   return (
     <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
@@ -1673,7 +1818,6 @@ const GifMaker = () => {
           videoClips[activeVideoIndex]?.file &&
           videoClips[activeVideoIndex]?.duration > 0 && (
             <GifMakerVideoTimeline
-              key={`timeline-${activeVideoIndex}-${videoClips[activeVideoIndex].file?.name}`}
               videoFile={videoClips[activeVideoIndex].file}
               duration={videoClips[activeVideoIndex].duration}
               startTime={videoClips[activeVideoIndex].startTime}
