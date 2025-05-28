@@ -16,7 +16,7 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
   onCaptionSelect,
   onToggleChange,
   selectedCaption,
-  setSelectedCaption
+  setSelectedCaption,
 }) => {
   const [isPaid, setIsPaid] = useState<boolean>(false);
   const [captions, setCaptions] = useState<string[]>([]);
@@ -92,8 +92,10 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
 
   if (!MODELS_FINISHED_WEEKS_IDS[model]) {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-red-700">Model &quot;{model}&quot; not found</p>
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
+        <p className="text-red-700">
+          Model &quot;{model}&quot; not found on &apos;✅ Finished Weeks&apos; for captions
+        </p>
       </div>
     );
   }
