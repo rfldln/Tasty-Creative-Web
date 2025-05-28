@@ -24,10 +24,13 @@ type GifMakerEditorSelectorProps = {
   isGifProcessing: boolean;
   isDrawing?: boolean;
   formData?: ModelFormData;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setWebhookData?: (data: any) => void;
   gifUrlHistory: string[];
   setGifUrlHistory: (urls: string[]) => void;
   setGifUrl: (url: string) => void;
+  selectedCaption: string;
+  setSelectedCaption: (caption: string) => void;
 };
 
 const GifMakerEditorSelector = ({
@@ -51,6 +54,8 @@ const GifMakerEditorSelector = ({
   gifUrlHistory,
   setGifUrlHistory,
   setGifUrl,
+  selectedCaption,
+  setSelectedCaption,
 }: GifMakerEditorSelectorProps) => {
   const [activeEditor, setActiveEditor] = useState("blur");
 
@@ -122,6 +127,8 @@ const GifMakerEditorSelector = ({
               gifUrlHistory={gifUrlHistory}
               setGifUrlHistory={setGifUrlHistory}
               setGifUrl={setGifUrl}
+              selectedCaption={selectedCaption}
+              setSelectedCaption={setSelectedCaption}
             />
           </div>
         )}

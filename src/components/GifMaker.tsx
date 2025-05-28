@@ -26,6 +26,7 @@ import GifMakerEditorSelector from "./GIfMakerEditorSelector";
 import ModelsDropdown from "./ModelsDropdown";
 import { GifMakerVideoTimeline } from "./GifMakerVideoTimeline";
 import GifMakerGifSettings from "./GifMakerGifSettings";
+import ModelCaptionSelector from "./ModelCaptionSelector";
 
 // Define TypeScript interfaces
 interface ModelFormData {
@@ -113,6 +114,7 @@ const GifMaker = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [isGifSettingsOpen, setIsGifSettingsOpen] = useState(false);
   const [originalFrames, setOriginalFrames] = useState<ImageData[]>([]);
+  const [selectedCaption, setSelectedCaption] = useState<string>("");
 
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -1856,145 +1858,160 @@ const GifMaker = () => {
       </div>
 
       {/* Template Selection & Video Selector */}
-      <div className="bg-gray-800/50 rounded-xl p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
-        <GifMakerVideoCropper
-          templates={templates}
-          videoClips={videoClips}
-          setSelectedTemplate={setSelectedTemplate}
-          setVideoClips={setVideoClips}
-          setActiveVideoIndex={setActiveVideoIndex}
-          videoRefs={videoRefs}
-          selectedTemplate={selectedTemplate}
-          outputGridRef={outputGridRef}
-          activeVideoIndex={activeVideoIndex}
-          setIsPlaying={setIsPlaying}
-          handleVideoChange={handleVideoChange}
-          totalCells={totalCells}
-          setDimensions={(width: number, height: number) =>
-            setDimensions({ width, height })
-          }
-          currentTime={currentTime}
-          isPlaying={isPlaying}
-          onCurrentTimeChange={handleCurrentTimeChange}
-          videoUrls={videoUrls}
-        />
-
-        {/* Timeframe Editor */}
-        {activeVideoIndex !== null &&
-          videoClips[activeVideoIndex]?.file &&
-          videoClips[activeVideoIndex]?.duration > 0 && (
-            <GifMakerVideoTimeline
-              videoFile={videoClips[activeVideoIndex].file}
-              duration={videoClips[activeVideoIndex].duration}
-              startTime={videoClips[activeVideoIndex].startTime}
-              endTime={videoClips[activeVideoIndex].endTime}
+      {formData.model && (
+        <>
+          <ModelCaptionSelector
+            model={formData.model}
+            setSelectedCaption={setSelectedCaption}
+            selectedCaption={selectedCaption}
+          />
+          <div className="bg-gray-800/50 rounded-xl p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
+            <GifMakerVideoCropper
+              templates={templates}
+              videoClips={videoClips}
+              setSelectedTemplate={setSelectedTemplate}
+              setVideoClips={setVideoClips}
+              setActiveVideoIndex={setActiveVideoIndex}
+              videoRefs={videoRefs}
+              selectedTemplate={selectedTemplate}
+              outputGridRef={outputGridRef}
+              activeVideoIndex={activeVideoIndex}
+              setIsPlaying={setIsPlaying}
+              handleVideoChange={handleVideoChange}
+              totalCells={totalCells}
+              setDimensions={(width: number, height: number) =>
+                setDimensions({ width, height })
+              }
               currentTime={currentTime}
               isPlaying={isPlaying}
-              onStartTimeChange={handleStartTimeChange}
-              onEndTimeChange={handleEndTimeChange}
               onCurrentTimeChange={handleCurrentTimeChange}
-              onPlayPause={handlePlayPause}
-              setMaxDuration={setMaxDuration}
-              maxDuration={gifSettings.maxDuration}
-              setIsGifSettingsOpen={setIsGifSettingsOpen}
-            />
-          )}
-        {/* GIF Settings */}
-        {isGifSettingsOpen && (
-          <GifMakerGifSettings
-            gifSettings={gifSettings}
-            setMaxDuration={setMaxDuration}
-            setFps={setFps}
-            setQuality={setQuality}
-          />
-        )}
-
-        {/* Generated GIF Preview */}
-        {gifUrl && (
-          <div className="mb-6">
-            <GifMakerEditorSelector
-              gifUrl={gifUrl}
-              canvasBlurRef={canvasBlurRef}
-              maskCanvasRef={maskCanvasRef}
-              startDrawing={startDrawing}
-              stopDrawing={stopDrawing}
-              draw={draw}
-              blurSettings={blurSettings}
-              setBlurIntensity={setBlurIntensity}
-              setBrushSize={setBrushSize}
-              setBlurType={setBlurType}
-              clearMask={clearMask}
-              isGifLoaded={isGifLoaded}
-              processAllFrames={processAllFrames}
-              reconstructGif={reconstructGif}
-              isGifProcessing={isGifProcessing}
-              formData={formData}
-              setWebhookData={setWebhookData}
-              gifUrlHistory={gifUrlHistory}
-              setGifUrlHistory={setGifUrlHistory}
-              setGifUrl={setGifUrl}
+              videoUrls={videoUrls}
             />
 
-            <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 mt-2">
-              <h3 className="text-gray-300 mb-2 font-medium">Generated GIF</h3>
-              <div className="flex flex-col items-center">
-                <img
-                  src={gifUrl}
-                  alt="Generated GIF"
-                  className="max-w-full rounded-lg mb-4"
+            {/* Timeframe Editor */}
+            {activeVideoIndex !== null &&
+              videoClips[activeVideoIndex]?.file &&
+              videoClips[activeVideoIndex]?.duration > 0 && (
+                <GifMakerVideoTimeline
+                  videoFile={videoClips[activeVideoIndex].file}
+                  duration={videoClips[activeVideoIndex].duration}
+                  startTime={videoClips[activeVideoIndex].startTime}
+                  endTime={videoClips[activeVideoIndex].endTime}
+                  currentTime={currentTime}
+                  isPlaying={isPlaying}
+                  onStartTimeChange={handleStartTimeChange}
+                  onEndTimeChange={handleEndTimeChange}
+                  onCurrentTimeChange={handleCurrentTimeChange}
+                  onPlayPause={handlePlayPause}
+                  setMaxDuration={setMaxDuration}
+                  maxDuration={gifSettings.maxDuration}
+                  setIsGifSettingsOpen={setIsGifSettingsOpen}
                 />
-                <button
-                  onClick={downloadGif}
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
-                >
-                  <Download className="w-4 h-4 mr-2" />{" "}
-                  {isDownloading ? "Downloading..." : "Download GIF"}
-                </button>
+              )}
+            {/* GIF Settings */}
+            {isGifSettingsOpen && (
+              <GifMakerGifSettings
+                gifSettings={gifSettings}
+                setMaxDuration={setMaxDuration}
+                setFps={setFps}
+                setQuality={setQuality}
+              />
+            )}
+
+            {/* Generated GIF Preview */}
+            {gifUrl && (
+              <div className="mb-6">
+                <GifMakerEditorSelector
+                  gifUrl={gifUrl}
+                  canvasBlurRef={canvasBlurRef}
+                  maskCanvasRef={maskCanvasRef}
+                  startDrawing={startDrawing}
+                  stopDrawing={stopDrawing}
+                  draw={draw}
+                  blurSettings={blurSettings}
+                  setBlurIntensity={setBlurIntensity}
+                  setBrushSize={setBrushSize}
+                  setBlurType={setBlurType}
+                  clearMask={clearMask}
+                  isGifLoaded={isGifLoaded}
+                  processAllFrames={processAllFrames}
+                  reconstructGif={reconstructGif}
+                  isGifProcessing={isGifProcessing}
+                  formData={formData}
+                  setWebhookData={setWebhookData}
+                  gifUrlHistory={gifUrlHistory}
+                  setGifUrlHistory={setGifUrlHistory}
+                  setGifUrl={setGifUrl}
+                  selectedCaption={selectedCaption}
+                  setSelectedCaption={setSelectedCaption}
+                />
+
+                <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 mt-2">
+                  <h3 className="text-gray-300 mb-2 font-medium">
+                    Generated GIF
+                  </h3>
+                  <div className="flex flex-col items-center">
+                    <img
+                      src={gifUrl}
+                      alt="Generated GIF"
+                      className="max-w-full rounded-lg mb-4"
+                    />
+                    <button
+                      onClick={downloadGif}
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+                    >
+                      <Download className="w-4 h-4 mr-2" />{" "}
+                      {isDownloading ? "Downloading..." : "Download GIF"}
+                    </button>
+                  </div>
+                </div>
               </div>
+            )}
+
+            {error && error.includes("Check if the path exists") && (
+              <p className="text-red-500 text-sm">
+                Make sure to scale your video to fit the outline!
+              </p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 mt-5">
+              <button
+                className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-colors"
+                onClick={() => {
+                  // Reset form or navigate away logic
+                  if (gifUrl) {
+                    URL.revokeObjectURL(gifUrl);
+                    setGifUrl(null);
+                  }
+                }}
+              >
+                Reset
+              </button>
+              <button
+                className={`${
+                  isProcessing
+                    ? "bg-blue-800 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-500"
+                } text-white px-4 py-2 rounded-lg transition-colors flex items-center`}
+                onClick={createGif}
+                disabled={
+                  isProcessing || videoClips.every((clip) => !clip.file)
+                }
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing ({processingProgress}%)
+                  </>
+                ) : (
+                  <>Create GIF</>
+                )}
+              </button>
             </div>
           </div>
-        )}
-
-        {error && error.includes("Check if the path exists") && (
-          <p className="text-red-500 text-sm">
-            Make sure to scale your video to fit the outline!
-          </p>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 mt-5">
-          <button
-            className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-colors"
-            onClick={() => {
-              // Reset form or navigate away logic
-              if (gifUrl) {
-                URL.revokeObjectURL(gifUrl);
-                setGifUrl(null);
-              }
-            }}
-          >
-            Reset
-          </button>
-          <button
-            className={`${
-              isProcessing
-                ? "bg-blue-800 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500"
-            } text-white px-4 py-2 rounded-lg transition-colors flex items-center`}
-            onClick={createGif}
-            disabled={isProcessing || videoClips.every((clip) => !clip.file)}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing ({processingProgress}%)
-              </>
-            ) : (
-              <>Create GIF</>
-            )}
-          </button>
-        </div>
-      </div>
+        </>
+      )}
       {/* Canvas for capturing frames */}
       <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>

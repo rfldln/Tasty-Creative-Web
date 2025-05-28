@@ -96,3 +96,9 @@ interface DriveFile {
   webViewLink: string;
   thumbnailLink?: string;
 }
+
+interface ModelCaptionSelectorProps {
+  model: string;
+  onCaptionSelect?: (caption: string, selectedId: string) => void;
+  onToggleChange?: (isPaid: boolean, selectedId: string) => void;
+}
