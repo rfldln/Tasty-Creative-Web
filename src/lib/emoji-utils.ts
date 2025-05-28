@@ -17,7 +17,24 @@ export interface EmojiData {
 export class EmojiManager {
   // Get all available emojis
   static getAllEmojis(): Record<string, string> {
-    return emoji.emoji;
+
+    const result: Record<string, string> = {};
+    
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const emojiData = (emoji as any).emoji || emoji;
+      if (typeof emojiData === 'object') {
+        Object.entries(emojiData).forEach(([key, value]) => {
+          if (typeof value === 'string') {
+            result[key] = value;
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('Could not load all emojis:', error);
+    }
+    
+    return result;
   }
 
   // Get emoji by name
@@ -36,7 +53,7 @@ export class EmojiManager {
     return results.map(result => ({
       name: result.name,
       emoji: result.emoji,
-      key: result.key
+      key: result.name // Use name as key since result.key does not exist
     }));
   }
 
@@ -62,7 +79,14 @@ export class EmojiManager {
 
   // Get random emoji
   static getRandomEmoji(): string {
-    const emojis = Object.values(emoji.emoji);
+    const allEmojis = this.getAllEmojis();
+    const emojis = Object.values(allEmojis);
+    if (emojis.length === 0) {
+      // Fallback to some common emojis if getAllEmojis fails
+      const fallbackEmojis = ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊'];
+      const randomIndex = Math.floor(Math.random() * fallbackEmojis.length);
+      return fallbackEmojis[randomIndex];
+    }
     const randomIndex = Math.floor(Math.random() * emojis.length);
     return emojis[randomIndex];
   }
