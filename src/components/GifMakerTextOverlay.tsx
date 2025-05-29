@@ -1,6 +1,12 @@
 import React, { useState, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import FontSelector from "./FontSelector";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 const GifMakerTextOverlay = ({
   gifUrl,
@@ -22,7 +28,6 @@ const GifMakerTextOverlay = ({
   selectedCaption: string;
   setSelectedCaption: (caption: string) => void;
 }) => {
- 
   const [fontSize, setFontSize] = useState(24);
   const [position, setPosition] = useState({ x: 50, y: 50 });
   const [isDragging, setIsDragging] = useState(false);
@@ -53,6 +58,10 @@ const GifMakerTextOverlay = ({
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const requestId = uuidv4(); // Generate unique ID
   const data = formData;
+
+  const [photoshopLayering, setPhotoshopLayering] = useState<string[] | null>(
+    selectedCaption ? ["selectedCaption"] : []
+  );
 
   const lastCheckTimestamp = useRef(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -166,6 +175,7 @@ const GifMakerTextOverlay = ({
     setOverlayEmojis([...overlayEmojis, newEmoji]);
     setSelectedEmojiId(newEmoji.id);
     setShowEmojiPicker(false);
+    setPhotoshopLayering((prev) => [...(prev || []), newEmoji.id]);
   };
 
   const handleEmojiSizeChange = (emojiId: string, newSize: number) => {
@@ -274,6 +284,93 @@ const GifMakerTextOverlay = ({
       setIsUndoing(false);
     }
   };
+  const handleBringForward = (layer: string) => {
+    setPhotoshopLayering((prev) => {
+      if (!prev || prev.length === 0) {
+        return [layer];
+      }
+
+      const newLayers = [...prev];
+      const index = newLayers.indexOf(layer);
+
+      if (index === -1) {
+        newLayers.push(layer);
+        return newLayers;
+      }
+
+      if (index === newLayers.length - 1) {
+        return newLayers;
+      }
+
+      newLayers.splice(index, 1);
+      newLayers.splice(index + 1, 0, layer);
+
+      return newLayers;
+    });
+  };
+
+  const handleBringBackward = (layer: string) => {
+    setPhotoshopLayering((prev) => {
+      if (!prev || prev.length === 0) {
+        return [layer];
+      }
+
+      const newLayers = [...prev];
+      const index = newLayers.indexOf(layer);
+
+      if (index === -1) {
+        newLayers.unshift(layer);
+        return newLayers;
+      }
+
+      if (index === 0) {
+        return newLayers;
+      }
+
+      newLayers.splice(index, 1);
+      newLayers.splice(index - 1, 0, layer);
+
+      return newLayers;
+    });
+  };
+
+  const handleBringToFront = (layer: string) => {
+    setPhotoshopLayering((prev) => {
+      if (!prev || prev.length === 0) {
+        return [layer];
+      }
+
+      const newLayers = [...prev];
+      const index = newLayers.indexOf(layer);
+
+      if (index > -1) {
+        newLayers.splice(index, 1);
+      }
+
+      newLayers.push(layer);
+
+      return newLayers;
+    });
+  };
+
+  const handleBringToBack = (layer: string) => {
+    setPhotoshopLayering((prev) => {
+      if (!prev || prev.length === 0) {
+        return [layer];
+      }
+
+      const newLayers = [...prev];
+      const index = newLayers.indexOf(layer);
+
+      if (index > -1) {
+        newLayers.splice(index, 1);
+      }
+
+      newLayers.unshift(layer);
+
+      return newLayers;
+    });
+  };
 
   return (
     <div className="w-full mx-auto p-6 bg-gray-900 rounded-lg shadow-lg">
@@ -376,7 +473,9 @@ const GifMakerTextOverlay = ({
               className="absolute top-full mt-2 z-50 bg-gray-800 rounded-lg shadow-xl p-4"
             >
               <EmojiPicker
-                onEmojiSelect={(emoji) => handleEmojiSelect(emoji)}
+                onEmojiSelect={(emoji) => {
+                  handleEmojiSelect(emoji);
+                }}
               />
             </div>
           )}
@@ -411,12 +510,12 @@ const GifMakerTextOverlay = ({
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
                 />
               </div>
-              <button
+              {/* <button
                 onClick={() => handleDeleteEmoji(selectedEmojiId)}
                 className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
               >
                 Delete Emoji
-              </button>
+              </button> */}
             </div>
           )}
       </div>
@@ -448,40 +547,100 @@ const GifMakerTextOverlay = ({
 
           {/* Text Overlay */}
           {imageDimensions.width > 0 && (
-            <div
-              className={`absolute text-white font-bold cursor-move select-none`}
-              style={{
-                left: `${position.x}px`,
-                top: `${position.y}px`,
-                fontSize: `${fontSize}px`,
-                letterSpacing: "1px",
-                userSelect: "none",
-                fontFamily: selectedFont,
-              }}
-              onMouseDown={handleMouseDown}
-            >
-              {selectedCaption}
-            </div>
+            <ContextMenu>
+              <ContextMenuTrigger>
+                {" "}
+                <div
+                  className={`absolute dark text-white font-bold cursor-move select-none `}
+                  style={{
+                    left: `${position.x}px`,
+                    top: `${position.y}px`,
+                    fontSize: `${fontSize}px`,
+                    letterSpacing: "1px",
+                    userSelect: "none",
+                    fontFamily: selectedFont,
+                    zIndex: photoshopLayering
+                      ? photoshopLayering.indexOf("selectedCaption")
+                      : 0,
+                  }}
+                  onMouseDown={handleMouseDown}
+                >
+                  {selectedCaption}
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem
+                  onClick={() => handleBringForward("selectedCaption")}
+                >
+                  Bring Forward
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => handleBringToFront("selectedCaption")}
+                >
+                  Bring to Front
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => handleBringBackward("selectedCaption")}
+                >
+                  Bring Backward
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => handleBringToBack("selectedCaption")}
+                >
+                  Bring to Back
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           )}
 
           {/* Emoji Overlays */}
           {imageDimensions.width > 0 &&
             overlayEmojis.map((emoji) => (
-              <div
-                key={emoji.id}
-                className={`absolute cursor-move select-none transition-opacity `}
-                style={{
-                  left: `${emoji.position.x}px`,
-                  top: `${emoji.position.y}px`,
-                  fontSize: `${emoji.size}px`,
-                  lineHeight: 1,
-                  userSelect: "none",
-                }}
-                onMouseDown={(e) => handleEmojiMouseDown(e, emoji.id)}
-                onClick={() => setSelectedEmojiId(emoji.id)}
-              >
-                {emoji.emoji}
-              </div>
+              <ContextMenu key={emoji.id}>
+                <ContextMenuTrigger>
+                  <div
+                    key={emoji.id}
+                    className={`absolute cursor-move select-none transition-opacity `}
+                    style={{
+                      left: `${emoji.position.x}px`,
+                      top: `${emoji.position.y}px`,
+                      fontSize: `${emoji.size}px`,
+                      lineHeight: 1,
+                      userSelect: "none",
+                      zIndex: photoshopLayering
+                        ? photoshopLayering.indexOf(emoji.id)
+                        : 0,
+                    }}
+                    onMouseDown={(e) => handleEmojiMouseDown(e, emoji.id)}
+                    onClick={() => setSelectedEmojiId(emoji.id)}
+                  >
+                    {emoji.emoji}
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem
+                    onClick={() => {
+                      if (emoji.id) handleDeleteEmoji(emoji.id);
+                    }}
+                  >
+                    Delete
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => handleBringForward(emoji.id)}>
+                    Bring Forward
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => handleBringToFront(emoji.id)}>
+                    Bring to Front
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    onClick={() => handleBringBackward(emoji.id)}
+                  >
+                    Bring Backward
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => handleBringToBack(emoji.id)}>
+                    Bring to Back
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             ))}
         </div>
       </div>
