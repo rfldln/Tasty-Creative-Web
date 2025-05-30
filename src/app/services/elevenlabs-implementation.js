@@ -146,6 +146,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_14: {
+    name: "OF Razz's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Razz",
+        voiceId: "WyO7e4tsNy8xIiAcVwxH",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
