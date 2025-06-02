@@ -30,6 +30,7 @@ import ModelCaptionSelector from "./ModelCaptionSelector";
 
 // Define TypeScript interfaces
 interface ModelFormData {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -107,10 +108,10 @@ const GifMaker = () => {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [webhookData, setWebhookData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [isGifSettingsOpen, setIsGifSettingsOpen] = useState(false);
   const [originalFrames, setOriginalFrames] = useState<ImageData[]>([]);
@@ -151,7 +152,7 @@ const GifMaker = () => {
     if (cookie) {
       try {
         return { ...defaultBlurSettings, ...JSON.parse(cookie) };
-      } catch (err) {
+      } catch {
         console.warn("Invalid cookie format for blur blurSettings");
       }
     }
@@ -163,7 +164,7 @@ const GifMaker = () => {
     if (cookie) {
       try {
         return { ...defaultGifSettings, ...JSON.parse(cookie) };
-      } catch (err) {
+      } catch {
         console.warn("Invalid cookie format for blur blurSettings");
       }
     }
@@ -748,7 +749,6 @@ const GifMaker = () => {
 
         await ffmpegInstance.load();
         setFfmpeg(ffmpegInstance);
-        setIsReady(true);
       } catch (error) {
         console.error("Error loading FFmpeg:", error);
         setError(
@@ -1174,64 +1174,6 @@ const GifMaker = () => {
     // Draw frame
     ctx.putImageData(frame, 0, 0);
     setCurrentFrameIndex(index);
-  };
-
-  // Apply blur to current frame
-  const applyBlurToCurrentFrame = () => {
-    if (
-      !gifFrames.length ||
-      currentFrameIndex < 0 ||
-      currentFrameIndex >= gifFrames.length
-    )
-      return;
-
-    const canvas = canvasBlurRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return;
-
-    const maskCanvas = maskCanvasRef.current;
-    if (!maskCanvas) return;
-
-    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
-    if (!maskCtx) return;
-
-    // Get the mask data
-    const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
-
-    // Create a copy of the current frame
-    const frameData = new ImageData(
-      new Uint8ClampedArray(gifFrames[currentFrameIndex].data),
-      gifFrames[currentFrameIndex].width,
-      gifFrames[currentFrameIndex].height
-    );
-
-    // Apply blur based on mask
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        const i = (y * canvas.width + x) * 4;
-
-        // If pixel is in the mask (non-transparent)
-        if (maskData.data[i + 3] > 0) {
-          if (blurSettings.blurType === "pixelated") {
-            applyPixelatedBlur(x, y, frameData);
-          } else if (blurSettings.blurType === "gaussian") {
-            applyGaussianBlur(x, y, frameData);
-          } else if (blurSettings.blurType === "mosaic") {
-            applyMosaicBlur(x, y, frameData);
-          }
-        }
-      }
-    }
-
-    // Update the frame in our array
-    const updatedFrames = [...gifFrames];
-    updatedFrames[currentFrameIndex] = frameData;
-    setGifFrames(updatedFrames);
-
-    // Display the updated frame
-    ctx.putImageData(frameData, 0, 0);
   };
 
   // Process all frames with the current mask
