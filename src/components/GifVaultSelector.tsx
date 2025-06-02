@@ -83,51 +83,66 @@ const GifVaultSelector = ({
   if (!isOpen) return null;
 
   return (
-    <div className=" bg-black bg-opacity-70 justify-center z-50 p-4">
-      <div className="flex flex-1">
-        {selectedClient !== null ? (
-          <>
-            <VaultCategoryList
-              clientLoading={isLoading}
-              selectedClient={selectedClient}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-            />
-            <VaultCategoryItems
-              selectedClient={selectedClient}
-              selectedCategory={selectedCategory}
-              setFullscreenItem={setFullscreenItem}
-              type="video"
-              onClose={onClose}
-            />
-          </>
-        ) : isLoading ? (
-          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/80 z-50">
-            <div className="text-white text-lg animate-pulse">Loading...</div>
-          </div>
-        ) : (
-          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/80 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-lg shadow-xl w-full max-w-6xl h-full max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
+          <h2 className="text-white text-lg font-semibold">Vault Selector</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex flex-1 overflow-hidden">
+          {selectedClient !== null ? (
+            <>
+              <VaultCategoryList
+                clientLoading={isLoading}
+                selectedClient={selectedClient}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+              />
+              <VaultCategoryItems
+                selectedClient={selectedClient}
+                selectedCategory={selectedCategory}
+                setFullscreenItem={setFullscreenItem}
+                type="video"
+                onClose={onClose}
+              />
+            </>
+          ) : isLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-white text-lg animate-pulse">Loading...</div>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-white text-lg">No account found</div>
+            </div>
+          )}
+        </div>
+
+        {/* Loading overlay */}
+        {isDownloading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
             <div className="text-white text-lg animate-pulse">
-              No account found
+              Preparing file...
             </div>
           </div>
         )}
-      </div>
 
-      {isDownloading && (
-        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/80 z-50">
-          <div className="text-white text-lg animate-pulse">
-            Preparing file...
+        {/* Error display */}
+        {error && (
+          <div className="absolute bottom-4 left-4 right-4 bg-red-500/20 border border-red-500 text-red-300 p-3 rounded-lg">
+            <p>{error}</p>
           </div>
-        </div>
-      )}
-
-      {/* {error && (
-        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/90 text-red-500">
-          <p>{error}</p>
-        </div>
-      )} */}
+        )}
+      </div>
     </div>
   );
 };
+
 export default GifVaultSelector;

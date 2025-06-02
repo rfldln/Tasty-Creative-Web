@@ -15,7 +15,6 @@ type VaultCategoryItemsProps = {
   }) => void;
   type?: string;
   onClose?: () => void;
-
 };
 
 const VaultCategoryItems = ({
@@ -164,91 +163,101 @@ const VaultCategoryItems = ({
   };
 
   return (
-    <div className="flex-grow max-h-[700px] h-full bg-gray-800/40 overflow-y-auto p-4">
+    <div className="flex-1 flex flex-col bg-gray-800/40 overflow-hidden">
       {selectedCategory ? (
         <>
-          <div className="flex sticky top-0 items-center mb-4 justify-between">
-            <h2 className="font-bold ">{selectedCategory.tag}</h2>
-            {selectedCategory && (
-              <div className="flex items-center gap-2">
+          {/* Sticky Header */}
+          <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 p-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-white text-lg truncate mr-4">
+                {selectedCategory.tag}
+              </h2>
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   disabled={syncing}
                   onClick={handleSync}
-                  className="text-sm px-1 py-1 bg-yellow-400/40 rounded-md cursor-pointer"
+                  className="text-sm px-2 py-1 bg-yellow-400/40 hover:bg-yellow-400/60 rounded-md cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {syncing ? "Syncing..." : "Sync"}
                 </button>
-                <p className="text-gray-500 text-[10px]">
+                <p className="text-gray-500 text-xs hidden md:block">
                   last sync: {categoryItems[0]?.updatedAt}
                 </p>
                 {onClose && (
                   <button
                     onClick={onClose}
-                    className="text-sm px-1 py-1 bg-red-400/40 rounded-md cursor-pointer"
+                    className="text-sm px-2 py-1 bg-red-400/40 hover:bg-red-400/60 rounded-md cursor-pointer transition-colors md:hidden"
                   >
                     Close
                   </button>
                 )}
               </div>
-            )}
+            </div>
           </div>
-          <div className="grid flex-1 overflow-y-auto grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {categoryItems.length > 0 ? (
-              categoryItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="relative group cursor-pointer rounded-lg overflow-hidden"
-                  onClick={() => setFullscreenItem(item)}
-                >
-                  {item.type === "image" ? (
-                    <Image
-                      src={item.src}
-                      alt={item.name}
-                      className="w-full h-32 object-cover bg-black"
-                      width={500}
-                      height={500}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <>
+
+          {/* Scrollable Grid */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {categoryItems.length > 0 ? (
+                categoryItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-700/50 hover:bg-gray-700/70 transition-colors"
+                    onClick={() => setFullscreenItem(item)}
+                  >
+                    {item.type === "image" ? (
                       <Image
-                        src={item.poster}
+                        src={item.src}
                         alt={item.name}
-                        className="w-full h-32 object-cover bg-black"
+                        className="w-full h-32 sm:h-40 object-cover bg-black"
                         width={500}
                         height={500}
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-90 group-hover:opacity-100">
-                        <Play className="text-white" size={36} />
-                      </div>
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <Image
+                          src={item.poster}
+                          alt={item.name}
+                          className="w-full h-32 sm:h-40 object-cover bg-black"
+                          width={500}
+                          height={500}
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-90 group-hover:opacity-100 transition-opacity">
+                          <Play className="text-white" size={36} />
+                        </div>
+                      </>
+                    )}
 
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-2 text-sm truncate">
-                    {item.name}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-2 text-sm">
+                      <p className="truncate" title={item.name}>
+                        {item.name}
+                      </p>
+                    </div>
                   </div>
+                ))
+              ) : isLoading ? (
+                <div className="col-span-full text-center text-gray-400 italic text-sm py-8">
+                  Loading items...
                 </div>
-              ))
-            ) : isLoading ? (
-              <div className="col-span-full text-gray-400 italic text-sm">
-                Loading items...
-              </div>
-            ) : (
-              <div className="col-span-full text-gray-400 italic text-sm">
-                No items found in this category
-              </div>
-            )}
+              ) : (
+                <div className="col-span-full text-center text-gray-400 italic text-sm py-8">
+                  No items found in this category
+                </div>
+              )}
+            </div>
           </div>
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center h-full text-gray-400">
+        <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
           <ImageIcon className="mb-2" size={48} />
-          <p>Select a category to view items</p>
+          <p className="text-center">Select a category to view items</p>
         </div>
       )}
+
       {/* {error && (
-        <div className="text-red-500 text-sm mt-2">
+        <div className="absolute bottom-4 left-4 right-4 bg-red-500/20 border border-red-500 text-red-300 p-3 rounded-lg">
           <p>Error: {error}</p>
           <p>Please try again later.</p>
         </div>
