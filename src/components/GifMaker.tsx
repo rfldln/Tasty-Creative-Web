@@ -1877,7 +1877,7 @@ const GifMaker = () => {
             isPaid={isPaid}
             setIsPaid={setIsPaid}
           />
-          <div className="bg-gray-800/50 rounded-xl overflow-hidden p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
+          <div className="bg-gray-800/50 rounded-xl relative flex flex-col p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
             <GifMakerVideoCropper
               templates={templates}
               videoClips={videoClips}

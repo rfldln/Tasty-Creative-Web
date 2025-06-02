@@ -126,8 +126,8 @@ const VaultCategoryList = ({
   };
 
   return (
-    <div className="w-56 h-full bg-gray-800/40 border-r border-gray-700 overflow-y-auto">
-      <div className="p-4 border-b border-gray-700 flex gap-2 justify-between w-full">
+    <div className="w-56 max-h-[700px] overflow-y-auto flex flex-1 flex-col bg-gray-800/40 border-r border-gray-700 ">
+      <div className="p-4 sticky top-0 border-b border-gray-700 flex gap-2 justify-between w-full">
         <h2 className="font-bold">Categories</h2>
         {selectedClient && selectedClient.email != "Select a client" && (
           <button
@@ -139,7 +139,7 @@ const VaultCategoryList = ({
           </button>
         )}
       </div>
-      <div>
+      <div className="flex-1 overflow-y-auto">
         {vaultCategories.length > 0 ? (
           vaultCategories.map((category) => (
             <div
