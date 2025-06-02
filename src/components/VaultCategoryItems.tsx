@@ -13,12 +13,17 @@ type VaultCategoryItemsProps = {
     poster?: string;
     type: "image" | "video";
   }) => void;
+  type?: string;
+  onClose?: () => void;
+
 };
 
 const VaultCategoryItems = ({
   selectedClient,
   selectedCategory,
   setFullscreenItem,
+  type,
+  onClose,
 }: VaultCategoryItemsProps) => {
   const [syncing, setIsSyncing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +59,7 @@ const VaultCategoryItems = ({
         })
         .then((data) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const items = data.map((item: any) => ({
+          let items = data.map((item: any) => ({
             id: item.id,
             name: item.filename,
             type: item.type,
@@ -62,12 +67,27 @@ const VaultCategoryItems = ({
             poster: `/api/be/proxy?path=${btoa(item.poster_url)}`,
             updatedAt: item.updatedAt,
           }));
+
+          // Optional filter by type
+          if (type) {
+            items = items.filter(
+              (item: {
+                id: number;
+                name: string;
+                src: string;
+                poster: string;
+                type: "image" | "video";
+                updatedAt: string;
+              }) => item.type === type
+            );
+          }
+
           setCategoryItems(items);
         })
         .catch((err) => setError(err.message))
         .finally(() => setIsLoading(false));
     }
-  }, [selectedCategory, lastSync]);
+  }, [selectedCategory, lastSync, type]);
 
   const handleSync = async () => {
     try {
@@ -154,13 +174,21 @@ const VaultCategoryItems = ({
                 <button
                   disabled={syncing}
                   onClick={handleSync}
-                  className="text-sm px-1 bg-yellow-400/40 rounded-md cursor-pointer"
+                  className="text-sm px-1 py-1 bg-yellow-400/40 rounded-md cursor-pointer"
                 >
                   {syncing ? "Syncing..." : "Sync"}
                 </button>
                 <p className="text-gray-500 text-[10px]">
                   last sync: {categoryItems[0]?.updatedAt}
                 </p>
+                {onClose && (
+                  <button
+                    onClick={onClose}
+                    className="text-sm px-1 py-1 bg-red-400/40 rounded-md cursor-pointer"
+                  >
+                    Close
+                  </button>
+                )}
               </div>
             )}
           </div>
