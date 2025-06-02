@@ -223,7 +223,7 @@ const GifMakerVideoCropper = ({
   };
 
   return (
-    <div className="flex-1 relative">
+    <div className="flex-1">
       <GifVaultSelector
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}

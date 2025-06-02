@@ -126,32 +126,35 @@ const VaultCategoryList = ({
   };
 
   return (
-    <div className="w-56 max-h-[700px] overflow-y-auto flex flex-1 flex-col bg-gray-800/40 border-r border-gray-700 ">
-      <div className="p-4 sticky top-0 border-b border-gray-700 flex gap-2 justify-between w-full">
-        <h2 className="font-bold">Categories</h2>
-        {selectedClient && selectedClient.email != "Select a client" && (
+    <div className="w-64 md:w-72 lg:w-80 flex flex-col bg-gray-800/60 border-r border-gray-700">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 p-4 bg-gray-800 border-b border-gray-700 flex gap-2 justify-between items-center">
+        <h2 className="font-bold text-white">Categories</h2>
+        {selectedClient && selectedClient.email !== "Select a client" && (
           <button
             disabled={syncing}
             onClick={handleSync}
-            className="text-sm px-1 bg-yellow-400/40 rounded-md cursor-pointer"
+            className="text-sm px-2 py-1 bg-yellow-400/40 hover:bg-yellow-400/60 rounded-md cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {syncing ? "Syncing..." : "Sync"}
           </button>
         )}
       </div>
+
+      {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
         {vaultCategories.length > 0 ? (
           vaultCategories.map((category) => (
             <div
               key={category.id}
-              className={`p-3 cursor-pointer hover:bg-gray-700 border-l-4 ${
+              className={`p-3 cursor-pointer hover:bg-gray-700/50 border-l-4 transition-colors ${
                 selectedCategory?.id === category.id
-                  ? "border-blue-500 bg-gray-700"
-                  : "border-transparent"
+                  ? "border-blue-500 bg-gray-700/70 text-white"
+                  : "border-transparent text-gray-300 hover:text-white"
               }`}
               onClick={() => setSelectedCategory(category)}
             >
-              {category.tag}
+              <span className="text-sm md:text-base truncate">{category.tag}</span>
             </div>
           ))
         ) : isLoading ? (
