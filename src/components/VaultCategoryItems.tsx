@@ -164,10 +164,10 @@ const VaultCategoryItems = ({
   };
 
   return (
-    <div className="flex-grow h-full bg-gray-800/40 overflow-y-auto p-4">
+    <div className="flex-grow max-h-[700px] h-full bg-gray-800/40 overflow-y-auto p-4">
       {selectedCategory ? (
         <>
-          <div className="flex items-center mb-4 justify-between">
+          <div className="flex sticky top-0 items-center mb-4 justify-between">
             <h2 className="font-bold ">{selectedCategory.tag}</h2>
             {selectedCategory && (
               <div className="flex items-center gap-2">
@@ -192,7 +192,7 @@ const VaultCategoryItems = ({
               </div>
             )}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid flex-1 overflow-y-auto grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {categoryItems.length > 0 ? (
               categoryItems.map((item) => (
                 <div
