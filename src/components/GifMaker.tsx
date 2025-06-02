@@ -115,14 +115,16 @@ const GifMaker = () => {
   const [isGifSettingsOpen, setIsGifSettingsOpen] = useState(false);
   const [originalFrames, setOriginalFrames] = useState<ImageData[]>([]);
   const [selectedCaption, setSelectedCaption] = useState<string>("");
-  const [vaultName,setVaultName] = useState<string>("");
-  const [isPaid,setIsPaid] = useState<boolean>(false)
+  const [vaultName, setVaultName] = useState<string>("");
+  const [isPaid, setIsPaid] = useState<boolean>(false);
 
-  useEffect(()=>{
-    if(formData.model){
-      setVaultName(formData.model.toUpperCase()+"_"+isPaid?"PAID":"FALSE")
+  useEffect(() => {
+    if (formData.model && formData.model != "") {
+      setVaultName(
+        formData.model.toUpperCase() + "_" + (isPaid ? "PAID" : "FREE")
+      );
     }
-  },[formData.model,isPaid])
+  }, [formData.model, isPaid]);
 
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -1847,8 +1849,6 @@ const GifMaker = () => {
     }
   }, [activeVideoIndex]);
 
-  console.log(vaultName,"vaultName")
-
   return (
     <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
       <header className="text-center mb-12">
@@ -1874,7 +1874,6 @@ const GifMaker = () => {
             model={formData.model}
             setSelectedCaption={setSelectedCaption}
             selectedCaption={selectedCaption}
-            setVaultName={setVaultName}
             isPaid={isPaid}
             setIsPaid={setIsPaid}
           />

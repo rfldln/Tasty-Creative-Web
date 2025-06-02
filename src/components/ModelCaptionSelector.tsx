@@ -9,7 +9,6 @@ interface ModelCaptionSelectorProps {
   onToggleChange?: (isPaid: boolean, id: string | undefined) => void;
   selectedCaption: string;
   setSelectedCaption: (caption: string) => void;
-  setVaultName?: (name: string) => void;
   isPaid?: boolean;
   setIsPaid: (isPaid:boolean) => void
 }
@@ -20,7 +19,6 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
   onToggleChange,
   selectedCaption,
   setSelectedCaption,
-  setVaultName,
   isPaid,
   setIsPaid
 }) => {
