@@ -78,7 +78,7 @@ const GifVaultSelector = ({
     fetchAndUploadFile();
   }, [fullscreenItem]);
 
-  console.log(selectedClient,'selectedClient')
+  console.log(selectedClient, "selectedClient");
 
   if (!isOpen) return null;
 
@@ -101,9 +101,13 @@ const GifVaultSelector = ({
               onClose={onClose}
             />
           </>
-        ) : (
+        ) : isLoading ? (
           <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/80 z-50">
             <div className="text-white text-lg animate-pulse">Loading...</div>
+          </div>
+        ) : (
+          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/80 z-50">
+            <div className="text-white text-lg animate-pulse">No account found</div>
           </div>
         )}
       </div>
