@@ -9,6 +9,9 @@ interface ModelCaptionSelectorProps {
   onToggleChange?: (isPaid: boolean, id: string | undefined) => void;
   selectedCaption: string;
   setSelectedCaption: (caption: string) => void;
+  setVaultName?: (name: string) => void;
+  isPaid?: boolean;
+  setIsPaid: (isPaid:boolean) => void
 }
 
 const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
@@ -17,8 +20,10 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
   onToggleChange,
   selectedCaption,
   setSelectedCaption,
+  setVaultName,
+  isPaid,
+  setIsPaid
 }) => {
-  const [isPaid, setIsPaid] = useState<boolean>(false);
   const [captions, setCaptions] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedDay, setSelectedDay] = useState<string>("#1A"); // Default to Monday
@@ -70,6 +75,7 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
   useEffect(() => {
     if (currentId) {
       setLoading(true);
+
       const fetchSheet = async () => {
         const response = await fetch("/api/models/captions", {
           method: "POST",
@@ -94,7 +100,8 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
         <p className="text-red-700">
-          Model &quot;{model}&quot; not found on &apos;✅ Finished Weeks&apos; for captions
+          Model &quot;{model}&quot; not found on &apos;✅ Finished Weeks&apos;
+          for captions
         </p>
       </div>
     );

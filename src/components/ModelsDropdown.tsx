@@ -52,6 +52,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
         onValueChange={(value) => {
           // Update form data first
           setFormData((prev) => ({ ...prev, model: value }));
+                  
 
           // Now validate the updated value
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

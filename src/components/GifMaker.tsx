@@ -115,6 +115,14 @@ const GifMaker = () => {
   const [isGifSettingsOpen, setIsGifSettingsOpen] = useState(false);
   const [originalFrames, setOriginalFrames] = useState<ImageData[]>([]);
   const [selectedCaption, setSelectedCaption] = useState<string>("");
+  const [vaultName,setVaultName] = useState<string>("");
+  const [isPaid,setIsPaid] = useState<boolean>(false)
+
+  useEffect(()=>{
+    if(formData.model){
+      setVaultName(formData.model.toUpperCase()+"_"+isPaid?"PAID":"FALSE")
+    }
+  },[formData.model,isPaid])
 
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -1839,6 +1847,8 @@ const GifMaker = () => {
     }
   }, [activeVideoIndex]);
 
+  console.log(vaultName,"vaultName")
+
   return (
     <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
       <header className="text-center mb-12">
@@ -1864,8 +1874,11 @@ const GifMaker = () => {
             model={formData.model}
             setSelectedCaption={setSelectedCaption}
             selectedCaption={selectedCaption}
+            setVaultName={setVaultName}
+            isPaid={isPaid}
+            setIsPaid={setIsPaid}
           />
-          <div className="bg-gray-800/50 rounded-xl p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
+          <div className="bg-gray-800/50 rounded-xl overflow-hidden p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
             <GifMakerVideoCropper
               templates={templates}
               videoClips={videoClips}
@@ -1886,6 +1899,7 @@ const GifMaker = () => {
               isPlaying={isPlaying}
               onCurrentTimeChange={handleCurrentTimeChange}
               videoUrls={videoUrls}
+              vaultName={vaultName}
             />
 
             {/* Timeframe Editor */}

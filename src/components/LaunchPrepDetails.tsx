@@ -20,7 +20,7 @@ const LaunchPrepDetails = ({
   modelDataLoading,
   selectedModelData,
   selectedModel,
-  timestamp,
+timestamp,
   editedBy,
   className,
   dashboard = false,
