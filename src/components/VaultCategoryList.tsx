@@ -126,15 +126,15 @@ const VaultCategoryList = ({
   };
 
   return (
-    <div className="w-64 md:w-72 lg:w-80 flex flex-col bg-gray-800/60 border-r border-gray-700">
+    <div className="w-80 md:w-96 flex flex-col bg-gray-800 border-r border-gray-700">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 p-4 bg-gray-800 border-b border-gray-700 flex gap-2 justify-between items-center">
-        <h2 className="font-bold text-white">Categories</h2>
+      <div className="sticky top-0 z-10 p-6 bg-gray-800 border-b border-gray-700 flex gap-3 justify-between items-center">
+        <h2 className="font-bold text-white text-lg">Categories</h2>
         {selectedClient && selectedClient.email !== "Select a client" && (
           <button
             disabled={syncing}
             onClick={handleSync}
-            className="text-sm px-2 py-1 bg-yellow-400/40 hover:bg-yellow-400/60 rounded-md cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm px-3 py-2 bg-yellow-400/40 hover:bg-yellow-400/60 rounded-md cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {syncing ? "Syncing..." : "Sync"}
           </button>
@@ -147,26 +147,26 @@ const VaultCategoryList = ({
           vaultCategories.map((category) => (
             <div
               key={category.id}
-              className={`p-3 cursor-pointer hover:bg-gray-700/50 border-l-4 transition-colors ${
+              className={`p-4 cursor-pointer hover:bg-gray-700 border-l-4 transition-colors ${
                 selectedCategory?.id === category.id
-                  ? "border-blue-500 bg-gray-700/70 text-white"
+                  ? "border-blue-500 bg-gray-700 text-white"
                   : "border-transparent text-gray-300 hover:text-white"
               }`}
               onClick={() => setSelectedCategory(category)}
             >
-              <span className="text-sm md:text-base truncate">{category.tag}</span>
+              <span className="text-base truncate">{category.tag}</span>
             </div>
           ))
         ) : isLoading ? (
-          <div className="p-4 text-gray-400 italic text-sm">
+          <div className="p-6 text-gray-400 italic">
             Loading categories...
           </div>
         ) : selectedClient?.email === "Select a client" ? (
-          <div className="p-4 text-gray-400 italic text-sm">
+          <div className="p-6 text-gray-400 italic">
             Please select a client to view categories
           </div>
         ) : (
-          <div className="p-4 text-gray-400 italic text-sm">
+          <div className="p-6 text-gray-400 italic">
             No categories found for this client
           </div>
         )}
