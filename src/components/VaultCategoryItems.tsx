@@ -14,7 +14,6 @@ type VaultCategoryItemsProps = {
     type: "image" | "video";
   }) => void;
   type?: string;
-  onClose?: () => void;
 };
 
 const VaultCategoryItems = ({
@@ -22,7 +21,6 @@ const VaultCategoryItems = ({
   selectedCategory,
   setFullscreenItem,
   type,
-  onClose,
 }: VaultCategoryItemsProps) => {
   const [syncing, setIsSyncing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -163,86 +161,78 @@ const VaultCategoryItems = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-800/40 overflow-hidden">
+    <div className="flex-1 flex flex-col bg-gray-800 overflow-hidden">
       {selectedCategory ? (
         <>
           {/* Sticky Header */}
-          <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 p-4">
+          <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-white text-lg truncate mr-4">
+              <h2 className="font-bold text-white text-xl truncate mr-4">
                 {selectedCategory.tag}
               </h2>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-3 flex-shrink-0">
                 <button
                   disabled={syncing}
                   onClick={handleSync}
-                  className="text-sm px-2 py-1 bg-yellow-400/40 hover:bg-yellow-400/60 rounded-md cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-sm px-3 py-2 bg-yellow-400/40 hover:bg-yellow-400/60 rounded-md cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {syncing ? "Syncing..." : "Sync"}
                 </button>
-                <p className="text-gray-500 text-xs hidden md:block">
+                <p className="text-gray-500 text-sm hidden lg:block">
                   last sync: {categoryItems[0]?.updatedAt}
                 </p>
-                {onClose && (
-                  <button
-                    onClick={onClose}
-                    className="text-sm px-2 py-1 bg-red-400/40 hover:bg-red-400/60 rounded-md cursor-pointer transition-colors md:hidden"
-                  >
-                    Close
-                  </button>
-                )}
               </div>
             </div>
           </div>
 
           {/* Scrollable Grid */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-6">
               {categoryItems.length > 0 ? (
                 categoryItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-700/50 hover:bg-gray-700/70 transition-colors"
-                    onClick={() => setFullscreenItem(item)}
-                  >
-                    {item.type === "image" ? (
-                      <Image
-                        src={item.src}
-                        alt={item.name}
-                        className="w-full h-32 sm:h-40 object-cover bg-black"
-                        width={500}
-                        height={500}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <>
+                    <div
+                      key={item.id}
+                      className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-700 hover:bg-gray-700 transition-colors"
+                      onClick={() => setFullscreenItem(item)}
+                    >
+                      {item.type === "image" ? (
                         <Image
-                          src={item.poster}
+                          src={item.src}
                           alt={item.name}
-                          className="w-full h-32 sm:h-40 object-cover bg-black"
+                          className="w-full h-40 lg:h-48 object-cover bg-black"
                           width={500}
                           height={500}
                           loading="lazy"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-90 group-hover:opacity-100 transition-opacity">
-                          <Play className="text-white" size={36} />
-                        </div>
-                      </>
-                    )}
+                      ) : (
+                        <>
+                          <Image
+                            src={item.poster}
+                            alt={item.name}
+                            className="w-full h-40 lg:h-48 object-cover bg-black"
+                            width={500}
+                            height={500}
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-90 group-hover:opacity-100 transition-opacity">
+                            <Play className="text-white" size={48} />
+                          </div>
+                        </>
+                      )}
 
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-2 text-sm">
-                      <p className="truncate" title={item.name}>
-                        {item.name}
-                      </p>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-3">
+                        <p className="truncate text-sm" title={item.name}>
+                          {item.name}
+                        </p>
+                      </div>
                     </div>
-                  </div>
                 ))
               ) : isLoading ? (
-                <div className="col-span-full text-center text-gray-400 italic text-sm py-8">
+                <div className="col-span-full text-center text-gray-400 italic py-12 text-lg">
                   Loading items...
                 </div>
               ) : (
-                <div className="col-span-full text-center text-gray-400 italic text-sm py-8">
+                <div className="col-span-full text-center text-gray-400 italic py-12 text-lg">
                   No items found in this category
                 </div>
               )}
@@ -251,8 +241,8 @@ const VaultCategoryItems = ({
         </>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-          <ImageIcon className="mb-2" size={48} />
-          <p className="text-center">Select a category to view items</p>
+          <ImageIcon className="mb-4" size={64} />
+          <p className="text-center text-xl">Select a category to view items</p>
         </div>
       )}
 

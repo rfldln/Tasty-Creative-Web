@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import VaultCategoryItems from "./VaultCategoryItems";
 import VaultCategoryList from "./VaultCategoryList";
 
@@ -82,22 +83,21 @@ const GifVaultSelector = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-lg shadow-xl w-full max-w-6xl h-full max-h-[90vh] flex flex-col overflow-hidden">
+  const modalContent = (
+    <div className="fixed p-24 inset-0 bg-black/90 z-[9999] flex flex-col overflow-hidden" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
-          <h2 className="text-white text-lg font-semibold">Vault Selector</h2>
+        <div className="flex rounded-t-lg items-center justify-between p-6 border-b border-gray-700 bg-gray-800 shadow-lg">
+          <h2 className="text-white text-xl font-semibold">Vault Selector</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700"
           >
             ✕
           </button>
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden rounded-b-lg">
           {selectedClient !== null ? (
             <>
               <VaultCategoryList
@@ -111,7 +111,6 @@ const GifVaultSelector = ({
                 selectedCategory={selectedCategory}
                 setFullscreenItem={setFullscreenItem}
                 type="video"
-                onClose={onClose}
               />
             </>
           ) : isLoading ? (
@@ -128,7 +127,7 @@ const GifVaultSelector = ({
         {/* Loading overlay */}
         {isDownloading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
-            <div className="text-white text-lg animate-pulse">
+            <div className="text-white text-xl animate-pulse bg-gray-800 px-6 py-4 rounded-lg">
               Preparing file...
             </div>
           </div>
@@ -136,13 +135,20 @@ const GifVaultSelector = ({
 
         {/* Error display */}
         {error && (
-          <div className="absolute bottom-4 left-4 right-4 bg-red-500/20 border border-red-500 text-red-300 p-3 rounded-lg">
+          <div className="absolute bottom-6 left-6 right-6 bg-red-500/20 border border-red-500 text-red-300 p-4 rounded-lg">
             <p>{error}</p>
           </div>
         )}
       </div>
-    </div>
+ 
   );
+
+  // Use a portal to render outside the parent container
+  if (typeof window !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+
+  return null;
 };
 
 export default GifVaultSelector;
