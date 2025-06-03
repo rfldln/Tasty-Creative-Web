@@ -59,6 +59,69 @@ const GifVaultSelector = ({
       });
   }, [vaultName]);
 
+  // Optimized parallel chunk download function
+  const downloadFileInChunks = async (url: string, chunkSize: number = 1024 * 1024 * 2) => {
+    // First, get the file size
+    const headResponse = await fetch(url, { method: 'HEAD' });
+    const contentLength = headResponse.headers.get('content-length');
+    
+    if (!contentLength) {
+      // Fallback to regular download if no content-length
+      const response = await fetch(url);
+      return await response.blob();
+    }
+    
+    const totalSize = parseInt(contentLength, 10);
+    const numChunks = Math.ceil(totalSize / chunkSize);
+    const chunks: ArrayBuffer[] = new Array(numChunks);
+    let downloadedBytes = 0;
+    
+    // Download chunks in parallel (limit concurrent downloads to 4)
+    const maxConcurrent = 4;
+    const downloadChunk = async (index: number) => {
+      const start = index * chunkSize;
+      const end = Math.min(start + chunkSize - 1, totalSize - 1);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Range': `bytes=${start}-${end}`
+        }
+      });
+      
+      const arrayBuffer = await response.arrayBuffer();
+      chunks[index] = arrayBuffer;
+      
+      downloadedBytes += arrayBuffer.byteLength;
+      const progress = Math.round((downloadedBytes / totalSize) * 100);
+      setDownloadProgress(progress);
+      
+      return arrayBuffer;
+    };
+    
+    // Create download queue
+    const queue: Promise<ArrayBuffer>[] = [];
+    for (let i = 0; i < numChunks; i++) {
+      if (queue.length >= maxConcurrent) {
+        await Promise.race(queue);
+        queue.splice(queue.findIndex(p => p), 1);
+      }
+      queue.push(downloadChunk(i));
+    }
+    
+    // Wait for all chunks to complete
+    await Promise.all(queue);
+    
+    // Combine chunks into single blob
+    const combinedArray = new Uint8Array(totalSize);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combinedArray.set(new Uint8Array(chunk), offset);
+      offset += chunk.byteLength;
+    }
+    
+    return new Blob([combinedArray]);
+  };
+
   useEffect(() => {
     const fetchAndUploadFile = async () => {
       if (fullscreenItem) {
@@ -66,50 +129,11 @@ const GifVaultSelector = ({
         setDownloadProgress(0);
         
         try {
-          const response = await fetch(fullscreenItem.src);
+          // Use optimized chunk download for larger files
+          const blob = await downloadFileInChunks(fullscreenItem.src);
           
-          // Check if we can track progress
-          const contentLength = response.headers.get('content-length');
-          
-          if (!response.body) {
-            throw new Error('ReadableStream not supported');
-          }
-          
-          const reader = response.body.getReader();
-          const totalSize = contentLength ? parseInt(contentLength, 10) : 0;
-          let receivedLength = 0;
-          const chunks: Uint8Array[] = [];
-          
-          // Read the response stream
-          while (true) {
-            const { done, value } = await reader.read();
-            
-            if (done) break;
-            
-            chunks.push(value);
-            receivedLength += value.length;
-            
-            // Calculate and update progress
-            if (totalSize > 0) {
-              const progress = Math.round((receivedLength / totalSize) * 100);
-              setDownloadProgress(progress);
-            }
-          }
-          
-          // Combine chunks into single array
-          const chunksAll = new Uint8Array(receivedLength);
-          let position = 0;
-          for (const chunk of chunks) {
-            chunksAll.set(chunk, position);
-            position += chunk.length;
-          }
-          
-          // Create blob and file
-          const blob = new Blob([chunksAll], { 
-            type: response.headers.get('content-type') || 'application/octet-stream' 
-          });
           const file = new File([blob], fullscreenItem.name, {
-            type: blob.type,
+            type: blob.type || 'application/octet-stream',
           });
           
           onUpload(file);
@@ -180,21 +204,124 @@ const GifVaultSelector = ({
       {/* Loading overlay with progress */}
       {isDownloading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
-          <div className="bg-gray-800 px-8 py-6 rounded-lg shadow-2xl min-w-[300px]">
+          <div className="bg-gray-800 px-8 py-6 rounded-lg shadow-2xl min-w-[400px]">
             <div className="text-white text-xl mb-4">Downloading file...</div>
             
-            {/* Progress bar */}
-            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+            {/* Watery progress bar container */}
+            <div className="relative w-full h-20 bg-gray-900 rounded-2xl overflow-hidden shadow-inner">
+              {/* Water fill */}
               <div 
-                className="bg-blue-500 h-full rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${downloadProgress}%` }}
-              />
+                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-600 to-blue-400 transition-all duration-500 ease-out"
+                style={{ 
+                  height: `${downloadProgress}%`,
+                  boxShadow: 'inset 0 0 20px rgba(59, 130, 246, 0.5)'
+                }}
+              >
+                {/* Animated waves */}
+                <div className="absolute inset-0 overflow-hidden">
+                  <div 
+                    className="absolute -inset-x-full h-full"
+                    style={{
+                      background: `
+                        repeating-linear-gradient(
+                          45deg,
+                          transparent,
+                          transparent 10px,
+                          rgba(255, 255, 255, 0.1) 10px,
+                          rgba(255, 255, 255, 0.1) 20px
+                        )
+                      `,
+                      animation: 'wave 3s linear infinite',
+                    }}
+                  />
+                  <svg
+                    className="absolute left-0 right-0 -top-2"
+                    viewBox="0 0 1200 50"
+                    preserveAspectRatio="none"
+                    style={{ height: '20px', width: '200%', left: '-50%' }}
+                  >
+                    <path
+                      d="M0,25 C200,45 400,5 600,25 C800,45 1000,5 1200,25 L1200,50 L0,50 Z"
+                      fill="rgba(255, 255, 255, 0.1)"
+                      style={{
+                        animation: 'wave-move 2s linear infinite',
+                      }}
+                    />
+                    <path
+                      d="M0,25 C200,5 400,45 600,25 C800,5 1000,45 1200,25 L1200,50 L0,50 Z"
+                      fill="rgba(255, 255, 255, 0.05)"
+                      style={{
+                        animation: 'wave-move 3s linear infinite reverse',
+                      }}
+                    />
+                  </svg>
+                </div>
+                
+                {/* Bubbles */}
+                <div className="absolute inset-0">
+                  <div 
+                    className="absolute w-2 h-2 bg-white/20 rounded-full"
+                    style={{
+                      left: '20%',
+                      animation: 'bubble 4s ease-in-out infinite',
+                      animationDelay: '0s'
+                    }}
+                  />
+                  <div 
+                    className="absolute w-3 h-3 bg-white/15 rounded-full"
+                    style={{
+                      left: '50%',
+                      animation: 'bubble 4s ease-in-out infinite',
+                      animationDelay: '1s'
+                    }}
+                  />
+                  <div 
+                    className="absolute w-1 h-1 bg-white/25 rounded-full"
+                    style={{
+                      left: '80%',
+                      animation: 'bubble 4s ease-in-out infinite',
+                      animationDelay: '2s'
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* Progress percentage overlay */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-white text-2xl font-bold drop-shadow-lg">
+                  {downloadProgress}%
+                </span>
+              </div>
             </div>
             
-            {/* Progress percentage */}
-            <div className="text-white text-center mt-2 text-lg">
-              {downloadProgress}%
-            </div>
+            <style jsx>{`
+              @keyframes wave {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(50%); }
+              }
+              
+              @keyframes wave-move {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-600px); }
+              }
+              
+              @keyframes bubble {
+                0% {
+                  bottom: 0;
+                  opacity: 0;
+                }
+                10% {
+                  opacity: 1;
+                }
+                90% {
+                  opacity: 1;
+                }
+                100% {
+                  bottom: 100%;
+                  opacity: 0;
+                }
+              }
+            `}</style>
           </div>
         </div>
       )}
