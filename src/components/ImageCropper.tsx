@@ -250,7 +250,6 @@ export default function ImageCropper({
     }
 
     try {
-      // Fetch the image file from Google Drive
       startDownloadTransition(async () => {
         const response = await fetch(
           `/api/google-drive/download?id=${file.id}`
@@ -260,12 +259,20 @@ export default function ImageCropper({
         }
 
         const blob = await response.blob();
-        const imageUrl = URL.createObjectURL(blob);
 
-        setSelectedImage(imageUrl);
-        setCrop(undefined); // Reset crop when new image is loaded
-        setFormData?.((prev) => ({ ...prev, croppedImage: imageUrl })); // Reset form data
-        setShowFilePicker(false);
+        // Convert blob to Base64 string
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Data = reader.result as string;
+          setSelectedImage(base64Data);
+          setCrop(undefined); // Reset crop when new image is loaded
+          setFormData?.((prev) => ({
+            ...prev,
+            croppedImage: base64Data,
+          }));
+          setShowFilePicker(false);
+        };
+        reader.readAsDataURL(blob);
       });
     } catch (error) {
       console.error("Error loading image:", error);
