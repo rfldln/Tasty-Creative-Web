@@ -17,6 +17,7 @@ const GifVaultSelector = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   const [selectedClient, setSelectedClient] = useState<{
     id: number;
@@ -62,25 +63,71 @@ const GifVaultSelector = ({
     const fetchAndUploadFile = async () => {
       if (fullscreenItem) {
         setIsDownloading(true);
+        setDownloadProgress(0);
+        
         try {
           const response = await fetch(fullscreenItem.src);
-          const blob = await response.blob();
+          
+          // Check if we can track progress
+          const contentLength = response.headers.get('content-length');
+          
+          if (!response.body) {
+            throw new Error('ReadableStream not supported');
+          }
+          
+          const reader = response.body.getReader();
+          const totalSize = contentLength ? parseInt(contentLength, 10) : 0;
+          let receivedLength = 0;
+          const chunks: Uint8Array[] = [];
+          
+          // Read the response stream
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+            
+            chunks.push(value);
+            receivedLength += value.length;
+            
+            // Calculate and update progress
+            if (totalSize > 0) {
+              const progress = Math.round((receivedLength / totalSize) * 100);
+              setDownloadProgress(progress);
+            }
+          }
+          
+          // Combine chunks into single array
+          const chunksAll = new Uint8Array(receivedLength);
+          let position = 0;
+          for (const chunk of chunks) {
+            chunksAll.set(chunk, position);
+            position += chunk.length;
+          }
+          
+          // Create blob and file
+          const blob = new Blob([chunksAll], { 
+            type: response.headers.get('content-type') || 'application/octet-stream' 
+          });
           const file = new File([blob], fullscreenItem.name, {
             type: blob.type,
           });
+          
           onUpload(file);
           setIsDownloading(false);
+          setDownloadProgress(0);
           onClose();
           setFullscreenItem(null);
         } catch (err) {
           setError("Failed to fetch file for upload.");
           console.error(err);
+          setIsDownloading(false);
+          setDownloadProgress(0);
         }
       }
     };
 
     fetchAndUploadFile();
-  }, [fullscreenItem]);
+  }, [fullscreenItem, onUpload, onClose]);
 
   console.log(selectedClient, "selectedClient");
 
@@ -130,11 +177,24 @@ const GifVaultSelector = ({
         )}
       </div>
 
-      {/* Loading overlay */}
+      {/* Loading overlay with progress */}
       {isDownloading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
-          <div className="text-white text-xl animate-pulse bg-gray-800 px-6 py-4 rounded-lg">
-            Preparing file...
+          <div className="bg-gray-800 px-8 py-6 rounded-lg shadow-2xl min-w-[300px]">
+            <div className="text-white text-xl mb-4">Downloading file...</div>
+            
+            {/* Progress bar */}
+            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+              <div 
+                className="bg-blue-500 h-full rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${downloadProgress}%` }}
+              />
+            </div>
+            
+            {/* Progress percentage */}
+            <div className="text-white text-center mt-2 text-lg">
+              {downloadProgress}%
+            </div>
           </div>
         </div>
       )}
