@@ -59,67 +59,168 @@ const GifVaultSelector = ({
       });
   }, [vaultName]);
 
-  // Optimized parallel chunk download function
-  const downloadFileInChunks = async (url: string, chunkSize: number = 1024 * 1024 * 2) => {
-    // First, get the file size
-    const headResponse = await fetch(url, { method: 'HEAD' });
-    const contentLength = headResponse.headers.get('content-length');
+  // Optimized download function with fallback
+  const downloadFileWithProgress = async (url: string) => {
+    try {
+      // Try parallel chunk download first
+      return await downloadFileInChunks(url);
+    } catch (error) {
+      console.warn('Chunk download failed, falling back to stream download:', error);
+      // Fallback to stream download
+      return await downloadFileStream(url);
+    }
+  };
+
+  // Stream download with progress (fallback method)
+  const downloadFileStream = async (url: string) => {
+    const response = await fetch(url);
     
-    if (!contentLength) {
-      // Fallback to regular download if no content-length
-      const response = await fetch(url);
-      return await response.blob();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const totalSize = parseInt(contentLength, 10);
-    const numChunks = Math.ceil(totalSize / chunkSize);
-    const chunks: ArrayBuffer[] = new Array(numChunks);
-    let downloadedBytes = 0;
+    const contentLength = response.headers.get('content-length');
+    const total = contentLength ? parseInt(contentLength, 10) : 0;
     
-    // Download chunks in parallel (limit concurrent downloads to 4)
-    const maxConcurrent = 4;
-    const downloadChunk = async (index: number) => {
-      const start = index * chunkSize;
-      const end = Math.min(start + chunkSize - 1, totalSize - 1);
-      
-      const response = await fetch(url, {
-        headers: {
-          'Range': `bytes=${start}-${end}`
-        }
-      });
-      
-      const arrayBuffer = await response.arrayBuffer();
-      chunks[index] = arrayBuffer;
-      
-      downloadedBytes += arrayBuffer.byteLength;
-      const progress = Math.round((downloadedBytes / totalSize) * 100);
-      setDownloadProgress(progress);
-      
-      return arrayBuffer;
-    };
+    if (!response.body) {
+      // Final fallback: just get the blob
+      const blob = await response.blob();
+      setDownloadProgress(100);
+      return blob;
+    }
     
-    // Create download queue
-    const queue: Promise<ArrayBuffer>[] = [];
-    for (let i = 0; i < numChunks; i++) {
-      if (queue.length >= maxConcurrent) {
-        await Promise.race(queue);
-        queue.splice(queue.findIndex(p => p), 1);
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let receivedLength = 0;
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) break;
+      
+      chunks.push(value);
+      receivedLength += value.length;
+      
+      if (total > 0) {
+        const progress = Math.round((receivedLength / total) * 100);
+        setDownloadProgress(progress);
       }
-      queue.push(downloadChunk(i));
     }
     
-    // Wait for all chunks to complete
-    await Promise.all(queue);
-    
-    // Combine chunks into single blob
-    const combinedArray = new Uint8Array(totalSize);
-    let offset = 0;
+    const chunksAll = new Uint8Array(receivedLength);
+    let position = 0;
     for (const chunk of chunks) {
-      combinedArray.set(new Uint8Array(chunk), offset);
-      offset += chunk.byteLength;
+      chunksAll.set(chunk, position);
+      position += chunk.length;
     }
     
-    return new Blob([combinedArray]);
+    return new Blob([chunksAll]);
+  };
+
+  // Parallel chunk download function with better error handling
+  const downloadFileInChunks = async (url: string, chunkSize: number = 1024 * 1024 * 2) => {
+    // First, get the file size with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    try {
+      const headResponse = await fetch(url, { 
+        method: 'HEAD',
+        signal: controller.signal 
+      });
+      clearTimeout(timeoutId);
+      
+      const contentLength = headResponse.headers.get('content-length');
+      const acceptRanges = headResponse.headers.get('accept-ranges');
+      
+      if (!contentLength || acceptRanges !== 'bytes') {
+        throw new Error('Server does not support range requests');
+      }
+      
+      const totalSize = parseInt(contentLength, 10);
+      const numChunks = Math.ceil(totalSize / chunkSize);
+      const chunks: (ArrayBuffer | null)[] = new Array(numChunks).fill(null);
+      let downloadedBytes = 0;
+      
+      // Download chunks with retry logic
+      const downloadChunk = async (index: number, retries: number = 3): Promise<ArrayBuffer> => {
+        const start = index * chunkSize;
+        const end = Math.min(start + chunkSize - 1, totalSize - 1);
+        
+        try {
+          const response = await fetch(url, {
+            headers: {
+              'Range': `bytes=${start}-${end}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const arrayBuffer = await response.arrayBuffer();
+          
+          // Validate chunk
+          if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+            throw new Error('Empty chunk received');
+          }
+          
+          chunks[index] = arrayBuffer;
+          downloadedBytes += arrayBuffer.byteLength;
+          const progress = Math.round((downloadedBytes / totalSize) * 100);
+          setDownloadProgress(progress);
+          
+          return arrayBuffer;
+        } catch (error) {
+          if (retries > 0) {
+            console.warn(`Chunk ${index} failed, retrying...`, error);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return downloadChunk(index, retries - 1);
+          }
+          throw error;
+        }
+      };
+      
+      // Download chunks with limited concurrency
+      const maxConcurrent = 2; // Reduced from 4 to avoid connection issues
+      const downloadQueue: Promise<ArrayBuffer>[] = [];
+      
+      for (let i = 0; i < numChunks; i++) {
+        while (downloadQueue.length >= maxConcurrent) {
+          await Promise.race(downloadQueue).catch(() => {});
+          downloadQueue.splice(
+            downloadQueue.findIndex(p => p.catch(() => false)),
+            1
+          );
+        }
+        downloadQueue.push(downloadChunk(i));
+      }
+      
+      // Wait for all chunks
+      await Promise.all(downloadQueue);
+      
+      // Verify all chunks are downloaded
+      const missingChunks = chunks.findIndex(chunk => chunk === null);
+      if (missingChunks !== -1) {
+        throw new Error('Some chunks failed to download');
+      }
+      
+      // Combine chunks
+      const combinedArray = new Uint8Array(totalSize);
+      let offset = 0;
+      
+      for (const chunk of chunks) {
+        if (chunk) {
+          combinedArray.set(new Uint8Array(chunk), offset);
+          offset += chunk.byteLength;
+        }
+      }
+      
+      return new Blob([combinedArray]);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
   };
 
   useEffect(() => {
@@ -129,8 +230,8 @@ const GifVaultSelector = ({
         setDownloadProgress(0);
         
         try {
-          // Use optimized chunk download for larger files
-          const blob = await downloadFileInChunks(fullscreenItem.src);
+          // Use the new download function with fallback
+          const blob = await downloadFileWithProgress(fullscreenItem.src);
           
           const file = new File([blob], fullscreenItem.name, {
             type: blob.type || 'application/octet-stream',
