@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     return new Response("Missing client name", { status: 400 });
   }
 
-  const backendUrl = `https://be.tastycreative.xyz/clients/${name}`;
+  const backendUrl = `https://be.tastycreative.xyz/clients/name/${name}`;
 
   try {
     const fetchRes = await fetch(backendUrl, {
