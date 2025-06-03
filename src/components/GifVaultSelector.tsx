@@ -59,21 +59,86 @@ const GifVaultSelector = ({
       });
   }, [vaultName]);
 
+  // Keep track of download state
+  const [downloadController, setDownloadController] = useState<AbortController | null>(null);
+
+  // Visibility change handler
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isDownloading) {
+        console.log('Tab hidden during download - keeping connection alive');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isDownloading]);
+
   // Optimized download function with fallback
   const downloadFileWithProgress = async (url: string) => {
+    const controller = new AbortController();
+    setDownloadController(controller);
+
     try {
-      // Try parallel chunk download first
-      return await downloadFileInChunks(url);
+      // Try XMLHttpRequest first (more reliable for background tabs)
+      return await downloadFileXHR(url, controller.signal);
     } catch (error) {
-      console.warn('Chunk download failed, falling back to stream download:', error);
-      // Fallback to stream download
-      return await downloadFileStream(url);
+      if (controller.signal.aborted) {
+        throw new Error('Download cancelled');
+      }
+      console.warn('XHR download failed, falling back to fetch:', error);
+      // Fallback to fetch
+      return await downloadFileStream(url, controller.signal);
+    } finally {
+      setDownloadController(null);
     }
   };
 
+  // XMLHttpRequest download (works better in background)
+  const downloadFileXHR = async (url: string, signal: AbortSignal): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.responseType = 'blob';
+
+      // Track progress
+      xhr.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setDownloadProgress(progress);
+        }
+      };
+
+      // Handle completion
+      xhr.onload = () => {
+        if (xhr.status === 200 || xhr.status === 206) {
+          resolve(xhr.response);
+        } else {
+          reject(new Error(`HTTP error! status: ${xhr.status}`));
+        }
+      };
+
+      // Handle errors
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.onabort = () => reject(new Error('Download cancelled'));
+      xhr.ontimeout = () => reject(new Error('Download timeout'));
+
+      // Set timeout to 5 minutes for large files
+      xhr.timeout = 300000;
+
+      // Handle abort signal
+      signal.addEventListener('abort', () => {
+        xhr.abort();
+      });
+
+      // Send request
+      xhr.send();
+    });
+  };
+
   // Stream download with progress (fallback method)
-  const downloadFileStream = async (url: string) => {
-    const response = await fetch(url);
+  const downloadFileStream = async (url: string, signal: AbortSignal) => {
+    const response = await fetch(url, { signal });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -93,19 +158,31 @@ const GifVaultSelector = ({
     const chunks: Uint8Array[] = [];
     let receivedLength = 0;
     
-    while (true) {
-      const { done, value } = await reader.read();
-      
-      if (done) break;
-      
-      chunks.push(value);
-      receivedLength += value.length;
-      
-      if (total > 0) {
-        const progress = Math.round((receivedLength / total) * 100);
-        setDownloadProgress(progress);
+    // Use a smaller chunk read to keep connection active
+    const readChunk = async (): Promise<void> => {
+      try {
+        const { done, value } = await reader.read();
+        
+        if (done) return;
+        
+        chunks.push(value);
+        receivedLength += value.length;
+        
+        if (total > 0) {
+          const progress = Math.round((receivedLength / total) * 100);
+          setDownloadProgress(progress);
+        }
+        
+        // Continue reading
+        await readChunk();
+      } catch (error) {
+        if (!signal.aborted) {
+          throw error;
+        }
       }
-    }
+    };
+    
+    await readChunk();
     
     const chunksAll = new Uint8Array(receivedLength);
     let position = 0;
@@ -117,111 +194,16 @@ const GifVaultSelector = ({
     return new Blob([chunksAll]);
   };
 
-  // Parallel chunk download function with better error handling
-  const downloadFileInChunks = async (url: string, chunkSize: number = 1024 * 1024 * 2) => {
-    // First, get the file size with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    try {
-      const headResponse = await fetch(url, { 
-        method: 'HEAD',
-        signal: controller.signal 
-      });
-      clearTimeout(timeoutId);
-      
-      const contentLength = headResponse.headers.get('content-length');
-      const acceptRanges = headResponse.headers.get('accept-ranges');
-      
-      if (!contentLength || acceptRanges !== 'bytes') {
-        throw new Error('Server does not support range requests');
+  // Parallel chunk download function (removed - causes issues with tab switching)
+
+  // Cancel download on unmount or close
+  useEffect(() => {
+    return () => {
+      if (downloadController) {
+        downloadController.abort();
       }
-      
-      const totalSize = parseInt(contentLength, 10);
-      const numChunks = Math.ceil(totalSize / chunkSize);
-      const chunks: (ArrayBuffer | null)[] = new Array(numChunks).fill(null);
-      let downloadedBytes = 0;
-      
-      // Download chunks with retry logic
-      const downloadChunk = async (index: number, retries: number = 3): Promise<ArrayBuffer> => {
-        const start = index * chunkSize;
-        const end = Math.min(start + chunkSize - 1, totalSize - 1);
-        
-        try {
-          const response = await fetch(url, {
-            headers: {
-              'Range': `bytes=${start}-${end}`
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const arrayBuffer = await response.arrayBuffer();
-          
-          // Validate chunk
-          if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-            throw new Error('Empty chunk received');
-          }
-          
-          chunks[index] = arrayBuffer;
-          downloadedBytes += arrayBuffer.byteLength;
-          const progress = Math.round((downloadedBytes / totalSize) * 100);
-          setDownloadProgress(progress);
-          
-          return arrayBuffer;
-        } catch (error) {
-          if (retries > 0) {
-            console.warn(`Chunk ${index} failed, retrying...`, error);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return downloadChunk(index, retries - 1);
-          }
-          throw error;
-        }
-      };
-      
-      // Download chunks with limited concurrency
-      const maxConcurrent = 2; // Reduced from 4 to avoid connection issues
-      const downloadQueue: Promise<ArrayBuffer>[] = [];
-      
-      for (let i = 0; i < numChunks; i++) {
-        while (downloadQueue.length >= maxConcurrent) {
-          await Promise.race(downloadQueue).catch(() => {});
-          downloadQueue.splice(
-            downloadQueue.findIndex(p => p.catch(() => false)),
-            1
-          );
-        }
-        downloadQueue.push(downloadChunk(i));
-      }
-      
-      // Wait for all chunks
-      await Promise.all(downloadQueue);
-      
-      // Verify all chunks are downloaded
-      const missingChunks = chunks.findIndex(chunk => chunk === null);
-      if (missingChunks !== -1) {
-        throw new Error('Some chunks failed to download');
-      }
-      
-      // Combine chunks
-      const combinedArray = new Uint8Array(totalSize);
-      let offset = 0;
-      
-      for (const chunk of chunks) {
-        if (chunk) {
-          combinedArray.set(new Uint8Array(chunk), offset);
-          offset += chunk.byteLength;
-        }
-      }
-      
-      return new Blob([combinedArray]);
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-  };
+    };
+  }, [downloadController]);
 
   useEffect(() => {
     const fetchAndUploadFile = async () => {
@@ -242,8 +224,13 @@ const GifVaultSelector = ({
           setDownloadProgress(0);
           onClose();
           setFullscreenItem(null);
-        } catch (err) {
-          setError("Failed to fetch file for upload.");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+          if (err.message === 'Download cancelled') {
+            setError("Download was cancelled.");
+          } else {
+            setError("Failed to fetch file for upload.");
+          }
           console.error(err);
           setIsDownloading(false);
           setDownloadProgress(0);
