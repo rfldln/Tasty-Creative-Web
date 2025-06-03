@@ -366,33 +366,33 @@ const TastyCreative = () => {
       checkAuth();
     }, [router]);
 
-  // useEffect(() => {
-  //   if (tabValue === "dashboard" || tabValue === "") {
-  //     let intervalId: NodeJS.Timeout;
+  useEffect(() => {
+    if (tabValue === "dashboard" || tabValue === "") {
+      let intervalId: NodeJS.Timeout;
 
-  //     const fetchNotifications = async () => {
-  //       try {
-  //         const res = await fetch("/api/notifications");
-  //         if (res.ok) {
-  //           const data = await res.json();
-  //           console.log("Fetched Notifications:", data.notifications); // Log the fetched data
-  //           setNotifications(data.notifications || []);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error fetching notifications:", error);
-  //       }
-  //     };
+      const fetchNotifications = async () => {
+        try {
+          const res = await fetch("/api/notifications");
+          if (res.ok) {
+            const data = await res.json();
+            console.log("Fetched Notifications:", data.notifications); // Log the fetched data
+            setNotifications(data.notifications || []);
+          }
+        } catch (error) {
+          console.error("Error fetching notifications:", error);
+        }
+      };
 
-  //     // Initial fetch
-  //     fetchNotifications();
+      // Initial fetch
+      fetchNotifications();
 
-  //     // Poll every 5 seconds
-  //     intervalId = setInterval(fetchNotifications, 5000);
+      // Poll every 5 seconds
+      intervalId = setInterval(fetchNotifications, 5000);
 
-  //     // Cleanup
-  //     return () => clearInterval(intervalId);
-  //   }
-  // }, [tabValue]);
+      // Cleanup
+      return () => clearInterval(intervalId);
+    }
+  }, [tabValue]);
 
   // Initialize the voice parameters cache
   useEffect(() => {
