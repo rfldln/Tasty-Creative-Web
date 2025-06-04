@@ -28,6 +28,7 @@ import { GifMakerVideoTimeline } from "./GifMakerVideoTimeline";
 import GifMakerGifSettings from "./GifMakerGifSettings";
 import ModelCaptionSelector from "./ModelCaptionSelector";
 
+
 // Define TypeScript interfaces
 interface ModelFormData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
