@@ -8,8 +8,14 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const folderId =
     searchParams?.get("folderId") || process.env.GOOGLE_DRIVE_BASE_FOLDER_ID!;
-  const modelName = searchParams?.get("folderName");
+  let modelName = searchParams?.get("folderName");
   const includeVideos = searchParams?.get("includeVideos") === "true";
+
+  // Replace "Victoria (V)" with "V"
+  if (modelName === "Victoria (V)") {
+    modelName = "V";
+  }
+
   console.log(searchParams?.toString(), "searchparams");
   console.log(
     "Search Params - folderId:",
