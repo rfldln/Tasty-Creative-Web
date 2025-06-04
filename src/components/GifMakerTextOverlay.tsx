@@ -383,6 +383,10 @@ const GifMakerTextOverlay = ({
         }
         stopChecking();
         setIsLoading(false);
+        setSelectedCaption("");
+        setSelectedEmojiId(null);
+        setPhotoshopLayering([]);
+
         lastCheckTimestamp.current = result.timestamp;
       }
     } catch (error) {
