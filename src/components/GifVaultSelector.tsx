@@ -59,166 +59,63 @@ const GifVaultSelector = ({
       });
   }, [vaultName]);
 
-  // Optimized download function with fallback
-  const downloadFileWithProgress = async (url: string) => {
+  // Stream download with progress
+  const downloadFileStream = async (url: string): Promise<Blob> => {
     try {
-      // Try parallel chunk download first
-      return await downloadFileInChunks(url);
-    } catch (error) {
-      console.warn('Chunk download failed, falling back to stream download:', error);
-      // Fallback to stream download
-      return await downloadFileStream(url);
-    }
-  };
-
-  // Stream download with progress (fallback method)
-  const downloadFileStream = async (url: string) => {
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const contentLength = response.headers.get('content-length');
-    const total = contentLength ? parseInt(contentLength, 10) : 0;
-    
-    if (!response.body) {
-      // Final fallback: just get the blob
-      const blob = await response.blob();
-      setDownloadProgress(100);
-      return blob;
-    }
-    
-    const reader = response.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let receivedLength = 0;
-    
-    while (true) {
-      const { done, value } = await reader.read();
+      const response = await fetch(url);
       
-      if (done) break;
-      
-      chunks.push(value);
-      receivedLength += value.length;
-      
-      if (total > 0) {
-        const progress = Math.round((receivedLength / total) * 100);
-        setDownloadProgress(progress);
-      }
-    }
-    
-    const chunksAll = new Uint8Array(receivedLength);
-    let position = 0;
-    for (const chunk of chunks) {
-      chunksAll.set(chunk, position);
-      position += chunk.length;
-    }
-    
-    return new Blob([chunksAll]);
-  };
-
-  // Parallel chunk download function with better error handling
-  const downloadFileInChunks = async (url: string, chunkSize: number = 1024 * 1024 * 2) => {
-    // First, get the file size with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    try {
-      const headResponse = await fetch(url, { 
-        method: 'HEAD',
-        signal: controller.signal 
-      });
-      clearTimeout(timeoutId);
-      
-      const contentLength = headResponse.headers.get('content-length');
-      const acceptRanges = headResponse.headers.get('accept-ranges');
-      
-      if (!contentLength || acceptRanges !== 'bytes') {
-        throw new Error('Server does not support range requests');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const totalSize = parseInt(contentLength, 10);
-      const numChunks = Math.ceil(totalSize / chunkSize);
-      const chunks: (ArrayBuffer | null)[] = new Array(numChunks).fill(null);
-      let downloadedBytes = 0;
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
       
-      // Download chunks with retry logic
-      const downloadChunk = async (index: number, retries: number = 3): Promise<ArrayBuffer> => {
-        const start = index * chunkSize;
-        const end = Math.min(start + chunkSize - 1, totalSize - 1);
+      if (!response.body) {
+        // Fallback: just get the blob if no readable stream
+        const blob = await response.blob();
+        setDownloadProgress(100);
+        return blob;
+      }
+      
+      // Create a reader from the response body stream
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let receivedLength = 0;
+      
+      // Read the stream chunk by chunk
+      while (true) {
+        const { done, value } = await reader.read();
         
-        try {
-          const response = await fetch(url, {
-            headers: {
-              'Range': `bytes=${start}-${end}`
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const arrayBuffer = await response.arrayBuffer();
-          
-          // Validate chunk
-          if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-            throw new Error('Empty chunk received');
-          }
-          
-          chunks[index] = arrayBuffer;
-          downloadedBytes += arrayBuffer.byteLength;
-          const progress = Math.round((downloadedBytes / totalSize) * 100);
+        if (done) break;
+        
+        chunks.push(value);
+        receivedLength += value.length;
+        
+        // Update progress if we know the total size
+        if (total > 0) {
+          const progress = Math.round((receivedLength / total) * 100);
           setDownloadProgress(progress);
-          
-          return arrayBuffer;
-        } catch (error) {
-          if (retries > 0) {
-            console.warn(`Chunk ${index} failed, retrying...`, error);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return downloadChunk(index, retries - 1);
-          }
-          throw error;
+        } else {
+          // If we don't know the total size, show indeterminate progress
+          setDownloadProgress(-1);
         }
-      };
-      
-      // Download chunks with limited concurrency
-      const maxConcurrent = 2; // Reduced from 4 to avoid connection issues
-      const downloadQueue: Promise<ArrayBuffer>[] = [];
-      
-      for (let i = 0; i < numChunks; i++) {
-        while (downloadQueue.length >= maxConcurrent) {
-          await Promise.race(downloadQueue).catch(() => {});
-          downloadQueue.splice(
-            downloadQueue.findIndex(p => p.catch(() => false)),
-            1
-          );
-        }
-        downloadQueue.push(downloadChunk(i));
       }
       
-      // Wait for all chunks
-      await Promise.all(downloadQueue);
-      
-      // Verify all chunks are downloaded
-      const missingChunks = chunks.findIndex(chunk => chunk === null);
-      if (missingChunks !== -1) {
-        throw new Error('Some chunks failed to download');
-      }
-      
-      // Combine chunks
-      const combinedArray = new Uint8Array(totalSize);
-      let offset = 0;
-      
+      // Combine all chunks into a single Uint8Array
+      const chunksAll = new Uint8Array(receivedLength);
+      let position = 0;
       for (const chunk of chunks) {
-        if (chunk) {
-          combinedArray.set(new Uint8Array(chunk), offset);
-          offset += chunk.byteLength;
-        }
+        chunksAll.set(chunk, position);
+        position += chunk.length;
       }
       
-      return new Blob([combinedArray]);
+      // Set final progress
+      setDownloadProgress(100);
+      
+      return new Blob([chunksAll]);
     } catch (error) {
-      clearTimeout(timeoutId);
+      console.error('Stream download failed:', error);
       throw error;
     }
   };
@@ -230,8 +127,8 @@ const GifVaultSelector = ({
         setDownloadProgress(0);
         
         try {
-          // Use the new download function with fallback
-          const blob = await downloadFileWithProgress(fullscreenItem.src);
+          // Use stream download
+          const blob = await downloadFileStream(fullscreenItem.src);
           
           const file = new File([blob], fullscreenItem.name, {
             type: blob.type || 'application/octet-stream',
@@ -314,8 +211,9 @@ const GifVaultSelector = ({
               <div 
                 className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-600 to-blue-400 transition-all duration-500 ease-out"
                 style={{ 
-                  height: `${downloadProgress}%`,
-                  boxShadow: 'inset 0 0 20px rgba(59, 130, 246, 0.5)'
+                  height: downloadProgress === -1 ? '100%' : `${downloadProgress}%`,
+                  boxShadow: 'inset 0 0 20px rgba(59, 130, 246, 0.5)',
+                  opacity: downloadProgress === -1 ? 0.7 : 1
                 }}
               >
                 {/* Animated waves */}
@@ -332,7 +230,7 @@ const GifVaultSelector = ({
                           rgba(255, 255, 255, 0.1) 20px
                         )
                       `,
-                      animation: 'wave 3s linear infinite',
+                      animation: downloadProgress === -1 ? 'wave 1s linear infinite' : 'wave 3s linear infinite',
                     }}
                   />
                   <svg
@@ -390,7 +288,7 @@ const GifVaultSelector = ({
               {/* Progress percentage overlay */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-white text-2xl font-bold drop-shadow-lg">
-                  {downloadProgress}%
+                  {downloadProgress === -1 ? 'Loading...' : `${downloadProgress}%`}
                 </span>
               </div>
             </div>
