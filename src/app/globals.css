@@ -127,3 +127,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+@font-face {
+  font-family: 'Apple Color Emoji';
+  src: url('../fonts/AppleColorEmoji.ttf') format('truetype');
+  font-display: swap;
+}
+
+.emoji-draggable {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  line-height: 1;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  transition: opacity 0.3s ease; /* mimic transition-opacity class */
+}
