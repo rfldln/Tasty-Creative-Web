@@ -168,6 +168,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_16: {
+    name: "OF Natalie's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Natalie",
+        voiceId: "eo0IGgzwrR8XLLd5uIbB",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models

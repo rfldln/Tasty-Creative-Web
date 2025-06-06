@@ -7,6 +7,8 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import Picker from "@emoji-mart/react";
+import EmojiData from "@emoji-mart/data/sets/15/apple.json";
 
 const GifMakerTextOverlay = ({
   gifUrl,
@@ -54,7 +56,7 @@ const GifMakerTextOverlay = ({
     naturalWidth: number;
     naturalHeight: number;
   }>({ width: 0, height: 0, naturalWidth: 0, naturalHeight: 0 });
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -70,19 +72,29 @@ const GifMakerTextOverlay = ({
   const checkInterval = useRef<NodeJS.Timeout | null>(null);
 
   // Function to measure text width
-  const measureText = (text: string, font: string, fontSize: number): number => {
+  const measureText = (
+    text: string,
+    font: string,
+    fontSize: number
+  ): number => {
     if (!textMeasureRef.current) {
-      textMeasureRef.current = document.createElement('canvas');
+      textMeasureRef.current = document.createElement("canvas");
     }
-    const ctx = textMeasureRef.current.getContext('2d');
+    const ctx = textMeasureRef.current.getContext("2d");
     if (!ctx) return 0;
-    
+
     ctx.font = `${fontSize}px ${font}`;
     return ctx.measureText(text).width;
   };
 
   // Function to wrap text and add /r markers based on available width from position
-  const wrapText = (text: string, maxWidth: number, font: string, fontSize: number, currentPosition?: { x: number; y: number }): string => {
+  const wrapText = (
+    text: string,
+    maxWidth: number,
+    font: string,
+    fontSize: number,
+    currentPosition?: { x: number; y: number }
+  ): string => {
     // Calculate available width from current position to edge of image
     let availableWidth = maxWidth;
     if (currentPosition && imageDimensions.width > 0) {
@@ -90,9 +102,9 @@ const GifMakerTextOverlay = ({
       availableWidth = Math.min(maxWidth, Math.max(100, remainingWidth)); // Minimum 100px width
     }
 
-    const words = text.split(' ');
+    const words = text.split(" ");
     const lines: string[] = [];
-    let currentLine = '';
+    let currentLine = "";
 
     for (let i = 0; i < words.length; i++) {
       const word = words[i];
@@ -111,29 +123,41 @@ const GifMakerTextOverlay = ({
       lines.push(currentLine);
     }
 
-    return lines.join('\\r');
+    return lines.join("\\r");
   };
 
   // Function to get display text (without \r markers)
   const getDisplayText = (text: string): string => {
-    return text.replace(/\\r/g, '\n');
+    return text.replace(/\\r/g, "\n");
   };
 
   // Handle text input change with auto-wrapping
   const handleTextChange = (newText: string) => {
     // Remove existing \r markers to get clean text
-    const cleanText = newText.replace(/\\r/g, ' ');
-    
+    const cleanText = newText.replace(/\\r/g, " ");
+
     // Apply wrapping and set the caption with \r markers
-    const wrappedText = wrapText(cleanText, maxWidth, selectedFont, fontSize, position);
+    const wrappedText = wrapText(
+      cleanText,
+      maxWidth,
+      selectedFont,
+      fontSize,
+      position
+    );
     setSelectedCaption(wrappedText);
   };
 
   // Function to rewrap text based on current position
   const rewrapTextAtPosition = (newPosition: { x: number; y: number }) => {
     if (selectedCaption) {
-      const cleanText = selectedCaption.replace(/\\r/g, ' ');
-      const wrappedText = wrapText(cleanText, maxWidth, selectedFont, fontSize, newPosition);
+      const cleanText = selectedCaption.replace(/\\r/g, " ");
+      const wrappedText = wrapText(
+        cleanText,
+        maxWidth,
+        selectedFont,
+        fontSize,
+        newPosition
+      );
       if (wrappedText !== selectedCaption) {
         setSelectedCaption(wrappedText);
       }
@@ -143,8 +167,14 @@ const GifMakerTextOverlay = ({
   // Re-wrap text when font, fontSize, maxWidth, or position changes
   useEffect(() => {
     if (selectedCaption) {
-      const cleanText = selectedCaption.replace(/\\r/g, ' ');
-      const wrappedText = wrapText(cleanText, maxWidth, selectedFont, fontSize, position);
+      const cleanText = selectedCaption.replace(/\\r/g, " ");
+      const wrappedText = wrapText(
+        cleanText,
+        maxWidth,
+        selectedFont,
+        fontSize,
+        position
+      );
       if (wrappedText !== selectedCaption) {
         setSelectedCaption(wrappedText);
       }
@@ -223,7 +253,7 @@ const GifMakerTextOverlay = ({
       };
 
       setPosition(newPosition);
-      
+
       // Rewrap text based on new position
       rewrapTextAtPosition(newPosition);
     } else if (draggedEmojiId) {
@@ -255,13 +285,27 @@ const GifMakerTextOverlay = ({
     setDraggedEmojiId(null);
   };
 
-  const handleEmojiSelect = (emoji: string) => {
+  const getAppleEmojiImage = (unified: string): string => {
+    return `https://cdn.jsdelivr.net/npm/emoji-datasource-apple@14.0.0/img/apple/64/${unified}.png`;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleEmojiSelect = (emojiData: any) => {
+    const emojiChar = emojiData.native;
+
+    // Use actual Apple emoji image instead of canvas rendering
+    const appleEmojiUrl = getAppleEmojiImage(emojiData.unified);
+
     const newEmoji = {
       id: uuidv4(),
-      emoji,
+      emoji: emojiChar,
+      emojiImage: appleEmojiUrl, // Use Apple emoji image URL
+      name: emojiData.name,
+      unified: emojiData.unified,
       position: { x: 100, y: 100 },
       size: 48,
     };
+
     setOverlayEmojis([...overlayEmojis, newEmoji]);
     setSelectedEmojiId(newEmoji.id);
     setShowEmojiPicker(false);
@@ -339,6 +383,10 @@ const GifMakerTextOverlay = ({
         }
         stopChecking();
         setIsLoading(false);
+        setSelectedCaption("");
+        setSelectedEmojiId(null);
+        setPhotoshopLayering([]);
+
         lastCheckTimestamp.current = result.timestamp;
       }
     } catch (error) {
@@ -478,7 +526,7 @@ const GifMakerTextOverlay = ({
             Text Content
           </label>
           <textarea
-            value={selectedCaption.replace(/\\r/g, ' ')}
+            value={selectedCaption.replace(/\\r/g, " ")}
             onChange={(e) => handleTextChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
             placeholder="Enter your text (will auto-wrap)"
@@ -491,7 +539,11 @@ const GifMakerTextOverlay = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Max Text Width: {maxWidth}px (Available: {imageDimensions.width > 0 ? Math.max(100, imageDimensions.width - position.x - 20) : maxWidth}px)
+            Max Text Width: {maxWidth}px (Available:{" "}
+            {imageDimensions.width > 0
+              ? Math.max(100, imageDimensions.width - position.x - 20)
+              : maxWidth}
+            px)
           </label>
           <input
             type="range"
@@ -541,10 +593,10 @@ const GifMakerTextOverlay = ({
               ref={emojiPickerRef}
               className="absolute top-full mt-2 z-50 bg-gray-800 rounded-lg shadow-xl p-4"
             >
-              <EmojiPicker
-                onEmojiSelect={(emoji) => {
-                  handleEmojiSelect(emoji);
-                }}
+              <Picker
+                data={EmojiData}
+                onEmojiSelect={handleEmojiSelect}
+                set="apple"
               />
             </div>
           )}
@@ -665,13 +717,12 @@ const GifMakerTextOverlay = ({
                 <ContextMenuTrigger>
                   <div
                     key={emoji.id}
-                    className={`absolute cursor-move select-none transition-opacity `}
+                    className="emoji-draggable"
                     style={{
                       left: `${emoji.position.x}px`,
                       top: `${emoji.position.y}px`,
                       fontSize: `${emoji.size}px`,
-                      lineHeight: 1,
-                      userSelect: "none",
+
                       zIndex: photoshopLayering
                         ? photoshopLayering.indexOf(emoji.id)
                         : 0,
@@ -721,7 +772,7 @@ const GifMakerTextOverlay = ({
         </button>
         <button
           onClick={sendToWebhook}
-          disabled={isLoading}
+          // disabled={isLoading}
           className="w-full bg-blue-600 col-span-2 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
         >
           {isLoading ? "Applying..." : "Apply Text Overlay"}
@@ -734,7 +785,7 @@ const GifMakerTextOverlay = ({
 export default GifMakerTextOverlay;
 
 import TextStyleTemplates from "./TextStyleTemplates";
-import { EmojiPicker } from "./emoji-picker";
+
 import { Smile } from "lucide-react";
 
 function DynamicFontLoader({ font }: { font: string }) {

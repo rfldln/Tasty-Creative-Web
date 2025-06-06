@@ -1,4 +1,5 @@
 import { MODELS_FINISHED_WEEKS_IDS } from "@/lib/lib";
+import { sanitizeCaption } from "@/lib/utils";
 import React, { useState, useEffect } from "react";
 
 type ModelName = keyof typeof MODELS_FINISHED_WEEKS_IDS;
@@ -10,7 +11,7 @@ interface ModelCaptionSelectorProps {
   selectedCaption: string;
   setSelectedCaption: (caption: string) => void;
   isPaid?: boolean;
-  setIsPaid: (isPaid:boolean) => void
+  setIsPaid: (isPaid: boolean) => void;
 }
 
 const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
@@ -20,7 +21,7 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
   selectedCaption,
   setSelectedCaption,
   isPaid,
-  setIsPaid
+  setIsPaid,
 }) => {
   const [captions, setCaptions] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -60,9 +61,11 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
     onToggleChange?.(checked, newId);
   };
 
+  // Usage example with your existing handler
   const handleCaptionSelect = (caption: string) => {
-    setSelectedCaption(caption);
-    onCaptionSelect?.(caption, currentId);
+    const cleanedCaption = sanitizeCaption(caption);
+    setSelectedCaption(cleanedCaption);
+    onCaptionSelect?.(cleanedCaption, currentId);
   };
 
   const handleDaySelect = (dayCode: string) => {
