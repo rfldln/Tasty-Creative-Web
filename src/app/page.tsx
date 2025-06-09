@@ -112,6 +112,9 @@ import ChattingTab from '@/components/ChattingTab';
 import OnboardingTab from '@/components/OnboardingTab';
 import VaultTab from '@/components/VaultTab';
 
+import VoiceNoteCard from '@/components/VoiceNoteCard';
+import { Input } from '@/components/ui/input';
+
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
   character?: {
@@ -306,6 +309,8 @@ const TastyCreative = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
   const [isLoadingEventDetail, setIsLoadingEventDetail] = useState(false);
+
+  const [audioNo, setAudioNo] = useState<number>(1)
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const historyAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -2258,6 +2263,13 @@ const TastyCreative = () => {
                     </div>
                   </div>
 
+                  <div className="flex gap-2 -mt-5">
+                    <Label className="text-gray-300">
+                      Audio No:
+                    </Label>
+                    <Input value={audioNo} onChange={(e)=>{setAudioNo(Number(e.target.value))}} type="number" min={1} className="w-[70px] bg-black/60 border-white/10 text-white rounded-l" />
+                  </div>
+
                   {/* Voice parameters */}
                   <div className="space-y-4">
                     <div>
@@ -2526,6 +2538,8 @@ const TastyCreative = () => {
                     </div>
                   ) : null}
 
+                 
+
                   {/* Voice History Section - now toggleable and scrollable */}
                   {selectedVoice && showHistory && (
                     <div className="flex-1 mt-4">
@@ -2684,7 +2698,11 @@ const TastyCreative = () => {
                         )}
                       </div>
                     </div>
-                  )}
+                    )}
+                     <VoiceNoteCard voiceText={voiceText} model={ 
+                      availableVoices.find((m) => m.voiceId === selectedVoice)
+                        ?.name || ""
+                    } audioNo={audioNo}/>
                 </CardContent>
               </Card>
             </div>
