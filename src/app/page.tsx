@@ -1,11 +1,24 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
+import React, { useState, useRef, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import {
   Calendar as CalendarIcon,
   Star,
@@ -40,12 +53,12 @@ import {
   PencilRuler,
   Clapperboard,
   MessageSquareText,
-  Vault
-} from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/contexts/AuthContext';
+  Vault,
+} from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   generateVoice,
   downloadAudio,
@@ -76,7 +89,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogClose
+  DialogClose,
 } from "@/components/ui/dialog";
 
 // Import ComfyUI services
@@ -85,8 +98,8 @@ import {
   getAvailableModels,
   generateImage,
   closeWebSocketConnection,
-  COMFY_UI_CONFIG
-} from './services/comfyui-implementation';
+  COMFY_UI_CONFIG,
+} from "./services/comfyui-implementation";
 
 // Import Google Calendar services
 import {
@@ -97,23 +110,20 @@ import {
   signOutFromGoogle,
   isUserSignedIn,
   getEventById,
-  getPublicCalendarEvents
-} from './services/google-calendar-implementation';
-import LiveFlyer from '@/components/LiveFlyer';
+  getPublicCalendarEvents,
+} from "./services/google-calendar-implementation";
+import LiveFlyer from "@/components/LiveFlyer";
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import VIPFlyer from '@/components/VIPFlyer';
-import ModelPage from './models/page';
-import FTTPage from '@/components/FTTPage';
-import TwitterAdsPage from '@/components/TwitterAdsPage';
-import LaunchPrepDetails from '@/components/LaunchPrepDetails';
-import GenerationTab from '@/components/GenerationTab';
-import ChattingTab from '@/components/ChattingTab';
-import OnboardingTab from '@/components/OnboardingTab';
-import VaultTab from '@/components/VaultTab';
-
-import VoiceNoteCard from '@/components/VoiceNoteCard';
-import { Input } from '@/components/ui/input';
+import { useRouter, useSearchParams } from "next/navigation";
+import VIPFlyer from "@/components/VIPFlyer";
+import ModelPage from "./models/page";
+import FTTPage from "@/components/FTTPage";
+import TwitterAdsPage from "@/components/TwitterAdsPage";
+import LaunchPrepDetails from "@/components/LaunchPrepDetails";
+import GenerationTab from "@/components/GenerationTab";
+import ChattingTab from "@/components/ChattingTab";
+import OnboardingTab from "@/components/OnboardingTab";
+import VaultTab from "@/components/VaultTab";
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -226,13 +236,15 @@ const TastyCreative = () => {
   const { user, logout } = useAuth();
 
   const searchParams = useSearchParams();
-  const [tabValue, setTabValue] = useState<string>(searchParams?.get('tab') || 'dashboard');
+  const [tabValue, setTabValue] = useState<string>(
+    searchParams?.get("tab") || "dashboard"
+  );
   const router = useRouter();
 
-  console.log(tabValue, 'tabValue')
+  console.log(tabValue, "tabValue");
 
   const [displayName, setDisplayName] = useState("Admin");
- const [activeTab, setActiveTab] = useState(tabValue || 'dashboard');
+  const [activeTab, setActiveTab] = useState(tabValue || "dashboard");
   const [isPaid, setIsPaid] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState("");
   const [promptText, setPromptText] = useState("");
@@ -254,8 +266,10 @@ const TastyCreative = () => {
   const [styleExaggeration, setStyleExaggeration] = useState(0.3);
   const [speakerBoost, setSpeakerBoost] = useState(true);
   const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
-  const [generatedAudio, setGeneratedAudio] = useState<GeneratedAudio | null>(null);
-  const [voiceError, setVoiceError] = useState('');
+  const [generatedAudio, setGeneratedAudio] = useState<GeneratedAudio | null>(
+    null
+  );
+  const [voiceError, setVoiceError] = useState("");
 
   // History states
   const [historyEntries, setHistoryEntries] = useState<HistoryItem[]>([]);
@@ -292,25 +306,27 @@ const TastyCreative = () => {
     null
   );
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [imageError, setImageError] = useState('');
+  const [imageError, setImageError] = useState("");
 
   // Calendar tab states
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isCalendarLoading, setIsCalendarLoading] = useState(false);
-  const [calendarError, setCalendarError] = useState('');
+  const [calendarError, setCalendarError] = useState("");
   const [isCalendarSignedIn, setIsCalendarSignedIn] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [newEventTitle, setNewEventTitle] = useState('');
-  const [newEventDate, setNewEventDate] = useState('');
-  const [newEventTime, setNewEventTime] = useState('');
-  const [newEventLocation, setNewEventLocation] = useState('');
-  const [newEventDescription, setNewEventDescription] = useState('');
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventTime, setNewEventTime] = useState("");
+  const [newEventLocation, setNewEventLocation] = useState("");
+  const [newEventDescription, setNewEventDescription] = useState("");
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
+    null
+  );
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
   const [isLoadingEventDetail, setIsLoadingEventDetail] = useState(false);
 
-  const [audioNo, setAudioNo] = useState<number>(1)
+  const [audioNo, setAudioNo] = useState<number>(1);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const historyAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -320,56 +336,54 @@ const TastyCreative = () => {
     setActiveTab(value);
 
     const params = new URLSearchParams(searchParams?.toString() || "");
-    
-    params.set('tab', value);
-    
-    router.replace(`?${params.toString()}`, { scroll: false });
 
-   
+    params.set("tab", value);
+
+    router.replace(`?${params.toString()}`, { scroll: false });
   };
 
   const triggerTabChange = (tab: string, model: string) => {
     setTabValue(tab);
-    window.history.pushState(null, '', `?tab=${tab}&model=${model}`);
+    window.history.pushState(null, "", `?tab=${tab}&model=${model}`);
     window.location.reload();
   };
 
   useEffect(() => {
-      const checkAuth = async () => {
-        try {
-          const res = await fetch("/api/google/check-auth");
-          const data = await res.json();
-  
-          if (!data.authenticated) {
-            // Get the current tab from URL or default to 'live'
-            const currentTab = tabValue || "dashboard";
-  
-            // Include the current tab in the auth request
-            const authRes = await fetch(
-              `/api/google/auth?tab=${encodeURIComponent(currentTab)}`
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/google/check-auth");
+        const data = await res.json();
+
+        if (!data.authenticated) {
+          // Get the current tab from URL or default to 'live'
+          const currentTab = tabValue || "dashboard";
+
+          // Include the current tab in the auth request
+          const authRes = await fetch(
+            `/api/google/auth?tab=${encodeURIComponent(currentTab)}`
+          );
+          const authData = await authRes.json();
+
+          if (authData.authUrl) {
+            // Append the tab parameter to the auth URL
+            const authUrlWithTab = new URL(authData.authUrl);
+            authUrlWithTab.searchParams?.set(
+              "state",
+              JSON.stringify({ tab: currentTab })
             );
-            const authData = await authRes.json();
-  
-            if (authData.authUrl) {
-              // Append the tab parameter to the auth URL
-              const authUrlWithTab = new URL(authData.authUrl);
-              authUrlWithTab.searchParams?.set(
-                "state",
-                JSON.stringify({ tab: currentTab })
-              );
-  
-              window.location.href = authUrlWithTab.toString();
-            }
-          } else {
-            // setIsLoading(false);
+
+            window.location.href = authUrlWithTab.toString();
           }
-        } catch (error) {
-          console.error("Authentication check failed", error);
+        } else {
+          // setIsLoading(false);
         }
-      };
-  
-      checkAuth();
-    }, [router]);
+      } catch (error) {
+        console.error("Authentication check failed", error);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   useEffect(() => {
     if (tabValue === "dashboard" || tabValue === "") {
@@ -411,64 +425,21 @@ const TastyCreative = () => {
     }
   }, [user]);
 
-
   // Update the effect that initializes Google Calendar
   useEffect(() => {
-
-   const loadCalendarEventsForMonth = async () => {
-  if (activeTab === 'dashboard') {
-    console.log(`Month changed to ${selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}, loading events...`);
-
-    // Clear events first to avoid stale data being displayed
-    setCalendarEvents([]);
-    setIsCalendarLoading(true);
-    setCalendarError('');
-
-    const startDate = new Date(selectedDate);
-    startDate.setDate(1); // First day of month
-    startDate.setHours(0, 0, 0, 0); // Start of day
-
-    const endDate = new Date(selectedDate);
-    endDate.setMonth(endDate.getMonth() + 1);
-    endDate.setDate(0); // Last day of month
-    endDate.setHours(23, 59, 59, 999); // End of day
-
-    console.log(`Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
-
-    try {
-      // Always use the public calendar API without checking authentication
-      const events = await getPublicCalendarEvents(startDate, endDate);
-      console.log(`Received ${events.length} events from public API`);
-
-      // Filter out events that have "Call" in the title
-      const filteredEvents = events.filter(event => 
-        !event.summary?.toLowerCase().includes('call')
-      );
-
-      // Update state with filtered events
-      setCalendarEvents(filteredEvents);
-    } catch (error) {
-      console.error('Error loading calendar events:', error);
-      setCalendarError('Failed to load events from calendar.');
-    } finally {
-      setIsCalendarLoading(false);
-    }
-  }
-};
-
-
-    loadCalendarEventsForMonth();
-  }, [selectedDate, activeTab]);
-
-  useEffect(() => {
     const loadCalendarEventsForMonth = async () => {
-      if (activeTab === 'calendar') {
-        console.log(`Month changed to ${selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}, loading events...`);
+      if (activeTab === "dashboard") {
+        console.log(
+          `Month changed to ${selectedDate.toLocaleString("default", {
+            month: "long",
+            year: "numeric",
+          })}, loading events...`
+        );
 
         // Clear events first to avoid stale data being displayed
         setCalendarEvents([]);
         setIsCalendarLoading(true);
-        setCalendarError('');
+        setCalendarError("");
 
         const startDate = new Date(selectedDate);
         startDate.setDate(1); // First day of month
@@ -479,7 +450,61 @@ const TastyCreative = () => {
         endDate.setDate(0); // Last day of month
         endDate.setHours(23, 59, 59, 999); // End of day
 
-        console.log(`Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+        console.log(
+          `Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`
+        );
+
+        try {
+          // Always use the public calendar API without checking authentication
+          const events = await getPublicCalendarEvents(startDate, endDate);
+          console.log(`Received ${events.length} events from public API`);
+
+          // Filter out events that have "Call" in the title
+          const filteredEvents = events.filter(
+            (event) => !event.summary?.toLowerCase().includes("call")
+          );
+
+          // Update state with filtered events
+          setCalendarEvents(filteredEvents);
+        } catch (error) {
+          console.error("Error loading calendar events:", error);
+          setCalendarError("Failed to load events from calendar.");
+        } finally {
+          setIsCalendarLoading(false);
+        }
+      }
+    };
+
+    loadCalendarEventsForMonth();
+  }, [selectedDate, activeTab]);
+
+  useEffect(() => {
+    const loadCalendarEventsForMonth = async () => {
+      if (activeTab === "calendar") {
+        console.log(
+          `Month changed to ${selectedDate.toLocaleString("default", {
+            month: "long",
+            year: "numeric",
+          })}, loading events...`
+        );
+
+        // Clear events first to avoid stale data being displayed
+        setCalendarEvents([]);
+        setIsCalendarLoading(true);
+        setCalendarError("");
+
+        const startDate = new Date(selectedDate);
+        startDate.setDate(1); // First day of month
+        startDate.setHours(0, 0, 0, 0); // Start of day
+
+        const endDate = new Date(selectedDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(0); // Last day of month
+        endDate.setHours(23, 59, 59, 999); // End of day
+
+        console.log(
+          `Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`
+        );
 
         try {
           let events = [];
@@ -491,7 +516,9 @@ const TastyCreative = () => {
           if (isSignedIn) {
             // If signed in, fetch events using the authenticated API
             events = await getCalendarEvents(startDate, endDate);
-            console.log(`Received ${events.length} events from authenticated API`);
+            console.log(
+              `Received ${events.length} events from authenticated API`
+            );
           } else {
             // If not signed in, use the public calendar API
             events = await getPublicCalendarEvents(startDate, endDate);
@@ -501,13 +528,18 @@ const TastyCreative = () => {
           // Update state with events
           setCalendarEvents(events);
         } catch (error) {
-          console.error('Error loading calendar events:', error);
-          setCalendarError('Failed to load events from calendar.');
+          console.error("Error loading calendar events:", error);
+          setCalendarError("Failed to load events from calendar.");
 
           // If it's an authentication error, update the sign-in status
-          if (error && typeof error === 'object') {
+          if (error && typeof error === "object") {
             const errorObj = error as Record<string, any>;
-            if (errorObj.status === 401 || (errorObj.message && typeof errorObj.message === 'string' && errorObj.message.includes('auth'))) {
+            if (
+              errorObj.status === 401 ||
+              (errorObj.message &&
+                typeof errorObj.message === "string" &&
+                errorObj.message.includes("auth"))
+            ) {
               setIsCalendarSignedIn(false);
             }
           }
@@ -529,7 +561,7 @@ const TastyCreative = () => {
           const connectionStatus = await checkComfyUIConnection();
           setComfyUIStatus(connectionStatus.status);
 
-          if (connectionStatus.status === 'connected') {
+          if (connectionStatus.status === "connected") {
             // Get available models
             const models = await getAvailableModels();
             setAvailableModels(models.checkpoints || []);
@@ -561,32 +593,37 @@ const TastyCreative = () => {
   }, [activeTab]);
 
   // Format date and time for event details
-  const formatDateTime = (dateTimeStr: string | undefined, isAllDay: boolean = false) => {
-    if (!dateTimeStr) return 'Not specified';
+  const formatDateTime = (
+    dateTimeStr: string | undefined,
+    isAllDay: boolean = false
+  ) => {
+    if (!dateTimeStr) return "Not specified";
 
     const date = new Date(dateTimeStr);
 
     if (isAllDay) {
-      return date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+      return date.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
     }
 
-    return date.toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return date.toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   // Function to render meeting links
-  const renderMeetingLinks = (conferenceData: EventConferenceData | undefined) => {
+  const renderMeetingLinks = (
+    conferenceData: EventConferenceData | undefined
+  ) => {
     if (!conferenceData || !conferenceData.entryPoints) return null;
 
     return (
@@ -600,9 +637,15 @@ const TastyCreative = () => {
             rel="noopener noreferrer"
             className="flex items-center text-sm text-blue-400 hover:text-blue-300"
           >
-            {entry.entryPointType === 'video' && <Video size={14} className="mr-1" />}
-            {entry.entryPointType === 'phone' && <Phone size={14} className="mr-1" />}
-            {entry.entryPointType === 'more' && <MoreHorizontal size={14} className="mr-1" />}
+            {entry.entryPointType === "video" && (
+              <Video size={14} className="mr-1" />
+            )}
+            {entry.entryPointType === "phone" && (
+              <Phone size={14} className="mr-1" />
+            )}
+            {entry.entryPointType === "more" && (
+              <MoreHorizontal size={14} className="mr-1" />
+            )}
             {entry.label || entry.entryPointType}
           </a>
         ))}
@@ -616,17 +659,19 @@ const TastyCreative = () => {
       setIsLoadingEventDetail(true);
 
       // Find the event in the current events array
-      const existingEvent = calendarEvents.find(event => event.id === eventId);
+      const existingEvent = calendarEvents.find(
+        (event) => event.id === eventId
+      );
 
       if (existingEvent) {
         setSelectedEvent(existingEvent);
         setIsEventDetailOpen(true);
       } else {
-        setCalendarError('Event not found');
+        setCalendarError("Event not found");
       }
     } catch (error) {
-      console.error('Error viewing event details:', error);
-      setCalendarError('Failed to load event details');
+      console.error("Error viewing event details:", error);
+      setCalendarError("Failed to load event details");
     } finally {
       setIsLoadingEventDetail(false);
     }
@@ -638,7 +683,7 @@ const TastyCreative = () => {
 
     try {
       setIsLoadingHistory(true);
-      setHistoryError('');
+      setHistoryError("");
 
       // Fetch history from ElevenLabs API without pagination (large page size)
       const result = await fetchHistoryFromElevenLabs(
@@ -663,10 +708,14 @@ const TastyCreative = () => {
     debugger;
     try {
       setIsCalendarLoading(true);
-      setCalendarError('');
+      setCalendarError("");
 
       // Add this for clearer debugging
-      console.log(`Loading calendar events for month: ${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`);
+      console.log(
+        `Loading calendar events for month: ${
+          selectedDate.getMonth() + 1
+        }/${selectedDate.getFullYear()}`
+      );
 
       const startDate = new Date(selectedDate);
       startDate.setDate(1); // First day of month
@@ -677,7 +726,9 @@ const TastyCreative = () => {
       endDate.setDate(0); // Last day of month
       endDate.setHours(23, 59, 59, 999); // End of day
 
-      console.log(`Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+      console.log(
+        `Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`
+      );
 
       // Check if we're signed in first to avoid unnecessary API calls
       const isSignedIn = await isUserSignedIn();
@@ -699,13 +750,18 @@ const TastyCreative = () => {
       // Update sign-in status after fetching events
       setIsCalendarSignedIn(true);
     } catch (error) {
-      console.error('Error loading calendar events:', error);
-      setCalendarError('Failed to load events from Google Calendar.');
+      console.error("Error loading calendar events:", error);
+      setCalendarError("Failed to load events from Google Calendar.");
 
       // If it's an authentication error, update the sign-in status
-      if (error && typeof error === 'object') {
+      if (error && typeof error === "object") {
         const errorObj = error as Record<string, any>;
-        if (errorObj.status === 401 || (errorObj.message && typeof errorObj.message === 'string' && errorObj.message.includes('auth'))) {
+        if (
+          errorObj.status === 401 ||
+          (errorObj.message &&
+            typeof errorObj.message === "string" &&
+            errorObj.message.includes("auth"))
+        ) {
           setIsCalendarSignedIn(false);
         }
       }
@@ -717,7 +773,7 @@ const TastyCreative = () => {
   // Updated function to handle Google sign-in with better popup blocking detection
   const handleCalendarSignIn = async () => {
     try {
-      setCalendarError('');
+      setCalendarError("");
       setIsCalendarLoading(true);
 
       // Start sign-in process with better error handling
@@ -729,7 +785,9 @@ const TastyCreative = () => {
         const maxAttempts = 10;
         const checkInterval = setInterval(async () => {
           attempts++;
-          console.log(`Checking sign-in status (attempt ${attempts}/${maxAttempts})...`);
+          console.log(
+            `Checking sign-in status (attempt ${attempts}/${maxAttempts})...`
+          );
 
           const signedIn = await isUserSignedIn();
           console.log(`Sign-in status check result: ${signedIn}`);
@@ -741,10 +799,11 @@ const TastyCreative = () => {
             setIsCalendarSignedIn(true);
             loadCalendarEvents();
             setIsCalendarLoading(false);
-          }
-          else if (attempts >= maxAttempts) {
+          } else if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
-            setCalendarError('Sign-in timed out. Please try again and ensure popups are allowed for this site.');
+            setCalendarError(
+              "Sign-in timed out. Please try again and ensure popups are allowed for this site."
+            );
             setIsCalendarLoading(false);
           }
         }, 1000);
@@ -753,24 +812,30 @@ const TastyCreative = () => {
         const error = signInError as Record<string, any>;
 
         // Check for specific error types from our enhanced signInWithGoogle function
-        if (error && typeof error === 'object') {
-          if (error.type === 'POPUP_BLOCKED') {
+        if (error && typeof error === "object") {
+          if (error.type === "POPUP_BLOCKED") {
             setCalendarError(
-              'Your browser blocked the sign-in popup. Please allow popups for this site in your browser settings and try again.'
+              "Your browser blocked the sign-in popup. Please allow popups for this site in your browser settings and try again."
             );
           } else if (error.error) {
             setCalendarError(`Google sign-in error: ${error.error}`);
           } else {
-            setCalendarError('Failed to start Google sign-in process. Please try again.');
+            setCalendarError(
+              "Failed to start Google sign-in process. Please try again."
+            );
           }
         } else {
-          setCalendarError('Failed to start Google sign-in process. Please try again.');
+          setCalendarError(
+            "Failed to start Google sign-in process. Please try again."
+          );
         }
         setIsCalendarLoading(false);
       }
     } catch (error) {
-      console.error('Error in sign-in process:', error);
-      setCalendarError('An unexpected error occurred during sign-in. Please check console for details and try again.');
+      console.error("Error in sign-in process:", error);
+      setCalendarError(
+        "An unexpected error occurred during sign-in. Please check console for details and try again."
+      );
       setIsCalendarLoading(false);
     }
   };
@@ -782,21 +847,21 @@ const TastyCreative = () => {
       setIsCalendarSignedIn(false);
       setCalendarEvents([]);
     } catch (error) {
-      console.error('Error signing out from Google:', error);
-      setCalendarError('Failed to sign out from Google');
+      console.error("Error signing out from Google:", error);
+      setCalendarError("Failed to sign out from Google");
     }
   };
 
   // Enhanced function to add event with details
   const handleAddEventWithDetails = async () => {
     if (!newEventTitle || !newEventDate || !newEventTime) {
-      setCalendarError('Please fill in all event fields');
+      setCalendarError("Please fill in all event fields");
       return;
     }
 
     try {
       setIsCalendarLoading(true);
-      setCalendarError('');
+      setCalendarError("");
 
       const eventDateTime = new Date(`${newEventDate}T${newEventTime}`);
 
@@ -805,26 +870,28 @@ const TastyCreative = () => {
         location: newEventLocation,
         description: newEventDescription,
         start: {
-          dateTime: eventDateTime.toISOString()
+          dateTime: eventDateTime.toISOString(),
         },
         end: {
-          dateTime: new Date(eventDateTime.getTime() + 60 * 60 * 1000).toISOString() // 1 hour later
-        }
+          dateTime: new Date(
+            eventDateTime.getTime() + 60 * 60 * 1000
+          ).toISOString(), // 1 hour later
+        },
       });
 
       // Reset form
-      setNewEventTitle('');
-      setNewEventDate('');
-      setNewEventTime('');
-      setNewEventLocation('');
-      setNewEventDescription('');
+      setNewEventTitle("");
+      setNewEventDate("");
+      setNewEventTime("");
+      setNewEventLocation("");
+      setNewEventDescription("");
       setShowAddEvent(false);
 
       // Reload events
       await loadCalendarEvents();
     } catch (error) {
-      console.error('Error adding event:', error);
-      setCalendarError('Failed to add event to Google Calendar');
+      console.error("Error adding event:", error);
+      setCalendarError("Failed to add event to Google Calendar");
     } finally {
       setIsCalendarLoading(false);
     }
@@ -843,7 +910,7 @@ const TastyCreative = () => {
       if (!selectedApiKeyProfile) return;
 
       setIsCheckingBalance(true);
-      setVoiceError('');
+      setVoiceError("");
 
       try {
         // Fetch balance
@@ -906,7 +973,9 @@ const TastyCreative = () => {
 
     try {
       // Get the selected voice
-      const selectedVoiceDetails = availableVoices.find(voice => voice.voiceId === selectedVoice);
+      const selectedVoiceDetails = availableVoices.find(
+        (voice) => voice.voiceId === selectedVoice
+      );
 
       if (!selectedVoiceDetails) {
         throw new Error("Voice not found");
@@ -930,7 +999,7 @@ const TastyCreative = () => {
         ...result,
         voiceName: selectedVoiceDetails.name,
       });
-      setGenerationStatus('Voice generated successfully!');
+      setGenerationStatus("Voice generated successfully!");
 
       // Refresh balance after generation
       const balance = await checkApiKeyBalance(selectedApiKeyProfile);
@@ -957,7 +1026,7 @@ const TastyCreative = () => {
     try {
       setIsGenerating(true);
       setGenerationProgress(0);
-      setImageError('');
+      setImageError("");
 
       const imageResult = await generateImage({
         prompt: promptText,
@@ -1004,7 +1073,7 @@ const TastyCreative = () => {
     try {
       setIsLoadingHistoryAudio(true);
       setSelectedHistoryItem(historyItem);
-      setHistoryError('');
+      setHistoryError("");
 
       // Get audio for this history item
       const audio = await getHistoryAudio(
@@ -1038,7 +1107,8 @@ const TastyCreative = () => {
     if (historyAudio?.audioBlob) {
       downloadAudio(
         historyAudio.audioBlob,
-        `${historyItem.voice_name || "voice"}-${historyItem.history_item_id
+        `${historyItem.voice_name || "voice"}-${
+          historyItem.history_item_id
         }.mp3`
       );
     }
@@ -1080,9 +1150,12 @@ const TastyCreative = () => {
         setStability(storedParams.stability);
       if (storedParams.clarity !== undefined) setClarity(storedParams.clarity);
       if (storedParams.speed !== undefined) setSpeed(storedParams.speed);
-      if (storedParams.styleExaggeration !== undefined) setStyleExaggeration(storedParams.styleExaggeration);
-      if (storedParams.speakerBoost !== undefined) setSpeakerBoost(storedParams.speakerBoost);
-      if (storedParams.modelId !== undefined) setSelectedModelId(storedParams.modelId);
+      if (storedParams.styleExaggeration !== undefined)
+        setStyleExaggeration(storedParams.styleExaggeration);
+      if (storedParams.speakerBoost !== undefined)
+        setSpeakerBoost(storedParams.speakerBoost);
+      if (storedParams.modelId !== undefined)
+        setSelectedModelId(storedParams.modelId);
 
       // Show a success notification
       setGenerationStatus(`Voice parameters restored from history`);
@@ -1111,25 +1184,30 @@ const TastyCreative = () => {
 
   const truncateText = (text: string | undefined, maxLength = 30) => {
     return text && text.length > maxLength
-      ? text.substring(0, maxLength) + '...'
-      : (text || '');
+      ? text.substring(0, maxLength) + "..."
+      : text || "";
   };
 
-  const extractLinksFromDescription = (description: string | null | undefined): { thumbnailUrl: string | null, driveUrl: string | null } => {
+  const extractLinksFromDescription = (
+    description: string | null | undefined
+  ): { thumbnailUrl: string | null; driveUrl: string | null } => {
     if (!description) return { thumbnailUrl: null, driveUrl: null };
 
     // Extract thumbnail URL
-    const thumbnailMatch = description.match(/https:\/\/lh3\.googleusercontent\.com\/[^\s]+/);
+    const thumbnailMatch = description.match(
+      /https:\/\/lh3\.googleusercontent\.com\/[^\s]+/
+    );
     const thumbnailUrl = thumbnailMatch ? thumbnailMatch[0] : null;
 
     // Extract Drive WebView Link
-    const driveMatch = description.match(/https:\/\/drive\.google\.com\/file\/[^\s]+/);
+    const driveMatch = description.match(
+      /https:\/\/drive\.google\.com\/file\/[^\s]+/
+    );
     const driveUrl = driveMatch ? driveMatch[0] : null;
 
     return { thumbnailUrl, driveUrl };
   };
 
-  
   return (
     <div className="relative flex flex-col w-full min-h-screen text-white">
       {/* Space background */}
@@ -1152,14 +1230,12 @@ const TastyCreative = () => {
       <div className="relative z-10 backdrop-blur-xl bg-black/40 border-b border-white/10 p-4 flex justify-between items-center">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
-           <img src="/tasty-logo.png" alt="logo" width={32} height={32} />
+            <img src="/tasty-logo.png" alt="logo" width={32} height={32} />
           </div>
           <h1 className="text-xl font-bold">Tasty Creative</h1>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-gray-300 text-sm">
-            Welcome, {displayName}
-          </span>
+          <span className="text-gray-300 text-sm">Welcome, {displayName}</span>
           <Button
             variant="outline"
             className="text-white border-white/20 bg-white/5 hover:bg-white/10 rounded-full"
@@ -1179,8 +1255,12 @@ const TastyCreative = () => {
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto p-4">
-        <Tabs defaultValue={tabValue} className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-7 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
+        <Tabs
+          defaultValue={tabValue}
+          className="w-full"
+          onValueChange={handleTabChange}
+        >
+          <TabsList className="grid grid-cols-8 mb-6 bg-black/30 backdrop-blur-lg rounded-full p-1 border border-white/10">
             <TabsTrigger
               value="dashboard"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5 flex items-center justify-center"
@@ -1258,12 +1338,19 @@ const TastyCreative = () => {
               <MessageSquareText size={16} className="sm:mr-1" />
               <span className="hidden sm:inline">Chatting</span>
             </TabsTrigger>
-                       <TabsTrigger
+            <TabsTrigger
               value="vault"
               className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
             >
               <Vault size={16} className="sm:mr-1" />
               <span className="hidden sm:inline">Vault</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="imagegen"
+              className="text-sm rounded-full text-white data-[state=active]:text-black data-[state=active]:bg-white relative px-3 py-1.5"
+            >
+              <Image size={16} className="sm:mr-1" />
+              <span className="hidden sm:inline">AI Generation</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1273,25 +1360,25 @@ const TastyCreative = () => {
               {/* Calendar Controls */}
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 {/* Calendar Header */}
-               {Array.isArray(notifications) && notifications && (
-                <div className='px-5'>
-                  {notifications.map((notification:NotificationData, index:number) => (
-                    <div
-                      className='py-1'
-                      key={index}>
-                      <LaunchPrepDetails              
-                        modelDataLoading={false} // Replace with actual loading state if needed
-                        selectedModelData={notification.editedData} // Passing the `editedData` from the notificationication
-                        timestamp={notification.timestamp} // Passing the timestamp
-                        editedBy={notification.editedBy} // Passing the editor's name
-                        className="bg-black/20 dark"
-                        dashboard={true} // Pass the dashboard prop to the component
-                        triggerTabChange={triggerTabChange} // Pass the handleTabChange function to the component
-                      />
+                {Array.isArray(notifications) && notifications && (
+                  <div className="px-5">
+                    {notifications.map(
+                      (notification: NotificationData, index: number) => (
+                        <div className="py-1" key={index}>
+                          <LaunchPrepDetails
+                            modelDataLoading={false} // Replace with actual loading state if needed
+                            selectedModelData={notification.editedData} // Passing the `editedData` from the notificationication
+                            timestamp={notification.timestamp} // Passing the timestamp
+                            editedBy={notification.editedBy} // Passing the editor's name
+                            className="bg-black/20 dark"
+                            dashboard={true} // Pass the dashboard prop to the component
+                            triggerTabChange={triggerTabChange} // Pass the handleTabChange function to the component
+                          />
+                        </div>
+                      )
+                    )}
                   </div>
-                  ))}
-                </div>
-               )}
+                )}
                 <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <CardTitle className="text-white">Calendar</CardTitle>
@@ -1317,7 +1404,10 @@ const TastyCreative = () => {
                     </Button>
 
                     <h3 className="text-white text-lg font-semibold">
-                      {selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                      {selectedDate.toLocaleString("default", {
+                        month: "long",
+                        year: "numeric",
+                      })}
                     </h3>
 
                     <Button
@@ -1336,40 +1426,67 @@ const TastyCreative = () => {
 
                   {/* Calendar grid */}
                   <div className="grid grid-cols-7 gap-1 text-center mb-4">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                      <div key={day} className="text-gray-400 text-sm py-2">{day}</div>
-                    ))}
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                      (day) => (
+                        <div key={day} className="text-gray-400 text-sm py-2">
+                          {day}
+                        </div>
+                      )
+                    )}
 
                     {(() => {
                       const days = [];
-                      const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-                      const lastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
+                      const date = new Date(
+                        selectedDate.getFullYear(),
+                        selectedDate.getMonth(),
+                        1
+                      );
+                      const lastDay = new Date(
+                        selectedDate.getFullYear(),
+                        selectedDate.getMonth() + 1,
+                        0
+                      ).getDate();
 
                       // Add empty cells for days before the first day of the month
                       for (let i = 0; i < date.getDay(); i++) {
                         days.push(
-                          <div key={`empty-${i}`} className="h-16 bg-black/20 rounded-md"></div>
+                          <div
+                            key={`empty-${i}`}
+                            className="h-16 bg-black/20 rounded-md"
+                          ></div>
                         );
                       }
 
                       // Add cells for each day of the month
                       for (let i = 1; i <= lastDay; i++) {
-                        const currentDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), i);
+                        const currentDate = new Date(
+                          selectedDate.getFullYear(),
+                          selectedDate.getMonth(),
+                          i
+                        );
                         // Get events for this day
-                        const dayEvents = calendarEvents.filter(event => {
-                          const eventDateString = event.start.dateTime || event.start.date;
+                        const dayEvents = calendarEvents.filter((event) => {
+                          const eventDateString =
+                            event.start.dateTime || event.start.date;
                           if (!eventDateString) return false;
 
                           const eventDate = new Date(eventDateString);
-                          return eventDate.getDate() === i &&
+                          return (
+                            eventDate.getDate() === i &&
                             eventDate.getMonth() === currentDate.getMonth() &&
-                            eventDate.getFullYear() === currentDate.getFullYear();
+                            eventDate.getFullYear() ===
+                              currentDate.getFullYear()
+                          );
                         });
 
                         days.push(
                           <div
                             key={i}
-                            className={`h-16 p-1 rounded-md text-white relative overflow-hidden ${dayEvents.length > 0 ? 'bg-purple-900/30 border border-purple-500/30' : 'bg-black/20'}`}
+                            className={`h-16 p-1 rounded-md text-white relative overflow-hidden ${
+                              dayEvents.length > 0
+                                ? "bg-purple-900/30 border border-purple-500/30"
+                                : "bg-black/20"
+                            }`}
                           >
                             <div className="text-right text-sm mb-1">{i}</div>
                             <div className="overflow-y-auto text-xs h-10">
@@ -1378,7 +1495,11 @@ const TastyCreative = () => {
                                   key={idx}
                                   className="w-full text-left truncate bg-blue-800/40 hover:bg-blue-700/40 rounded px-1 py-0.5 mb-0.5 transition-colors"
                                   title={event.summary}
-                                  onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
+                                  onClick={() =>
+                                    event.id
+                                      ? handleViewEventDetails(event.id)
+                                      : undefined
+                                  }
                                   disabled={!event.id}
                                 >
                                   {event.summary}
@@ -1407,7 +1528,10 @@ const TastyCreative = () => {
                 <CardContent>
                   {isCalendarLoading ? (
                     <div className="flex justify-center items-center p-8">
-                      <Loader2 size={24} className="animate-spin text-purple-400" />
+                      <Loader2
+                        size={24}
+                        className="animate-spin text-purple-400"
+                      />
                     </div>
                   ) : calendarEvents.length > 0 ? (
                     <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
@@ -1418,7 +1542,7 @@ const TastyCreative = () => {
 
                           // Handle undefined dates for sorting
                           if (!dateAStr && !dateBStr) return 0;
-                          if (!dateAStr) return 1;  // Put items with no date at the end
+                          if (!dateAStr) return 1; // Put items with no date at the end
                           if (!dateBStr) return -1; // Put items with no date at the end
 
                           const dateA = new Date(dateAStr);
@@ -1427,7 +1551,8 @@ const TastyCreative = () => {
                         })
                         .map((event, index) => {
                           // Safely handle dates
-                          const eventDateStr = event.start.dateTime || event.start.date;
+                          const eventDateStr =
+                            event.start.dateTime || event.start.date;
                           if (!eventDateStr) return null; // Skip events with no date
 
                           const eventDate = new Date(eventDateStr);
@@ -1437,23 +1562,33 @@ const TastyCreative = () => {
                           // Get time of day or "All day"
                           const timeStr = isAllDay
                             ? "All day"
-                            : eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                            : eventDate.toLocaleTimeString("en-US", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              });
 
                           return (
                             <button
                               key={index}
-                              className={`w-full p-3 border rounded-lg text-left transition-colors ${isPast
-                                ? "border-gray-700/30 bg-black/40 opacity-60 hidden"
-                                : "border-white/10 bg-black/40 hover:bg-black/60"
-                                }`}
-                              onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
+                              className={`w-full p-3 border rounded-lg text-left transition-colors ${
+                                isPast
+                                  ? "border-gray-700/30 bg-black/40 opacity-60 hidden"
+                                  : "border-white/10 bg-black/40 hover:bg-black/60"
+                              }`}
+                              onClick={() =>
+                                event.id
+                                  ? handleViewEventDetails(event.id)
+                                  : undefined
+                              }
                               disabled={!event.id}
                             >
                               <div className="flex items-start">
                                 {/* Date box */}
                                 <div className="min-w-14 w-14 bg-black/40 rounded text-center p-1 mr-3">
                                   <div className="text-xs text-gray-400">
-                                    {eventDate.toLocaleDateString('en-US', { month: 'short' })}
+                                    {eventDate.toLocaleDateString("en-US", {
+                                      month: "short",
+                                    })}
                                   </div>
                                   <div className="text-xl font-bold text-white">
                                     {eventDate.getDate()}
@@ -1462,7 +1597,9 @@ const TastyCreative = () => {
 
                                 {/* Event details */}
                                 <div className="flex-1">
-                                  <div className="font-medium text-white mb-1 line-clamp-1">{event.summary}</div>
+                                  <div className="font-medium text-white mb-1 line-clamp-1">
+                                    {event.summary}
+                                  </div>
                                   <div className="text-xs text-gray-400 flex items-center mb-1">
                                     <Clock size={10} className="mr-1" />
                                     {timeStr}
@@ -1472,17 +1609,26 @@ const TastyCreative = () => {
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {event.location && (
                                       <div className="text-xs text-gray-400 flex items-center max-w-full">
-                                        <MapPin size={10} className="mr-1 flex-shrink-0" />
-                                        <span className="truncate">{event.location}</span>
+                                        <MapPin
+                                          size={10}
+                                          className="mr-1 flex-shrink-0"
+                                        />
+                                        <span className="truncate">
+                                          {event.location}
+                                        </span>
                                       </div>
                                     )}
 
-                                    {event.attendees && event.attendees.length > 0 && (
-                                      <div className="text-xs text-gray-400 flex items-center">
-                                        <Users size={10} className="mr-1" />
-                                        {event.attendees.length} attendee{event.attendees.length !== 1 ? 's' : ''}
-                                      </div>
-                                    )}
+                                    {event.attendees &&
+                                      event.attendees.length > 0 && (
+                                        <div className="text-xs text-gray-400 flex items-center">
+                                          <Users size={10} className="mr-1" />
+                                          {event.attendees.length} attendee
+                                          {event.attendees.length !== 1
+                                            ? "s"
+                                            : ""}
+                                        </div>
+                                      )}
 
                                     {event.conferenceData && (
                                       <div className="text-xs text-purple-400 flex items-center">
@@ -1495,21 +1641,29 @@ const TastyCreative = () => {
 
                                 {/* Status indicator */}
                                 {event.status && (
-                                  <div className={`ml-2 h-2 w-2 rounded-full flex-shrink-0 ${event.status === 'confirmed' ? 'bg-green-500' :
-                                    event.status === 'cancelled' ? 'bg-red-500' :
-                                      'bg-yellow-500'
-                                    }`} />
+                                  <div
+                                    className={`ml-2 h-2 w-2 rounded-full flex-shrink-0 ${
+                                      event.status === "confirmed"
+                                        ? "bg-green-500"
+                                        : event.status === "cancelled"
+                                        ? "bg-red-500"
+                                        : "bg-yellow-500"
+                                    }`}
+                                  />
                                 )}
                               </div>
                             </button>
                           );
                         })
                         // Filter out null values from map function
-                        .filter(item => item !== null)}
+                        .filter((item) => item !== null)}
                     </div>
                   ) : (
                     <div className="text-center py-8 border border-white/10 rounded-lg bg-black/20">
-                      <CalendarIcon size={32} className="mx-auto mb-3 text-gray-500 opacity-50" />
+                      <CalendarIcon
+                        size={32}
+                        className="mx-auto mb-3 text-gray-500 opacity-50"
+                      />
                       <p className="text-gray-400 mb-1">
                         No events found for this month
                       </p>
@@ -1521,11 +1675,12 @@ const TastyCreative = () => {
 
                   {/* Error display */}
                   {calendarError && (
-                    <Alert variant="destructive" className="mt-4 bg-red-900/20 border-red-500/30 text-red-200">
+                    <Alert
+                      variant="destructive"
+                      className="mt-4 bg-red-900/20 border-red-500/30 text-red-200"
+                    >
                       <AlertTitle>Error</AlertTitle>
-                      <AlertDescription>
-                        {calendarError}
-                      </AlertDescription>
+                      <AlertDescription>{calendarError}</AlertDescription>
                     </Alert>
                   )}
                 </CardContent>
@@ -1533,7 +1688,10 @@ const TastyCreative = () => {
             </div>
 
             {/* Event Detail Dialog - Remains the same except for auth-related parts */}
-            <Dialog open={isEventDetailOpen} onOpenChange={setIsEventDetailOpen}>
+            <Dialog
+              open={isEventDetailOpen}
+              onOpenChange={setIsEventDetailOpen}
+            >
               <DialogContent
                 className="bg-black/90 backdrop-blur-xl border border-purple-500/20 text-white 
       w-[90%] sm:w-[80%] md:w-[70%] lg:w-[60%] max-w-2xl 
@@ -1541,7 +1699,10 @@ const TastyCreative = () => {
               >
                 {isLoadingEventDetail ? (
                   <div className="flex justify-center items-center py-16">
-                    <Loader2 size={36} className="animate-spin text-purple-400" />
+                    <Loader2
+                      size={36}
+                      className="animate-spin text-purple-400"
+                    />
                   </div>
                 ) : selectedEvent ? (
                   <>
@@ -1552,28 +1713,41 @@ const TastyCreative = () => {
                           <div
                             className="w-4 h-4 rounded-full mt-2 flex-shrink-0"
                             style={{
-                              backgroundColor: selectedEvent.colorId === "1" ? "#7986cb" :
-                                selectedEvent.colorId === "2" ? "#33b679" :
-                                  selectedEvent.colorId === "3" ? "#8e24aa" :
-                                    selectedEvent.colorId === "4" ? "#e67c73" :
-                                      selectedEvent.colorId === "5" ? "#f6c026" :
-                                        selectedEvent.colorId === "6" ? "#f5511d" :
-                                          selectedEvent.colorId === "7" ? "#039be5" :
-                                            selectedEvent.colorId === "8" ? "#616161" :
-                                              selectedEvent.colorId === "9" ? "#3f51b5" :
-                                                selectedEvent.colorId === "10" ? "#0b8043" :
-                                                  selectedEvent.colorId === "11" ? "#d50000" : "#4285f4",
+                              backgroundColor:
+                                selectedEvent.colorId === "1"
+                                  ? "#7986cb"
+                                  : selectedEvent.colorId === "2"
+                                  ? "#33b679"
+                                  : selectedEvent.colorId === "3"
+                                  ? "#8e24aa"
+                                  : selectedEvent.colorId === "4"
+                                  ? "#e67c73"
+                                  : selectedEvent.colorId === "5"
+                                  ? "#f6c026"
+                                  : selectedEvent.colorId === "6"
+                                  ? "#f5511d"
+                                  : selectedEvent.colorId === "7"
+                                  ? "#039be5"
+                                  : selectedEvent.colorId === "8"
+                                  ? "#616161"
+                                  : selectedEvent.colorId === "9"
+                                  ? "#3f51b5"
+                                  : selectedEvent.colorId === "10"
+                                  ? "#0b8043"
+                                  : selectedEvent.colorId === "11"
+                                  ? "#d50000"
+                                  : "#4285f4",
                             }}
                           />
                         )}
                       </DialogTitle>
 
                       <div className="mt-2">
-                        {selectedEvent.status === 'confirmed' ? (
+                        {selectedEvent.status === "confirmed" ? (
                           <span className="inline-flex items-center bg-green-900/50 text-green-300 text-xs px-3 py-1 rounded-full border border-green-600/30">
                             <Check size={12} className="mr-1" /> Confirmed
                           </span>
-                        ) : selectedEvent.status === 'cancelled' ? (
+                        ) : selectedEvent.status === "cancelled" ? (
                           <span className="inline-flex items-center bg-red-900/50 text-red-300 text-xs px-3 py-1 rounded-full border border-red-600/30">
                             <X size={12} className="mr-1" /> Cancelled
                           </span>
@@ -1588,22 +1762,44 @@ const TastyCreative = () => {
                       {/* Date and Time */}
                       <div>
                         <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
-                          <CalendarIcon size={14} className="mr-2 text-purple-400" />
+                          <CalendarIcon
+                            size={14}
+                            className="mr-2 text-purple-400"
+                          />
                           Date & Time
                         </h3>
                         <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 w-10 h-10 bg-purple-900/40 rounded-full flex items-center justify-center mr-4">
-                              <CalendarIcon size={20} className="text-purple-300" />
+                              <CalendarIcon
+                                size={20}
+                                className="text-purple-300"
+                              />
                             </div>
                             <div>
                               {selectedEvent.start.date ? (
                                 // All-day event
                                 <p className="text-white text-lg">
-                                  {formatDateTime(selectedEvent.start.date, true)}
-                                  {selectedEvent.end && selectedEvent.end.date &&
-                                    new Date(selectedEvent.start.date).toDateString() !== new Date(selectedEvent.end.date).toDateString() && (
-                                      <> to {formatDateTime(selectedEvent.end.date, true)}</>
+                                  {formatDateTime(
+                                    selectedEvent.start.date,
+                                    true
+                                  )}
+                                  {selectedEvent.end &&
+                                    selectedEvent.end.date &&
+                                    new Date(
+                                      selectedEvent.start.date
+                                    ).toDateString() !==
+                                      new Date(
+                                        selectedEvent.end.date
+                                      ).toDateString() && (
+                                      <>
+                                        {" "}
+                                        to{" "}
+                                        {formatDateTime(
+                                          selectedEvent.end.date,
+                                          true
+                                        )}
+                                      </>
                                     )}
                                   <span className="ml-2 text-xs bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">
                                     All day
@@ -1613,9 +1809,16 @@ const TastyCreative = () => {
                                 // Timed event
                                 <p className="text-white text-lg">
                                   {formatDateTime(selectedEvent.start.dateTime)}
-                                  {selectedEvent.end && selectedEvent.end.dateTime && (
-                                    <> to {formatDateTime(selectedEvent.end.dateTime)}</>
-                                  )}
+                                  {selectedEvent.end &&
+                                    selectedEvent.end.dateTime && (
+                                      <>
+                                        {" "}
+                                        to{" "}
+                                        {formatDateTime(
+                                          selectedEvent.end.dateTime
+                                        )}
+                                      </>
+                                    )}
                                 </p>
                               )}
                             </div>
@@ -1624,53 +1827,62 @@ const TastyCreative = () => {
                       </div>
 
                       {/* Google Drive Link */}
-                      {selectedEvent.description && (() => {
-                        const driveMatch = selectedEvent.description.match(/WebView Link:\s*https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/[^\s]+/i);
-                        const fileId = driveMatch && driveMatch[1];
+                      {selectedEvent.description &&
+                        (() => {
+                          const driveMatch = selectedEvent.description.match(
+                            /WebView Link:\s*https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/[^\s]+/i
+                          );
+                          const fileId = driveMatch && driveMatch[1];
 
-                        if (!fileId) return null;
+                          if (!fileId) return null;
 
-                        const driveUrl = `https://drive.google.com/file/d/${fileId}/view`;
-                        const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                          const driveUrl = `https://drive.google.com/file/d/${fileId}/view`;
+                          const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
 
-                        return (
-                          <div>
-                            <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
-                              <FileText size={14} className="mr-2 text-purple-400" />
-                              File Preview
-                            </h3>
-                            <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20">
-                              <div className="w-full">
-                                <div className="relative w-full pb-[56.25%] overflow-hidden rounded-lg bg-black/60 border border-purple-500/20 mb-3">
-                                  <iframe
-                                    src={embedUrl}
-                                    className="absolute top-0 left-0 w-full h-full"
-                                    frameBorder="0"
-                                    allowFullScreen
-                                    title="Google Drive File Preview"
-                                  ></iframe>
+                          return (
+                            <div>
+                              <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
+                                <FileText
+                                  size={14}
+                                  className="mr-2 text-purple-400"
+                                />
+                                File Preview
+                              </h3>
+                              <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20">
+                                <div className="w-full">
+                                  <div className="relative w-full pb-[56.25%] overflow-hidden rounded-lg bg-black/60 border border-purple-500/20 mb-3">
+                                    <iframe
+                                      src={embedUrl}
+                                      className="absolute top-0 left-0 w-full h-full"
+                                      frameBorder="0"
+                                      allowFullScreen
+                                      title="Google Drive File Preview"
+                                    ></iframe>
+                                  </div>
+
+                                  <a
+                                    href={driveUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center w-full py-2 px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-colors"
+                                  >
+                                    <ExternalLink size={16} className="mr-2" />
+                                    Open in Google Drive
+                                  </a>
                                 </div>
-
-                                <a
-                                  href={driveUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-center w-full py-2 px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-colors"
-                                >
-                                  <ExternalLink size={16} className="mr-2" />
-                                  Open in Google Drive
-                                </a>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })()}
+                          );
+                        })()}
 
                       {/* Description */}
                       {selectedEvent.description && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
-                            <FileText size={14} className="mr-2 text-purple-400" />
+                            <FileText
+                              size={14}
+                              className="mr-2 text-purple-400"
+                            />
                             Description
                           </h3>
                           <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20 max-h-60 overflow-y-auto">
@@ -1678,14 +1890,20 @@ const TastyCreative = () => {
                               <div
                                 dangerouslySetInnerHTML={{
                                   __html: selectedEvent.description
-                                    .replace(/Thumbnail:\s*https:\/\/[^\n]+\n?/gi, '')
-                                    .replace(/WebView Link:\s*https:\/\/[^\n]+\n?/gi, '')
-                                    .replace(/Model:\s*[^\n]+\n?/gi, '')
+                                    .replace(
+                                      /Thumbnail:\s*https:\/\/[^\n]+\n?/gi,
+                                      ""
+                                    )
+                                    .replace(
+                                      /WebView Link:\s*https:\/\/[^\n]+\n?/gi,
+                                      ""
+                                    )
+                                    .replace(/Model:\s*[^\n]+\n?/gi, "")
                                     .replace(
                                       /(https?:\/\/[^\s]+)/g,
                                       '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 break-all">$1</a>'
                                     )
-                                    .replace(/\n/g, '<br />'),
+                                    .replace(/\n/g, "<br />"),
                                 }}
                               />
                             </div>
@@ -1697,7 +1915,10 @@ const TastyCreative = () => {
                       {selectedEvent.location && (
                         <div>
                           <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
-                            <MapPin size={14} className="mr-2 text-purple-400" />
+                            <MapPin
+                              size={14}
+                              className="mr-2 text-purple-400"
+                            />
                             Location
                           </h3>
                           <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20">
@@ -1705,7 +1926,9 @@ const TastyCreative = () => {
                               <div className="flex-shrink-0 w-10 h-10 bg-purple-900/40 rounded-full flex items-center justify-center mr-4">
                                 <MapPin size={20} className="text-purple-300" />
                               </div>
-                              <p className="text-white">{selectedEvent.location}</p>
+                              <p className="text-white">
+                                {selectedEvent.location}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -1725,9 +1948,13 @@ const TastyCreative = () => {
                               </div>
                               <div>
                                 <p className="text-white font-medium">
-                                  {selectedEvent.conferenceData.conferenceSolution?.name || 'Virtual Meeting'}
+                                  {selectedEvent.conferenceData
+                                    .conferenceSolution?.name ||
+                                    "Virtual Meeting"}
                                 </p>
-                                {renderMeetingLinks(selectedEvent.conferenceData)}
+                                {renderMeetingLinks(
+                                  selectedEvent.conferenceData
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1735,66 +1962,81 @@ const TastyCreative = () => {
                       )}
 
                       {/* Attendees */}
-                      {selectedEvent.attendees && selectedEvent.attendees.length > 0 && (
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
-                            <Users size={14} className="mr-2 text-purple-400" />
-                            Attendees ({selectedEvent.attendees.length})
-                          </h3>
-                          <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20 max-h-60 overflow-y-auto">
-                            <ul className="space-y-3">
-                              {selectedEvent.attendees.map((attendee, index) => (
-                                <li key={index} className="flex items-center justify-between bg-black/30 p-2 rounded-lg border border-white/5">
-                                  <div className="flex items-center">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mr-3">
-                                      <span className="text-xs font-bold text-white">
-                                        {attendee.displayName
-                                          ? attendee.displayName[0].toUpperCase()
-                                          : attendee.email[0].toUpperCase()}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-white text-sm font-medium">
-                                        {attendee.displayName || attendee.email}
-                                      </span>
-                                      <div className="flex gap-1 mt-1">
-                                        {attendee.organizer && (
-                                          <span className="text-xs bg-purple-900/30 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">
-                                            Organizer
+                      {selectedEvent.attendees &&
+                        selectedEvent.attendees.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center">
+                              <Users
+                                size={14}
+                                className="mr-2 text-purple-400"
+                              />
+                              Attendees ({selectedEvent.attendees.length})
+                            </h3>
+                            <div className="bg-black/60 rounded-lg p-4 border border-purple-500/20 max-h-60 overflow-y-auto">
+                              <ul className="space-y-3">
+                                {selectedEvent.attendees.map(
+                                  (attendee, index) => (
+                                    <li
+                                      key={index}
+                                      className="flex items-center justify-between bg-black/30 p-2 rounded-lg border border-white/5"
+                                    >
+                                      <div className="flex items-center">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mr-3">
+                                          <span className="text-xs font-bold text-white">
+                                            {attendee.displayName
+                                              ? attendee.displayName[0].toUpperCase()
+                                              : attendee.email[0].toUpperCase()}
                                           </span>
-                                        )}
-                                        {attendee.self && (
-                                          <span className="text-xs bg-blue-900/30 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">
-                                            You
+                                        </div>
+                                        <div>
+                                          <span className="text-white text-sm font-medium">
+                                            {attendee.displayName ||
+                                              attendee.email}
                                           </span>
-                                        )}
+                                          <div className="flex gap-1 mt-1">
+                                            {attendee.organizer && (
+                                              <span className="text-xs bg-purple-900/30 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">
+                                                Organizer
+                                              </span>
+                                            )}
+                                            {attendee.self && (
+                                              <span className="text-xs bg-blue-900/30 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">
+                                                You
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
                                       </div>
-                                    </div>
-                                  </div>
-                                  <span
-                                    className={`text-xs px-2 py-1 rounded-full ${attendee.responseStatus === 'accepted'
-                                      ? 'bg-green-900/30 text-green-300 border border-green-500/30'
-                                      : attendee.responseStatus === 'declined'
-                                        ? 'bg-red-900/30 text-red-300 border border-red-500/30'
-                                        : attendee.responseStatus === 'tentative'
-                                          ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30'
-                                          : 'bg-gray-900/30 text-gray-300 border border-gray-500/30'
-                                      }`}
-                                  >
-                                    {attendee.responseStatus === 'accepted'
-                                      ? 'Accepted'
-                                      : attendee.responseStatus === 'declined'
-                                        ? 'Declined'
-                                        : attendee.responseStatus === 'tentative'
-                                          ? 'Maybe'
-                                          : 'Pending'}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
+                                      <span
+                                        className={`text-xs px-2 py-1 rounded-full ${
+                                          attendee.responseStatus === "accepted"
+                                            ? "bg-green-900/30 text-green-300 border border-green-500/30"
+                                            : attendee.responseStatus ===
+                                              "declined"
+                                            ? "bg-red-900/30 text-red-300 border border-red-500/30"
+                                            : attendee.responseStatus ===
+                                              "tentative"
+                                            ? "bg-yellow-900/30 text-yellow-300 border border-yellow-500/30"
+                                            : "bg-gray-900/30 text-gray-300 border border-gray-500/30"
+                                        }`}
+                                      >
+                                        {attendee.responseStatus === "accepted"
+                                          ? "Accepted"
+                                          : attendee.responseStatus ===
+                                            "declined"
+                                          ? "Declined"
+                                          : attendee.responseStatus ===
+                                            "tentative"
+                                          ? "Maybe"
+                                          : "Pending"}
+                                      </span>
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Creator/Organizer */}
                       {(selectedEvent.creator || selectedEvent.organizer) && (
@@ -1813,7 +2055,7 @@ const TastyCreative = () => {
                                   selectedEvent.creator?.email ||
                                   selectedEvent.organizer?.displayName ||
                                   selectedEvent.organizer?.email ||
-                                  'Unknown'}
+                                  "Unknown"}
                               </p>
                             </div>
                           </div>
@@ -1829,15 +2071,21 @@ const TastyCreative = () => {
                           rel="noopener noreferrer"
                           className="inline-flex items-center text-sm text-blue-400 hover:text-blue-300 transition-colors"
                         >
-                          <ExternalLink size={14} className="mr-2" /> View in Google Calendar
+                          <ExternalLink size={14} className="mr-2" /> View in
+                          Google Calendar
                         </a>
                       )}
                     </div>
                   </>
                 ) : (
                   <div className="py-12 text-center">
-                    <CalendarIcon size={48} className="mx-auto text-gray-500 opacity-50 mb-4" />
-                    <p className="text-gray-400 text-lg">Event details not available</p>
+                    <CalendarIcon
+                      size={48}
+                      className="mx-auto text-gray-500 opacity-50 mb-4"
+                    />
+                    <p className="text-gray-400 text-lg">
+                      Event details not available
+                    </p>
                     <DialogClose asChild>
                       <Button className="mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0">
                         Close
@@ -1873,12 +2121,21 @@ const TastyCreative = () => {
                   {/* Status indicator */}
                   <div className="min-w-48">
                     <div className="flex items-center">
-                      <div className={`rounded-full w-3 h-3 ${comfyUIStatus === 'connected' ? 'bg-green-500' :
-                        comfyUIStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-                        } mr-2`}></div>
+                      <div
+                        className={`rounded-full w-3 h-3 ${
+                          comfyUIStatus === "connected"
+                            ? "bg-green-500"
+                            : comfyUIStatus === "connecting"
+                            ? "bg-yellow-500"
+                            : "bg-red-500"
+                        } mr-2`}
+                      ></div>
                       <span className="text-sm">
-                        {comfyUIStatus === 'connected' ? 'Connected to RunPod' :
-                          comfyUIStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+                        {comfyUIStatus === "connected"
+                          ? "Connected to RunPod"
+                          : comfyUIStatus === "connecting"
+                          ? "Connecting..."
+                          : "Disconnected"}
                       </span>
                     </div>
                   </div>
@@ -1951,7 +2208,12 @@ const TastyCreative = () => {
 
                   {/* Sampler selection */}
                   <div>
-                    <Label htmlFor="sampler-selection" className="text-gray-300 mb-1 block">Sampler</Label>
+                    <Label
+                      htmlFor="sampler-selection"
+                      className="text-gray-300 mb-1 block"
+                    >
+                      Sampler
+                    </Label>
                     <Select
                       value={selectedSampler}
                       onValueChange={setSelectedSampler}
@@ -2220,7 +2482,12 @@ const TastyCreative = () => {
 
                   {/* Model selection */}
                   <div>
-                    <Label htmlFor="model-selection" className="text-gray-300 mb-1 block">Select AI Model</Label>
+                    <Label
+                      htmlFor="model-selection"
+                      className="text-gray-300 mb-1 block"
+                    >
+                      Select AI Model
+                    </Label>
                     <Select
                       value={selectedModelId}
                       onValueChange={setSelectedModelId}
@@ -2264,10 +2531,16 @@ const TastyCreative = () => {
                   </div>
 
                   <div className="flex gap-2 -mt-5">
-                    <Label className="text-gray-300">
-                      Audio No:
-                    </Label>
-                    <Input value={audioNo} onChange={(e)=>{setAudioNo(Number(e.target.value))}} type="number" min={1} className="w-[70px] bg-black/60 border-white/10 text-white rounded-l" />
+                    <Label className="text-gray-300">Audio No:</Label>
+                    <Input
+                      value={audioNo}
+                      onChange={(e) => {
+                        setAudioNo(Number(e.target.value));
+                      }}
+                      type="number"
+                      min={1}
+                      className="w-[70px] bg-black/60 border-white/10 text-white rounded-l"
+                    />
                   </div>
 
                   {/* Voice parameters */}
@@ -2427,7 +2700,9 @@ const TastyCreative = () => {
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="flex flex-col h-96"> {/* Fixed height container with room for history toggle */}
+                <CardContent className="flex flex-col h-96">
+                  {" "}
+                  {/* Fixed height container with room for history toggle */}
                   {/* Active preview section */}
                   {generatedAudio ? (
                     <div className="w-full text-center mb-4">
@@ -2487,9 +2762,10 @@ const TastyCreative = () => {
                           {selectedHistoryItem.voice_name || "Voice"}
                         </p>
                         <p className="text-sm text-gray-400 line-clamp-2">
-                          {selectedHistoryItem.text && selectedHistoryItem.text.length > 60
-                            ? selectedHistoryItem.text.substring(0, 60) + '...'
-                            : selectedHistoryItem.text || ''}
+                          {selectedHistoryItem.text &&
+                          selectedHistoryItem.text.length > 60
+                            ? selectedHistoryItem.text.substring(0, 60) + "..."
+                            : selectedHistoryItem.text || ""}
                         </p>
                         <div className="mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-purple-800/50 border border-purple-400/30">
                           History Item
@@ -2537,15 +2813,14 @@ const TastyCreative = () => {
                       </p>
                     </div>
                   ) : null}
-
-                 
-
                   {/* Voice History Section - now toggleable and scrollable */}
                   {selectedVoice && showHistory && (
                     <div className="flex-1 mt-4">
                       <div className="flex items-center mb-2">
                         <Clock size={14} className="mr-2 text-gray-400" />
-                        <h3 className="text-sm font-medium text-gray-300">History</h3>
+                        <h3 className="text-sm font-medium text-gray-300">
+                          History
+                        </h3>
 
                         {isLoadingHistory && (
                           <div className="flex items-center text-xs text-purple-300 ml-2">
@@ -2598,17 +2873,20 @@ const TastyCreative = () => {
                                 <AccordionContent>
                                   <div className="bg-black/20 p-2 rounded-md space-y-2 text-xs">
                                     <p className="text-gray-300">{item.text}</p>
-                                    <p className="text-gray-400">Generated: {formatDate(item.date_unix * 1000)}</p>
+                                    <p className="text-gray-400">
+                                      Generated:{" "}
+                                      {formatDate(item.date_unix * 1000)}
+                                    </p>
 
                                     {/* Add indicator for available parameters */}
                                     {getVoiceParameters(
                                       item.history_item_id
                                     ) && (
-                                        <div className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-green-800/50 border border-green-400/30">
-                                          <Check size={8} className="mr-1" />{" "}
-                                          Parameters Available
-                                        </div>
-                                      )}
+                                      <div className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-green-800/50 border border-green-400/30">
+                                        <Check size={8} className="mr-1" />{" "}
+                                        Parameters Available
+                                      </div>
+                                    )}
 
                                     <div className="flex flex-wrap gap-1 mt-2">
                                       <Button
@@ -2621,11 +2899,11 @@ const TastyCreative = () => {
                                         disabled={
                                           isLoadingHistoryAudio &&
                                           selectedHistoryItem?.history_item_id ===
-                                          item.history_item_id
+                                            item.history_item_id
                                         }
                                       >
                                         {isLoadingHistoryAudio &&
-                                          selectedHistoryItem?.history_item_id ===
+                                        selectedHistoryItem?.history_item_id ===
                                           item.history_item_id ? (
                                           <>
                                             <Loader2
@@ -2698,11 +2976,15 @@ const TastyCreative = () => {
                         )}
                       </div>
                     </div>
-                    )}
-                     <VoiceNoteCard voiceText={voiceText} model={ 
+                  )}
+                  <VoiceNoteCard
+                    voiceText={voiceText}
+                    model={
                       availableVoices.find((m) => m.voiceId === selectedVoice)
                         ?.name || ""
-                    } audioNo={audioNo}/>
+                    }
+                    audioNo={audioNo}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -2745,15 +3027,19 @@ const TastyCreative = () => {
           </TabsContent>
 
           <TabsContent value="chatting">
-            <ChattingTab  />
+            <ChattingTab />
           </TabsContent>
 
           <TabsContent value="onboarding">
-            <OnboardingTab  />
+            <OnboardingTab />
           </TabsContent>
 
           <TabsContent value="vault">
-            <VaultTab  />
+            <VaultTab />
+          </TabsContent>
+
+          <TabsContent value="imagegen">
+            <ImageGenTab />
           </TabsContent>
         </Tabs>
       </div>
@@ -2764,30 +3050,42 @@ const TastyCreative = () => {
           <div>Tasty Creative v1.0</div>
           <div>
             Status:
-            {activeTab === 'image' && (
-              <span className={`ml-1 ${comfyUIStatus === 'connected' ? 'text-green-400' : 'text-yellow-400'}`}>
-                RunPod ComfyUI {comfyUIStatus === 'connected' ? '(Connected)' : '(Disconnected)'}
+            {activeTab === "image" && (
+              <span
+                className={`ml-1 ${
+                  comfyUIStatus === "connected"
+                    ? "text-green-400"
+                    : "text-yellow-400"
+                }`}
+              >
+                RunPod ComfyUI{" "}
+                {comfyUIStatus === "connected"
+                  ? "(Connected)"
+                  : "(Disconnected)"}
               </span>
             )}
             {activeTab === "voice" && (
               <span className="text-green-400 ml-1">
                 ElevenLabs
-                {apiKeyBalance && <span className="ml-1">({apiKeyBalance?.character?.remaining !== undefined ? apiKeyBalance.character.remaining.toLocaleString() : 'N/A'} chars)</span>}
+                {apiKeyBalance && (
+                  <span className="ml-1">
+                    (
+                    {apiKeyBalance?.character?.remaining !== undefined
+                      ? apiKeyBalance.character.remaining.toLocaleString()
+                      : "N/A"}{" "}
+                    chars)
+                  </span>
+                )}
               </span>
             )}
-            {activeTab === 'calendar' && (
-              <span className="ml-1">
-                Calendar
-              </span>
-            )}
-            {activeTab === 'live' && (
-              <span className="ml-1">
-                Live
-              </span>
-            )}
-            {(activeTab !== 'image' && activeTab !== 'voice' && activeTab !== 'calendar' && activeTab !== 'live') && (
-              <span className="ml-1">No active API connections</span>
-            )}
+            {activeTab === "calendar" && <span className="ml-1">Calendar</span>}
+            {activeTab === "live" && <span className="ml-1">Live</span>}
+            {activeTab !== "image" &&
+              activeTab !== "voice" &&
+              activeTab !== "calendar" &&
+              activeTab !== "live" && (
+                <span className="ml-1">No active API connections</span>
+              )}
           </div>
         </div>
       </div>
