@@ -21,10 +21,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-// Import the actual DatasetTab and VaultTab components
+// Import the actual components
 import DatasetTab from "./ImageGenTab-DatasetTab";
 import VaultTab from "./ImageGenTab-VaultTab";
 import VideoTab from "./ImageGenTab-VideoTab";
+import PromptGeneratorTab from "./ImageGenTab-PromptGenerator";
+import CombinedGallery from "./ImageGenTab-GalleryTab";
 import {
   Image,
   Download,
@@ -59,6 +61,7 @@ import {
   Wifi,
   WifiOff,
   Video,
+  Wand2,
 } from "lucide-react";
 
 // TypeScript interfaces
@@ -73,6 +76,25 @@ interface GeneratedImage {
   isBookmarked?: boolean;
   isInVault?: boolean;
   blobUrl?: string; // For handling CORS issues with ComfyUI
+}
+
+interface GeneratedVideo {
+  id: string;
+  videoUrl: string;
+  thumbnailUrl?: string;
+  filename: string;
+  prompt: string;
+  negativePrompt?: string;
+  settings: any;
+  timestamp: Date;
+  isBookmarked?: boolean;
+  isInVault?: boolean;
+  blobUrl?: string;
+  duration: number;
+  fileSize?: number;
+  status: "generating" | "completed" | "failed";
+  progress?: number;
+  sourceImage?: string;
 }
 
 interface GenerationSettings {
@@ -106,6 +128,8 @@ interface VaultFolder {
   description?: string;
   color?: string;
 }
+
+type MediaItem = GeneratedImage | GeneratedVideo;
 
 // FIXED ComfyUI Integration Hook
 const useComfyUIGeneration = () => {
@@ -450,9 +474,13 @@ const ImageGenTab: React.FC = () => {
 
   // Data states
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
+  const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideo[]>([]);
   const [datasetItems, setDatasetItems] = useState<DatasetItem[]>([]);
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
+  const [promptGeneratorImages, setPromptGeneratorImages] = useState<
+    GeneratedImage[]
+  >([]);
 
   // Modal states
   const [selectedImageForModal, setSelectedImageForModal] =
@@ -465,9 +493,7 @@ const ImageGenTab: React.FC = () => {
   const [selectedFolderForAdd, setSelectedFolderForAdd] = useState<
     string | null
   >(null);
-  const [pendingVaultImages, setPendingVaultImages] = useState<
-    GeneratedImage[]
-  >([]);
+  const [pendingVaultImages, setPendingVaultImages] = useState<MediaItem[]>([]);
   const [newQuickFolderName, setNewQuickFolderName] = useState("");
 
   // Set default LoRA model when available models load
@@ -477,7 +503,7 @@ const ImageGenTab: React.FC = () => {
     }
   }, [availableLoraModels, selectedLoraModel]);
 
-  // Load dataset from localStorage on component mount
+  // Load data from localStorage on component mount
   useEffect(() => {
     const loadDatasetFromStorage = () => {
       try {
@@ -524,6 +550,27 @@ const ImageGenTab: React.FC = () => {
       }
     };
 
+    const loadGeneratedVideosFromStorage = () => {
+      try {
+        const savedVideos = localStorage.getItem("generated_videos");
+        if (savedVideos) {
+          const parsedVideos = JSON.parse(savedVideos);
+          const videosWithDates = parsedVideos.map((vid: any) => ({
+            ...vid,
+            timestamp: new Date(vid.timestamp),
+            blobUrl: undefined, // Clear blob URLs as they're not valid across sessions
+          }));
+          setGeneratedVideos(videosWithDates);
+          console.log(
+            `Loaded ${videosWithDates.length} generated videos from storage`
+          );
+        }
+      } catch (error) {
+        console.error("Error loading generated videos from storage:", error);
+        localStorage.removeItem("generated_videos");
+      }
+    };
+
     const loadFoldersFromStorage = () => {
       try {
         const savedFolders = localStorage.getItem("vault_folders");
@@ -543,6 +590,7 @@ const ImageGenTab: React.FC = () => {
 
     loadDatasetFromStorage();
     loadGeneratedImagesFromStorage();
+    loadGeneratedVideosFromStorage();
     loadFoldersFromStorage();
   }, []);
 
@@ -556,7 +604,14 @@ const ImageGenTab: React.FC = () => {
     // Set the active subtab if specified
     if (
       subtab &&
-      ["generate", "gallery", "dataset", "vault", "video"].includes(subtab)
+      [
+        "generate",
+        "gallery",
+        "dataset",
+        "vault",
+        "video",
+        "prompt-generator",
+      ].includes(subtab)
     ) {
       setActiveSubTab(subtab);
     }
@@ -576,7 +631,7 @@ const ImageGenTab: React.FC = () => {
     }
   }, []);
 
-  // Save dataset to localStorage whenever it changes
+  // Save data to localStorage whenever it changes
   useEffect(() => {
     if (datasetItems.length > 0) {
       try {
@@ -588,7 +643,6 @@ const ImageGenTab: React.FC = () => {
     }
   }, [datasetItems]);
 
-  // Save generated images to localStorage whenever they change
   useEffect(() => {
     if (generatedImages.length > 0) {
       try {
@@ -606,7 +660,23 @@ const ImageGenTab: React.FC = () => {
     }
   }, [generatedImages]);
 
-  // Save folders to localStorage whenever they change
+  useEffect(() => {
+    if (generatedVideos.length > 0) {
+      try {
+        // Remove blobUrl before saving as they're not persistent
+        const videosToSave = generatedVideos.map(
+          ({ blobUrl, ...video }) => video
+        );
+        localStorage.setItem("generated_videos", JSON.stringify(videosToSave));
+        console.log(
+          `Saved ${generatedVideos.length} generated videos to storage`
+        );
+      } catch (error) {
+        console.error("Error saving generated videos to storage:", error);
+      }
+    }
+  }, [generatedVideos]);
+
   useEffect(() => {
     if (folders.length > 0) {
       try {
@@ -646,26 +716,33 @@ const ImageGenTab: React.FC = () => {
     "concept-art",
   ];
 
-  // Sidebar navigation items - UPDATED to include video
+  // Sidebar navigation items - UPDATED to include combined gallery count
   const navigationItems = [
     {
       id: "generate",
-      label: "Generate",
+      label: "Image Generation",
       icon: Image,
-      description: "Create new images",
+      description: "Generate AI images",
+    },
+    {
+      id: "video",
+      label: "Video Generation",
+      icon: Video,
+      description: "Generate AI videos",
     },
     {
       id: "gallery",
       label: "Gallery",
       icon: Grid,
-      description: "View generated images",
-      count: generatedImages.length,
+      description: "View all AI generated media",
+      count: generatedImages.length + generatedVideos.length, // Combined count
     },
     {
-      id: "video",
-      label: "Video",
-      icon: Video,
-      description: "Generate AI videos",
+      id: "prompt-generator",
+      label: "Prompt Generator",
+      icon: Wand2,
+      description: "Analyze images for prompts",
+      count: promptGeneratorImages.length,
     },
     {
       id: "dataset",
@@ -682,15 +759,16 @@ const ImageGenTab: React.FC = () => {
     },
   ];
 
-  // Clear all data function (useful for testing)
+  // Clear all data function (useful for testing) - UPDATED
   const clearAllData = () => {
     setDatasetItems([]);
     setGeneratedImages([]);
+    setGeneratedVideos([]); // Added this line
     setFolders([]);
     localStorage.removeItem("dataset_items");
     localStorage.removeItem("generated_images");
+    localStorage.removeItem("generated_videos"); // Added this line
     localStorage.removeItem("vault_folders");
-    localStorage.removeItem("generated_videos"); // Clear video data too
     console.log("Cleared all data");
   };
 
@@ -815,21 +893,21 @@ const ImageGenTab: React.FC = () => {
     setNewQuickFolderName("");
   };
 
-  // Updated addToVault function with folder selection
-  const addToVault = (images: GeneratedImage[]) => {
-    setPendingVaultImages(images);
+  // Updated addToVault function with folder selection - UPDATED to handle both images and videos
+  const addToVault = (items: MediaItem[]) => {
+    setPendingVaultImages(items);
     setShowFolderDialog(true);
   };
 
-  // Complete the vault addition after folder selection
+  // Complete the vault addition after folder selection - UPDATED
   const completeVaultAddition = () => {
-    const newDatasetItems: DatasetItem[] = pendingVaultImages.map((img) => ({
-      id: img.id,
-      imageUrl: img.imageUrl,
-      filename: img.filename,
-      tags: extractTagsFromPrompt(img.prompt),
-      category: detectCategory(img.prompt),
-      description: img.prompt,
+    const newDatasetItems: DatasetItem[] = pendingVaultImages.map((item) => ({
+      id: item.id,
+      imageUrl: "imageUrl" in item ? item.imageUrl : item.videoUrl,
+      filename: item.filename,
+      tags: extractTagsFromPrompt(item.prompt),
+      category: detectCategory(item.prompt),
+      description: item.prompt,
       source: "generated",
       dateAdded: new Date(),
       folderId: selectedFolderForAdd || undefined,
@@ -837,14 +915,29 @@ const ImageGenTab: React.FC = () => {
 
     setDatasetItems((prev) => [...newDatasetItems, ...prev]);
 
-    // Mark images as in vault
-    setGeneratedImages((prev) =>
-      prev.map((img) =>
-        pendingVaultImages.some((selected) => selected.id === img.id)
-          ? { ...img, isInVault: true }
-          : img
-      )
-    );
+    // Mark items as in vault
+    const imageIds = pendingVaultImages
+      .filter((item) => "imageUrl" in item)
+      .map((item) => item.id);
+    const videoIds = pendingVaultImages
+      .filter((item) => "videoUrl" in item)
+      .map((item) => item.id);
+
+    if (imageIds.length > 0) {
+      setGeneratedImages((prev) =>
+        prev.map((img) =>
+          imageIds.includes(img.id) ? { ...img, isInVault: true } : img
+        )
+      );
+    }
+
+    if (videoIds.length > 0) {
+      setGeneratedVideos((prev) =>
+        prev.map((vid) =>
+          videoIds.includes(vid.id) ? { ...vid, isInVault: true } : vid
+        )
+      );
+    }
 
     // Reset dialog state
     setShowFolderDialog(false);
@@ -866,155 +959,6 @@ const ImageGenTab: React.FC = () => {
       prev.map((img) =>
         img.id === imageId ? { ...img, isBookmarked: !img.isBookmarked } : img
       )
-    );
-  };
-
-  // Image Modal Component
-  const ImageModal: React.FC = () => {
-    if (!showImageModal || !selectedImageForModal) return null;
-
-    // Get updated image data (in case bookmark status changed)
-    const currentImage =
-      generatedImages.find((img) => img.id === selectedImageForModal.id) ||
-      selectedImageForModal;
-
-    // Get all images for navigation
-    const imageFiles = filteredImages;
-
-    // Handle keyboard events
-    useEffect(() => {
-      const handleKeyPress = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-          closeImageModal();
-        } else if (e.key === "ArrowLeft") {
-          goToPrevious();
-        } else if (e.key === "ArrowRight") {
-          goToNext();
-        }
-      };
-
-      if (showImageModal) {
-        document.addEventListener("keydown", handleKeyPress);
-        // Prevent body scroll when modal is open
-        document.body.style.overflow = "hidden";
-      }
-
-      return () => {
-        document.removeEventListener("keydown", handleKeyPress);
-        document.body.style.overflow = "unset";
-      };
-    }, [showImageModal]);
-
-    const goToPrevious = () => {
-      const currentIndex = imageFiles.findIndex(
-        (img) => img.id === currentImage.id
-      );
-      if (currentIndex > 0) {
-        const previousImage = imageFiles[currentIndex - 1];
-        setSelectedImageForModal(previousImage);
-      }
-    };
-
-    const goToNext = () => {
-      const currentIndex = imageFiles.findIndex(
-        (img) => img.id === currentImage.id
-      );
-      if (currentIndex < imageFiles.length - 1) {
-        const nextImage = imageFiles[currentIndex + 1];
-        setSelectedImageForModal(nextImage);
-      }
-    };
-
-    const currentImageIndex = imageFiles.findIndex(
-      (img) => img.id === currentImage.id
-    );
-
-    return (
-      <div
-        className="fixed inset-0 bg-black/90 flex items-center justify-center z-50"
-        onClick={closeImageModal}
-      >
-        <div
-          className="relative max-w-[90vw] max-h-[90vh] bg-black/95 rounded-xl overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Close button */}
-          <button
-            onClick={closeImageModal}
-            className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
-          >
-            <X size={24} />
-          </button>
-
-          {/* Image */}
-          <div className="relative">
-            <ComfyUIImage
-              image={currentImage}
-              alt={currentImage.filename}
-              className="max-w-[90vw] max-h-[90vh] object-contain"
-            />
-          </div>
-
-          {/* Image info overlay */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-            <h3 className="text-white text-lg font-semibold mb-2">
-              {currentImage.filename}
-            </h3>
-            <p className="text-gray-300 text-sm mb-3 line-clamp-2">
-              {currentImage.prompt}
-            </p>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-sm text-gray-400">
-                <span>{currentImage.settings.model}</span>
-                <span>
-                  {currentImage.settings.width}×{currentImage.settings.height}
-                </span>
-                <span>{currentImage.settings.steps} steps</span>
-                <span>CFG: {currentImage.settings.cfgScale}</span>
-                {currentImage.settings.seed && (
-                  <span>Seed: {currentImage.settings.seed}</span>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await downloadImage(currentImage);
-                  }}
-                >
-                  <Download size={16} className="mr-1" />
-                  Download
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleBookmark(currentImage.id);
-                  }}
-                >
-                  <Star
-                    size={16}
-                    className={`mr-1 ${
-                      currentImage.isBookmarked
-                        ? "fill-current text-yellow-400"
-                        : ""
-                    }`}
-                  />
-                  {currentImage.isBookmarked ? "Bookmarked" : "Bookmark"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     );
   };
 
@@ -1090,6 +1034,42 @@ const ImageGenTab: React.FC = () => {
 
   const getSelectedImages = (): GeneratedImage[] => {
     return generatedImages.filter((img) => selectedImages.has(img.id));
+  };
+
+  // Function to send selected items to prompt generator - UPDATED
+  const sendToPromptGenerator = (items: MediaItem[]) => {
+    if (items.length === 0) {
+      setError("Please select items to send to prompt generator");
+      return;
+    }
+
+    // Only send images to prompt generator (videos are not supported for prompt analysis)
+    const imageItems = items.filter(
+      (item) => "imageUrl" in item
+    ) as GeneratedImage[];
+
+    if (imageItems.length === 0) {
+      setError(
+        "No images selected. Only images can be sent to prompt generator."
+      );
+      return;
+    }
+
+    // Add to prompt generator images (avoiding duplicates)
+    setPromptGeneratorImages((prev) => {
+      const existingIds = new Set(prev.map((img) => img.id));
+      const newImages = imageItems.filter((img) => !existingIds.has(img.id));
+      return [...prev, ...newImages];
+    });
+
+    // Switch to prompt generator tab
+    setActiveSubTab("prompt-generator");
+    setError(""); // Clear any previous errors
+  };
+
+  // Function to clear prompt generator images
+  const clearPromptGeneratorImages = () => {
+    setPromptGeneratorImages([]);
   };
 
   // Handle image selection
@@ -1266,13 +1246,13 @@ const ImageGenTab: React.FC = () => {
           </div>
         )}
 
-        {/* Debug Info */}
+        {/* Debug Info - UPDATED */}
         {!sidebarCollapsed && (
           <div className="p-4 border-b border-white/10">
             <div className="text-center">
               <p className="text-gray-400 text-xs mb-2">
-                Dataset: {datasetItems.length} | Generated:{" "}
-                {generatedImages.length}
+                Dataset: {datasetItems.length} | Images:{" "}
+                {generatedImages.length} | Videos: {generatedVideos.length}
               </p>
               <Button
                 variant="outline"
@@ -1410,15 +1390,13 @@ const ImageGenTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Image Modal */}
-        <ImageModal />
-
         {/* Enhanced Folder Selection Dialog */}
         {showFolderDialog && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
             <div className="bg-black/90 backdrop-blur-md border border-white/10 rounded-xl p-6 max-w-md w-full mx-4">
               <h3 className="text-white text-lg font-semibold mb-4">
-                Choose Folder for {pendingVaultImages.length} images
+                Choose Folder for {pendingVaultImages.length} item
+                {pendingVaultImages.length > 1 ? "s" : ""}
               </h3>
 
               <div className="space-y-4">
@@ -1932,345 +1910,39 @@ const ImageGenTab: React.FC = () => {
             </div>
           )}
 
-          {/* Gallery Tab Content */}
+          {/* Gallery Tab Content - UPDATED to use Combined Gallery */}
           {activeSubTab === "gallery" && (
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-white">
-                      Generated Images Gallery
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      View and manage all your generated images
-                    </CardDescription>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-black/60 border-white/10 text-white"
-                      onClick={() =>
-                        setViewMode(viewMode === "grid" ? "list" : "grid")
-                      }
-                    >
-                      {viewMode === "grid" ? (
-                        <List size={16} />
-                      ) : (
-                        <Grid size={16} />
-                      )}
-                    </Button>
-
-                    {/* Selection controls */}
-                    {filteredImages.length > 0 && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-black/60 border-white/10 text-white"
-                          onClick={() => {
-                            if (selectedImages.size === filteredImages.length) {
-                              // Clear all selections
-                              setSelectedImages(new Set());
-                            } else {
-                              // Select all visible images
-                              setSelectedImages(
-                                new Set(filteredImages.map((img) => img.id))
-                              );
-                            }
-                          }}
-                        >
-                          {selectedImages.size === filteredImages.length ? (
-                            <>
-                              <X size={16} className="mr-1" />
-                              Clear All
-                            </>
-                          ) : (
-                            <>
-                              <Check size={16} className="mr-1" />
-                              Select All ({filteredImages.length})
-                            </>
-                          )}
-                        </Button>
-                      </>
-                    )}
-
-                    {selectedImages.size > 0 && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-blue-900/30 border-blue-500/30 text-blue-300"
-                          onClick={async () => {
-                            // Bulk download selected images
-                            const selectedImagesArray = getSelectedImages();
-
-                            // Show downloading feedback
-                            const button =
-                              document.activeElement as HTMLButtonElement;
-                            const originalText = button.textContent;
-                            button.textContent = "Downloading...";
-                            button.disabled = true;
-
-                            try {
-                              // Download all selected images
-                              for (
-                                let i = 0;
-                                i < selectedImagesArray.length;
-                                i++
-                              ) {
-                                const image = selectedImagesArray[i];
-                                button.textContent = `Downloading ${i + 1}/${
-                                  selectedImagesArray.length
-                                }`;
-
-                                await downloadImage(image);
-
-                                // Small delay between downloads
-                                if (i < selectedImagesArray.length - 1) {
-                                  await new Promise((resolve) =>
-                                    setTimeout(resolve, 200)
-                                  );
-                                }
-                              }
-
-                              // Success feedback
-                              button.textContent = `Downloaded ${selectedImagesArray.length} files!`;
-                              setTimeout(() => {
-                                button.textContent = originalText;
-                                button.disabled = false;
-                              }, 2000);
-                            } catch (error) {
-                              console.error("Bulk download failed:", error);
-                              button.textContent = "Download failed";
-                              setTimeout(() => {
-                                button.textContent = originalText;
-                                button.disabled = false;
-                              }, 2000);
-                            }
-                          }}
-                        >
-                          <Download size={16} className="mr-1" />
-                          Download ({selectedImages.size})
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-red-900/30 border-red-500/30 text-red-300"
-                          onClick={() => {
-                            // Remove selected images from gallery
-                            setGeneratedImages((prev) =>
-                              prev.filter((img) => !selectedImages.has(img.id))
-                            );
-                            setSelectedImages(new Set());
-                          }}
-                        >
-                          <Trash size={16} className="mr-1" />
-                          Delete ({selectedImages.size})
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Search and Filter Bar */}
-                <div className="flex space-x-4 mt-4">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                        size={16}
-                      />
-                      <Input
-                        placeholder="Search images..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-black/60 border-white/10 text-white pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  <Select
-                    value={selectedCategory}
-                    onValueChange={setSelectedCategory}
-                  >
-                    <SelectTrigger className="w-48 bg-black/60 border-white/10 text-white">
-                      <Filter size={16} className="mr-2" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black/90 border-white/10 text-white">
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category
-                            .replace(/-/g, " ")
-                            .replace(/\b\w/g, (l) => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-
-              <CardContent>
-                {filteredImages.length > 0 ? (
-                  <div
-                    className={
-                      viewMode === "grid"
-                        ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-                        : "space-y-4"
-                    }
-                  >
-                    {filteredImages.map((image) => (
-                      <div
-                        key={image.id}
-                        className={`group relative bg-black/40 rounded-lg overflow-hidden border border-white/10 hover:border-purple-400/30 transition-all cursor-pointer ${
-                          selectedImages.has(image.id)
-                            ? "ring-2 ring-purple-400"
-                            : ""
-                        } ${viewMode === "list" ? "flex space-x-4 p-4" : ""}`}
-                        onClick={() => handleImageClick(image)}
-                      >
-                        {/* Image */}
-                        <div
-                          className={`relative ${
-                            viewMode === "grid"
-                              ? "aspect-square"
-                              : "w-24 h-24 flex-shrink-0"
-                          }`}
-                        >
-                          <ComfyUIImage
-                            image={image}
-                            alt={image.filename}
-                            className={
-                              viewMode === "grid"
-                                ? "aspect-square"
-                                : "w-24 h-24"
-                            }
-                          />
-
-                          {/* Selection Checkbox */}
-                          <div className="absolute top-2 left-2 z-10">
-                            <button
-                              className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
-                                selectedImages.has(image.id)
-                                  ? "bg-purple-600 border-purple-600"
-                                  : "bg-black/50 border-white/30 hover:border-white/60"
-                              }`}
-                              onClick={(e) => toggleImageSelection(image.id, e)}
-                            >
-                              {selectedImages.has(image.id) && (
-                                <Check size={14} className="text-white" />
-                              )}
-                            </button>
-                          </div>
-
-                          {/* Status Badges */}
-                          <div className="absolute top-2 right-2 flex space-x-1">
-                            {image.isBookmarked && (
-                              <div className="w-6 h-6 bg-yellow-600/80 rounded flex items-center justify-center">
-                                <Star
-                                  size={12}
-                                  className="text-white fill-current"
-                                />
-                              </div>
-                            )}
-                            {image.isInVault && (
-                              <div className="w-6 h-6 bg-purple-600/80 rounded flex items-center justify-center">
-                                <FolderOpen size={12} className="text-white" />
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Overlay Actions */}
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                downloadImage(image);
-                              }}
-                            >
-                              <Download size={14} />
-                            </Button>
-
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleBookmark(image.id);
-                              }}
-                            >
-                              <Star
-                                size={14}
-                                className={
-                                  image.isBookmarked ? "fill-current" : ""
-                                }
-                              />
-                            </Button>
-
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleImageClick(image);
-                              }}
-                            >
-                              <Eye size={14} />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Image Info */}
-                        <div
-                          className={`${
-                            viewMode === "grid" ? "p-3" : "flex-1 min-w-0"
-                          }`}
-                        >
-                          <h4 className="text-white text-sm font-medium truncate mb-1">
-                            {image.filename}
-                          </h4>
-
-                          <p className="text-gray-400 text-xs line-clamp-2 mb-2">
-                            {image.prompt}
-                          </p>
-
-                          <div className="flex justify-between items-center text-xs text-gray-500">
-                            <span>{image.settings.model}</span>
-                            <span>
-                              {image.settings.width}×{image.settings.height}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Image className="w-16 h-16 mx-auto mb-4 text-gray-500 opacity-50" />
-                    <p className="text-gray-400 text-lg mb-2">
-                      No images found
-                    </p>
-                    <p className="text-gray-500 text-sm">
-                      {searchQuery || selectedCategory !== "all"
-                        ? "Try adjusting your search or filter criteria"
-                        : "Generate some images to get started"}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <CombinedGallery
+              generatedImages={generatedImages.map((img) => ({
+                ...img,
+                type: "image" as const,
+              }))}
+              setGeneratedImages={setGeneratedImages}
+              generatedVideos={generatedVideos.map((vid) => ({
+                ...vid,
+                type: "video" as const,
+              }))}
+              setGeneratedVideos={setGeneratedVideos}
+              onSendToPromptGenerator={sendToPromptGenerator}
+              onAddToVault={addToVault}
+            />
           )}
 
-          {/* Video Tab Content - NEW */}
-          {activeSubTab === "video" && <VideoTab />}
+          {/* Video Tab Content */}
+          {activeSubTab === "video" && (
+            <VideoTab
+              generatedVideos={generatedVideos}
+              setGeneratedVideos={setGeneratedVideos}
+            />
+          )}
+
+          {/* Prompt Generator Tab Content */}
+          {activeSubTab === "prompt-generator" && (
+            <PromptGeneratorTab
+              receivedImages={promptGeneratorImages}
+              onClearReceivedImages={clearPromptGeneratorImages}
+            />
+          )}
 
           {/* Dataset Tab Content */}
           {activeSubTab === "dataset" && (
