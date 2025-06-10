@@ -64,6 +64,43 @@ import {
   Wand2,
 } from "lucide-react";
 
+// ComfyUI URL Configuration
+const COMFYUI_CONFIG = {
+  // Replace this with your actual ngrok URL when you get it
+  PRODUCTION_URL:
+    "https://9115-180-191-244-144.ngrok-free.app -> http://localhost:12628", // ⚠️ UPDATE THIS WITH YOUR NGROK URL!
+  DEVELOPMENT_URL: "http://209.53.88.242:12628",
+};
+
+const getComfyUIUrl = () => {
+  // Check if we're on the production site
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+
+    // Production domain check
+    if (hostname === "tastycreative.xyz") {
+      console.log(
+        "🌐 Using production ComfyUI URL:",
+        COMFYUI_CONFIG.PRODUCTION_URL
+      );
+      return COMFYUI_CONFIG.PRODUCTION_URL;
+    }
+
+    // Local development
+    console.log(
+      "🏠 Using development ComfyUI URL:",
+      COMFYUI_CONFIG.DEVELOPMENT_URL
+    );
+    return COMFYUI_CONFIG.DEVELOPMENT_URL;
+  }
+
+  // Fallback for SSR
+  return COMFYUI_CONFIG.DEVELOPMENT_URL;
+};
+
+// Global ComfyUI URL
+const COMFYUI_URL = getComfyUIUrl();
+
 // TypeScript interfaces
 interface GeneratedImage {
   id: string;
@@ -142,7 +179,7 @@ interface VaultFolder {
 
 type MediaItem = GeneratedImage | GeneratedVideo;
 
-// FIXED ComfyUI Integration Hook
+// UPDATED ComfyUI Integration Hook with Dynamic URL
 const useComfyUIGeneration = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [availableLoraModels, setAvailableLoraModels] = useState<string[]>([]);
@@ -151,16 +188,19 @@ const useComfyUIGeneration = () => {
   const [currentNode, setCurrentNode] = useState("");
 
   useEffect(() => {
+    console.log("🔗 Attempting to connect to ComfyUI at:", COMFYUI_URL);
+
     // Test connection to ComfyUI
     const testConnection = async () => {
       try {
-        const response = await fetch("http://209.53.88.242:12628/object_info", {
+        const response = await fetch(`${COMFYUI_URL}/object_info`, {
           method: "GET",
           mode: "cors",
         });
 
         if (response.ok) {
           setIsConnected(true);
+          console.log("✅ ComfyUI connection successful!");
 
           // Try to get LoRA models
           const objectInfo = await response.json();
@@ -184,9 +224,13 @@ const useComfyUIGeneration = () => {
           }
         } else {
           setIsConnected(false);
+          console.error(
+            "❌ ComfyUI connection failed. Status:",
+            response.status
+          );
         }
       } catch (error) {
-        console.error("Connection test failed:", error);
+        console.error("❌ ComfyUI connection error:", error);
         setIsConnected(false);
         // For development, use mock data
         setAvailableLoraModels([
@@ -306,13 +350,14 @@ const useComfyUIGeneration = () => {
         },
       };
 
-      // Queue the prompt
+      // Queue the prompt using dynamic URL
       const clientId =
         Math.random().toString(36).substring(2) + Date.now().toString(36);
 
+      console.log("🚀 Queuing generation at:", `${COMFYUI_URL}/prompt`);
       console.log("Sending workflow:", JSON.stringify(workflow, null, 2));
 
-      const queueResponse = await fetch("http://209.53.88.242:12628/prompt", {
+      const queueResponse = await fetch(`${COMFYUI_URL}/prompt`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -359,7 +404,7 @@ const useComfyUIGeneration = () => {
 
         try {
           const historyResponse = await fetch(
-            `http://209.53.88.242:12628/history/${promptId}`,
+            `${COMFYUI_URL}/history/${promptId}`,
             {
               method: "GET",
               mode: "cors",
@@ -376,7 +421,7 @@ const useComfyUIGeneration = () => {
                 setCurrentNode("Retrieving images...");
                 setGenerationProgress(95);
 
-                // Get the generated images
+                // Get the generated images using dynamic URL
                 const imageUrls: string[] = [];
 
                 if (execution.outputs) {
@@ -384,7 +429,7 @@ const useComfyUIGeneration = () => {
                     const nodeOutput = execution.outputs[nodeId];
                     if (nodeOutput.images) {
                       for (const image of nodeOutput.images) {
-                        const imageUrl = `http://209.53.88.242:12628/view?filename=${image.filename}&subfolder=${image.subfolder}&type=${image.type}`;
+                        const imageUrl = `${COMFYUI_URL}/view?filename=${image.filename}&subfolder=${image.subfolder}&type=${image.type}`;
                         imageUrls.push(imageUrl);
                       }
                     }
@@ -1304,6 +1349,7 @@ const ImageGenTab: React.FC = () => {
                 </>
               )}
             </div>
+            <p className="text-gray-400 text-xs">URL: {COMFYUI_URL}</p>
             <p className="text-gray-400 text-xs">
               LoRA Models: {availableLoraModels.length}
             </p>
@@ -1832,8 +1878,8 @@ const ImageGenTab: React.FC = () => {
                       <WifiOff className="h-4 w-4" />
                       <AlertTitle>Connection Issue</AlertTitle>
                       <AlertDescription>
-                        Cannot connect to ComfyUI. Please check your RunPod
-                        instance is running and accessible.
+                        Cannot connect to ComfyUI. Please check your instance is
+                        running and accessible at: {COMFYUI_URL}
                       </AlertDescription>
                     </Alert>
                   )}

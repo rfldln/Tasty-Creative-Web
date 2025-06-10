@@ -60,6 +60,43 @@ import {
   WifiOff,
 } from "lucide-react";
 
+// ComfyUI URL Configuration - SAME AS IMAGEGEN TAB
+const COMFYUI_CONFIG = {
+  // Replace this with your actual ngrok URL when you get it
+  PRODUCTION_URL:
+    "https://9115-180-191-244-144.ngrok-free.app -> http://localhost:12628", // ⚠️ UPDATE THIS WITH YOUR NGROK URL!
+  DEVELOPMENT_URL: "http://209.53.88.242:12628",
+};
+
+const getComfyUIUrl = () => {
+  // Check if we're on the production site
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+
+    // Production domain check
+    if (hostname === "tastycreative.xyz") {
+      console.log(
+        "🌐 Using production ComfyUI URL for video:",
+        COMFYUI_CONFIG.PRODUCTION_URL
+      );
+      return COMFYUI_CONFIG.PRODUCTION_URL;
+    }
+
+    // Local development
+    console.log(
+      "🏠 Using development ComfyUI URL for video:",
+      COMFYUI_CONFIG.DEVELOPMENT_URL
+    );
+    return COMFYUI_CONFIG.DEVELOPMENT_URL;
+  }
+
+  // Fallback for SSR
+  return COMFYUI_CONFIG.DEVELOPMENT_URL;
+};
+
+// Global ComfyUI URL
+const COMFYUI_URL = getComfyUIUrl();
+
 // Enhanced Video Display Component with Better Error Handling
 const EnhancedVideoDisplay: React.FC<{
   video: GeneratedVideo;
@@ -428,7 +465,7 @@ interface VideoGenerationSettings {
   scheduler: string;
 }
 
-// Real ComfyUI WAN 2.1 integration hook
+// UPDATED WAN 2.1 integration hook with dynamic URL
 const useWanVideoGeneration = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -437,16 +474,22 @@ const useWanVideoGeneration = () => {
   const [currentStage, setCurrentStage] = useState("");
 
   useEffect(() => {
+    console.log(
+      "🔗 Attempting to connect to ComfyUI for video at:",
+      COMFYUI_URL
+    );
+
     // Test connection to ComfyUI
     const testConnection = async () => {
       try {
-        const response = await fetch("http://209.53.88.242:12628/object_info", {
+        const response = await fetch(`${COMFYUI_URL}/object_info`, {
           method: "GET",
           mode: "cors",
         });
 
         if (response.ok) {
           setIsConnected(true);
+          console.log("✅ ComfyUI video connection successful!");
 
           // Set available WAN models
           setAvailableModels([
@@ -455,9 +498,13 @@ const useWanVideoGeneration = () => {
           ]);
         } else {
           setIsConnected(false);
+          console.error(
+            "❌ ComfyUI video connection failed. Status:",
+            response.status
+          );
         }
       } catch (error) {
-        console.error("Connection test failed:", error);
+        console.error("❌ ComfyUI video connection error:", error);
         setIsConnected(false);
         // For development, set mock data
         setAvailableModels([
@@ -470,14 +517,14 @@ const useWanVideoGeneration = () => {
     testConnection();
   }, []);
 
-  // Upload image to ComfyUI
+  // Upload image to ComfyUI using dynamic URL
   const uploadImage = async (imageFile: File): Promise<string> => {
     const formData = new FormData();
     formData.append("image", imageFile);
     formData.append("type", "input");
     formData.append("subfolder", "");
 
-    const response = await fetch("http://209.53.88.242:12628/upload/image", {
+    const response = await fetch(`${COMFYUI_URL}/upload/image`, {
       method: "POST",
       mode: "cors",
       body: formData,
@@ -628,16 +675,17 @@ const useWanVideoGeneration = () => {
         },
       };
 
-      // Queue the prompt to ComfyUI
+      // Queue the prompt to ComfyUI using dynamic URL
       const clientId =
         Math.random().toString(36).substring(2) + Date.now().toString(36);
 
       setCurrentStage("Queuing generation...");
       setGenerationProgress(20);
 
+      console.log("🚀 Sending WAN workflow to:", `${COMFYUI_URL}/prompt`);
       console.log("Sending WAN workflow:", JSON.stringify(workflow, null, 2));
 
-      const queueResponse = await fetch("http://209.53.88.242:12628/prompt", {
+      const queueResponse = await fetch(`${COMFYUI_URL}/prompt`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -682,7 +730,7 @@ const useWanVideoGeneration = () => {
 
         try {
           const historyResponse = await fetch(
-            `http://209.53.88.242:12628/history/${promptId}`,
+            `${COMFYUI_URL}/history/${promptId}`,
             {
               method: "GET",
               mode: "cors",
@@ -699,7 +747,7 @@ const useWanVideoGeneration = () => {
                 setCurrentStage("Retrieving animation...");
                 setGenerationProgress(95);
 
-                // Get the generated videos/animated images
+                // Get the generated videos/animated images using dynamic URL
                 const videoUrls: string[] = [];
                 const fileDetails: any[] = [];
 
@@ -723,7 +771,7 @@ const useWanVideoGeneration = () => {
                     if (nodeOutput.images) {
                       console.log("Found 'images' output:", nodeOutput.images);
                       for (const image of nodeOutput.images) {
-                        const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                        const videoUrl = `${COMFYUI_URL}/view?filename=${
                           image.filename
                         }&subfolder=${image.subfolder || ""}&type=${
                           image.type || "output"
@@ -742,7 +790,7 @@ const useWanVideoGeneration = () => {
                     if (nodeOutput.videos) {
                       console.log("Found 'videos' output:", nodeOutput.videos);
                       for (const video of nodeOutput.videos) {
-                        const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                        const videoUrl = `${COMFYUI_URL}/view?filename=${
                           video.filename
                         }&subfolder=${video.subfolder || ""}&type=${
                           video.type || "output"
@@ -761,7 +809,7 @@ const useWanVideoGeneration = () => {
                     if (nodeOutput.webm) {
                       console.log("Found 'webm' output:", nodeOutput.webm);
                       for (const video of nodeOutput.webm) {
-                        const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                        const videoUrl = `${COMFYUI_URL}/view?filename=${
                           video.filename
                         }&subfolder=${video.subfolder || ""}&type=${
                           video.type || "output"
@@ -780,7 +828,7 @@ const useWanVideoGeneration = () => {
                     if (nodeOutput.files) {
                       console.log("Found 'files' output:", nodeOutput.files);
                       for (const file of nodeOutput.files) {
-                        const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                        const videoUrl = `${COMFYUI_URL}/view?filename=${
                           file.filename
                         }&subfolder=${file.subfolder || ""}&type=${
                           file.type || "output"
@@ -811,7 +859,7 @@ const useWanVideoGeneration = () => {
                             typeof item === "object" &&
                             item.filename
                           ) {
-                            const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                            const videoUrl = `${COMFYUI_URL}/view?filename=${
                               item.filename
                             }&subfolder=${item.subfolder || ""}&type=${
                               item.type || "output"
@@ -1532,8 +1580,8 @@ const VideoTab: React.FC<VideoTabProps> = ({
                 <WifiOff className="h-4 w-4" />
                 <AlertTitle>Connection Issue</AlertTitle>
                 <AlertDescription>
-                  Cannot connect to ComfyUI for animation generation. Please
-                  check your instance is running and accessible.
+                  Cannot connect to ComfyUI for animation generation. ComfyUI
+                  URL: {COMFYUI_URL}
                 </AlertDescription>
               </Alert>
             )}
