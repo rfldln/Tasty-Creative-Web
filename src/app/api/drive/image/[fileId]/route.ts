@@ -3,11 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { fileId: string } }
+  { params }: { params: Promise<{ fileId: string }> }
 ) {
   console.log('=== DRIVE API ROUTE DEBUG ===');
   
-  const { fileId } = params;
+  // Await the params for Next.js 15+
+  const { fileId } = await params;
   const { searchParams } = new URL(request.url);
   const accessToken = searchParams.get('token');
 
