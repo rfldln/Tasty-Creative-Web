@@ -1,13 +1,12 @@
-// Enhanced debugging version - /app/api/drive/image/[fileId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { fileId: string } }
+  context: { params: { fileId: string } }
 ) {
   console.log('=== DRIVE API ROUTE DEBUG ===');
-  
-  const { fileId } = params;
+
+  const { fileId } = context.params;
   const { searchParams } = new URL(request.url);
   const accessToken = searchParams.get('token');
 
@@ -41,8 +40,8 @@ export async function GET(
       console.error('Metadata fetch failed:', metadataResponse.status, metadataResponse.statusText);
       const errorText = await metadataResponse.text();
       console.error('Error details:', errorText);
-      return new NextResponse(`Cannot access file: ${metadataResponse.status}`, { 
-        status: metadataResponse.status 
+      return new NextResponse(`Cannot access file: ${metadataResponse.status}`, {
+        status: metadataResponse.status
       });
     }
 
@@ -64,20 +63,18 @@ export async function GET(
       console.error(`Image fetch failed: ${imageResponse.status} ${imageResponse.statusText}`);
       const errorText = await imageResponse.text();
       console.error('Error details:', errorText);
-      return new NextResponse(`Failed to fetch image: ${imageResponse.status}`, { 
-        status: imageResponse.status 
+      return new NextResponse(`Failed to fetch image: ${imageResponse.status}`, {
+        status: imageResponse.status
       });
     }
 
-    // Get the image data
     const imageBuffer = await imageResponse.arrayBuffer();
     const contentType = imageResponse.headers.get('content-type') || metadata.mimeType || 'image/jpeg';
-    
+
     console.log('Image fetched successfully');
     console.log('Content-Type:', contentType);
     console.log('Image size:', imageBuffer.byteLength, 'bytes');
 
-    // Return the image with proper headers
     return new NextResponse(imageBuffer, {
       headers: {
         'Content-Type': contentType,
