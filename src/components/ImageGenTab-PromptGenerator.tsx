@@ -89,9 +89,8 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
 
   // Refs for polling management
   const lastCheckTimestamp = useRef(0);
-  const checkInterval = useRef<NodeJS.Timeout | null>(null);
+  const activeIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const pendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const requestId = uuidv4(); // Generate unique ID
 
   // Load saved data on mount
   useEffect(() => {
@@ -133,6 +132,28 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
     localStorage.setItem("n8n_webhook_url", webhookUrl);
   }, [webhookUrl]);
 
+  // Remove pending request
+  const removePendingRequest = (requestId: string) => {
+    console.log("🗑️ Removing pending request:", requestId);
+    setPendingRequests((prev) =>
+      prev.filter((req) => req.requestId !== requestId)
+    );
+
+    // Clear any associated interval
+    const interval = activeIntervals.current.get(requestId);
+    if (interval) {
+      clearInterval(interval);
+      activeIntervals.current.delete(requestId);
+    }
+
+    // Clear any timeout
+    const timeout = pendingTimeouts.current.get(requestId);
+    if (timeout) {
+      clearTimeout(timeout);
+      pendingTimeouts.current.delete(requestId);
+    }
+  };
+
   // Polling functions
   const fetchWebhookData = async (requestId: string) => {
     console.log("🔍 Fetching webhook data for requestId:", requestId);
@@ -164,11 +185,11 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
         "vs lastCheck:",
         lastCheckTimestamp.current
       );
+
       if (result.timestamp > lastCheckTimestamp.current) {
         console.log("✅ New data found! Returning:", result.data);
         lastCheckTimestamp.current = result.timestamp;
-        stopChecking();
-        return result.data;
+        return { data: result.data, requestId };
       }
 
       console.log("⏳ No new data (timestamp not newer)");
@@ -179,29 +200,48 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
     }
   };
 
-  const startChecking = (requestId: string) => {
-    if (checkInterval.current) {
-      clearInterval(checkInterval.current);
-      checkInterval.current = null;
-    }
+  const startChecking = (requestId: string, filename: string) => {
+    console.log("🔄 Starting polling for requestId:", requestId);
 
-    checkInterval.current = setInterval(() => {
-      fetchWebhookData(requestId);
+    // Set up interval for this specific request
+    const interval = setInterval(async () => {
+      console.log("🔄 Polling for requestId:", requestId);
+      const result = await fetchWebhookData(requestId);
+
+      if (result && result.data) {
+        console.log(
+          "🎯 Got data for requestId:",
+          requestId,
+          "Data:",
+          result.data
+        );
+
+        // Stop checking for this request
+        removePendingRequest(requestId);
+
+        // Process the webhook response
+        handleWebhookResponse(requestId, result.data, filename);
+      }
     }, 2000);
-  };
 
-  const stopChecking = () => {
-    if (checkInterval.current) {
-      clearInterval(checkInterval.current);
-      checkInterval.current = null;
-    }
+    activeIntervals.current.set(requestId, interval);
+
+    // Set timeout for this request (2 minutes)
+    const timeout = setTimeout(() => {
+      console.log("⏰ Request timed out:", requestId);
+      removePendingRequest(requestId);
+      handleRequestTimeout(requestId, filename);
+    }, 120000); // 2 minutes
+
+    pendingTimeouts.current.set(requestId, timeout);
   };
 
   const stopAllChecking = () => {
-    if (checkInterval.current) {
-      clearInterval(checkInterval.current);
-      checkInterval.current = null;
-    }
+    console.log("🛑 Stopping all checking");
+
+    // Clear all intervals
+    activeIntervals.current.forEach((interval) => clearInterval(interval));
+    activeIntervals.current.clear();
 
     // Clear all timeouts
     pendingTimeouts.current.forEach((timeout) => clearTimeout(timeout));
@@ -241,12 +281,8 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
     setTimeout(() => setSuccess(""), 3000);
   };
 
-  const handleRequestTimeout = (requestId: string) => {
-    const pendingRequest = pendingRequests.find(
-      (req) => req.requestId === requestId
-    );
-    const filename = pendingRequest?.filename || "Unknown file";
-
+  const handleRequestTimeout = (requestId: string, filename: string) => {
+    console.log("⏰ Handling timeout for requestId:", requestId);
     setError(`Request timed out for: ${filename}`);
     setTimeout(() => setError(""), 5000);
   };
@@ -319,6 +355,9 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
     filename: string,
     originalPrompt?: string
   ): Promise<string> => {
+    // Generate unique requestId for each request
+    const requestId = uuidv4();
+
     console.log(
       "📤 Sending to webhook with requestId:",
       requestId,
@@ -367,7 +406,7 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
     setPendingRequests((prev) => [...prev, pendingRequest]);
 
     // Start polling for this request
-    startChecking(requestId);
+    startChecking(requestId, filename);
 
     return requestId;
   };
@@ -610,6 +649,14 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
                       )}
                       s
                     </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removePendingRequest(req.requestId)}
+                      className="text-red-400 hover:text-red-300 h-6 w-6 p-0"
+                    >
+                      <X size={12} />
+                    </Button>
                   </div>
                 </div>
               ))}
