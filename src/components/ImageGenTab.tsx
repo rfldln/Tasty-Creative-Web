@@ -97,6 +97,17 @@ interface GeneratedVideo {
   sourceImage?: string;
 }
 
+// Gallery item types with type discriminator
+interface GalleryImageItem extends GeneratedImage {
+  type: "image";
+}
+
+interface GalleryVideoItem extends GeneratedVideo {
+  type: "video";
+}
+
+type GalleryItem = GalleryImageItem | GalleryVideoItem;
+
 interface GenerationSettings {
   model: string;
   sampler: string;
@@ -1194,6 +1205,59 @@ const ImageGenTab: React.FC = () => {
     );
   };
 
+  // Helper function to handle gallery item type conversions
+  const convertToGalleryItems = (
+    images: GeneratedImage[],
+    videos: GeneratedVideo[]
+  ): GalleryItem[] => {
+    const galleryImages: GalleryImageItem[] = images.map((img) => ({
+      ...img,
+      type: "image" as const,
+    }));
+
+    const galleryVideos: GalleryVideoItem[] = videos.map((vid) => ({
+      ...vid,
+      type: "video" as const,
+    }));
+
+    return [...galleryImages, ...galleryVideos];
+  };
+
+  // Updated setter functions for gallery
+  const handleSetGeneratedImages = (
+    setter: React.SetStateAction<GalleryImageItem[]>
+  ) => {
+    if (typeof setter === "function") {
+      setGeneratedImages((prev) => {
+        const galleryItems = prev.map((img) => ({
+          ...img,
+          type: "image" as const,
+        }));
+        const result = setter(galleryItems);
+        return result.map(({ type, ...img }) => img);
+      });
+    } else {
+      setGeneratedImages(setter.map(({ type, ...img }) => img));
+    }
+  };
+
+  const handleSetGeneratedVideos = (
+    setter: React.SetStateAction<GalleryVideoItem[]>
+  ) => {
+    if (typeof setter === "function") {
+      setGeneratedVideos((prev) => {
+        const galleryItems = prev.map((vid) => ({
+          ...vid,
+          type: "video" as const,
+        }));
+        const result = setter(galleryItems);
+        return result.map(({ type, ...vid }) => vid);
+      });
+    } else {
+      setGeneratedVideos(setter.map(({ type, ...vid }) => vid));
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-900">
       {/* Sidebar */}
@@ -1910,19 +1974,19 @@ const ImageGenTab: React.FC = () => {
             </div>
           )}
 
-          {/* Gallery Tab Content - UPDATED to use Combined Gallery */}
+          {/* Gallery Tab Content - FIXED with proper type conversion */}
           {activeSubTab === "gallery" && (
             <CombinedGallery
               generatedImages={generatedImages.map((img) => ({
                 ...img,
                 type: "image" as const,
               }))}
-              setGeneratedImages={setGeneratedImages}
+              setGeneratedImages={handleSetGeneratedImages}
               generatedVideos={generatedVideos.map((vid) => ({
                 ...vid,
                 type: "video" as const,
               }))}
-              setGeneratedVideos={setGeneratedVideos}
+              setGeneratedVideos={handleSetGeneratedVideos}
               onSendToPromptGenerator={sendToPromptGenerator}
               onAddToVault={addToVault}
             />
