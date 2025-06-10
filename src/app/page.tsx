@@ -124,6 +124,7 @@ import GenerationTab from "@/components/GenerationTab";
 import ChattingTab from "@/components/ChattingTab";
 import OnboardingTab from "@/components/OnboardingTab";
 import VaultTab from "@/components/VaultTab";
+import ImageGenTab from "@/components/ImageGenTab";
 
 // Define TypeScript interfaces for our data structures
 interface ApiKeyBalance {
@@ -325,8 +326,6 @@ const TastyCreative = () => {
   );
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
   const [isLoadingEventDetail, setIsLoadingEventDetail] = useState(false);
-
-  const [audioNo, setAudioNo] = useState<number>(1);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const historyAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -2530,19 +2529,6 @@ const TastyCreative = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 -mt-5">
-                    <Label className="text-gray-300">Audio No:</Label>
-                    <Input
-                      value={audioNo}
-                      onChange={(e) => {
-                        setAudioNo(Number(e.target.value));
-                      }}
-                      type="number"
-                      min={1}
-                      className="w-[70px] bg-black/60 border-white/10 text-white rounded-l"
-                    />
-                  </div>
-
                   {/* Voice parameters */}
                   <div className="space-y-4">
                     <div>
@@ -2977,14 +2963,6 @@ const TastyCreative = () => {
                       </div>
                     </div>
                   )}
-                  <VoiceNoteCard
-                    voiceText={voiceText}
-                    model={
-                      availableVoices.find((m) => m.voiceId === selectedVoice)
-                        ?.name || ""
-                    }
-                    audioNo={audioNo}
-                  />
                 </CardContent>
               </Card>
             </div>
