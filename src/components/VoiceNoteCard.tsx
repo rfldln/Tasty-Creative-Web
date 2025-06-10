@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useCallback } from "react";
 import { Button } from "./ui/button";
 
 // Constants for better maintainability
@@ -9,8 +9,8 @@ const CANVAS_CONFIG = {
 } as const;
 
 const TEXT_CONFIG = {
-  START_Y: 320,
-  MAX_WIDTH: 900,
+ START_Y: 320,
+  MAX_WIDTH: 900, 
   LINE_HEIGHT_MULTIPLIER: 1.4,
   FONT_SIZES: {
     EXTRA_LARGE: 84, // <= 80 chars
@@ -33,10 +33,11 @@ interface VoiceNoteCardProps {
 
 const VoiceNoteCard = ({ voiceText, model, audioNo }: VoiceNoteCardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const TITLE_CONFIG = {
     TEXT: "Audio " + audioNo,
-    Y_POSITION: 150,
+    Y_POSITION: 120,
     FONT_SIZE: 100,
     UNDERLINE_OFFSET: 90,
     UNDERLINE_THICKNESS: 7,
@@ -70,24 +71,77 @@ const VoiceNoteCard = ({ voiceText, model, audioNo }: VoiceNoteCardProps) => {
     text: string,
     maxWidth: number
   ): string[] => {
+    // Handle empty text
+    if (!text) return [];
+    
     const words = text.split(" ");
     const lines: string[] = [];
-    let currentLine = words[0];
+    let currentLine = "";
 
-    for (let i = 1; i < words.length; i++) {
-      const word = words[i];
-      const testLine = `${currentLine} ${word}`;
-      const width = ctx.measureText(testLine).width;
+    for (let i = 0; i < words.length; i++) {
+      let word = words[i];
+      
+      // Check if the word itself is too long and needs to be broken
+      while (ctx.measureText(word).width > maxWidth) {
+        // Find the maximum number of characters that fit
+        let charCount = 0;
+        let testWord = "";
+        
+        for (let j = 0; j < word.length; j++) {
+          testWord += word[j];
+          if (ctx.measureText(testWord).width > maxWidth) {
+            // Back up one character
+            charCount = j;
+            break;
+          }
+          charCount = j + 1;
+        }
+        
+        // If we can't fit even one character, force at least one
+        if (charCount === 0) charCount = 1;
+        
+        // Add the portion that fits to the current line or as a new line
+        const wordPart = word.substring(0, charCount);
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = "";
+        }
+        lines.push(wordPart);
+        
+        // Remove the part we just added from the word
+        word = word.substring(charCount);
+      }
+      
+      // Now handle the remaining word (or the whole word if it wasn't too long)
+      if (word) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
 
-      if (width < maxWidth) {
-        currentLine = testLine;
-      } else {
-        lines.push(currentLine);
-        currentLine = word;
+        if (testWidth > maxWidth && currentLine) {
+          // Current line is too long, push it and start new line with current word
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          // Add word to current line
+          currentLine = testLine;
+        }
       }
     }
-
-    lines.push(currentLine);
+    
+    // Don't forget the last line
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    // Debug logging
+    console.log("Text wrapping debug:", {
+      originalText: text,
+      maxWidth: maxWidth,
+      linesCreated: lines.length,
+      lines: lines
+    });
+    
     return lines;
   };
 
@@ -126,13 +180,13 @@ const VoiceNoteCard = ({ voiceText, model, audioNo }: VoiceNoteCardProps) => {
   const drawVoiceText = (ctx: CanvasRenderingContext2D): void => {
     const fontSize = getFontSize(voiceText.length);
 
-    // Set voice text styles
+    // Set voice text styles BEFORE wrapping text
     ctx.fillStyle = "#ef4444"; // red-500
     ctx.font = `bold ${fontSize}px Inter, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
 
-    // Wrap and draw text
+    // Wrap and draw text - now the font is set for proper measurement
     const lines = wrapText(ctx, voiceText, TEXT_CONFIG.MAX_WIDTH);
     const lineHeight = fontSize * TEXT_CONFIG.LINE_HEIGHT_MULTIPLIER;
 
@@ -155,7 +209,12 @@ const VoiceNoteCard = ({ voiceText, model, audioNo }: VoiceNoteCardProps) => {
   /**
    * Main function to embed text to image and trigger download
    */
-  const embedTextToImage = (): void => {
+  const embedTextToImage = useCallback(async (): Promise<void> => {
+    if (isDownloading) {
+      console.log("Download already in progress, skipping...");
+      return;
+    }
+    
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
 
@@ -163,6 +222,9 @@ const VoiceNoteCard = ({ voiceText, model, audioNo }: VoiceNoteCardProps) => {
       console.error("Canvas or context not available");
       return;
     }
+
+    console.log("Starting download process...");
+    setIsDownloading(true);
 
     // Set canvas dimensions
     canvas.width = CANVAS_CONFIG.WIDTH;
@@ -183,47 +245,60 @@ const VoiceNoteCard = ({ voiceText, model, audioNo }: VoiceNoteCardProps) => {
 
         // Download the result
         downloadImage(canvas);
+        console.log("Download completed");
       } catch (error) {
         console.error("Error generating image:", error);
+      } finally {
+        // Add a small delay before resetting the state to prevent rapid re-clicks
+        setTimeout(() => {
+          setIsDownloading(false);
+        }, 500);
       }
     };
 
     img.onerror = () => {
       console.error("Failed to load background image");
+      setIsDownloading(false);
     };
 
     img.src = TEMPLATE_CONFIG.IMAGE_PATH;
-  };
+  }, [isDownloading, voiceText, model, audioNo, drawTitle, drawVoiceText, downloadImage]);
 
   return (
     <div className="flex flex-col gap-3">
       {/* Header */}
       <h1 className="text-white text-large font-bold">Voice Note Card</h1>
 
-      {/* Preview Card */}
-      <div className="relative flex justify-center items-center">
-        <img
-          src={TEMPLATE_CONFIG.IMAGE_PATH}
-          alt="Voice note template"
-          width={TEMPLATE_CONFIG.PREVIEW_SIZE}
-          height={TEMPLATE_CONFIG.PREVIEW_SIZE}
-          loading="lazy"
-        />
-
-        {/* Overlay Content */}
-        <div className="absolute inset-0 flex flex-col items-center p-4">
-          {/* Title */}
-          <h2 className="text-black text-3xl underline font-bold font-inter mb-3 mt-5 text-center">
+      {/* Preview Card - Fixed 300px x 300px */}
+      <div
+        className="flex flex-col bg-center bg-cover rounded-lg shadow-lg overflow-hidden"
+        style={{
+          backgroundImage: `url(${TEMPLATE_CONFIG.IMAGE_PATH})`,
+          width: '300px',
+          height: '300px',
+          maxWidth: '300px',
+          maxHeight: '300px',
+        }}
+      >
+        {/* Title - positioned at top with some spacing */}
+        <div className="pt-7 pb-3 px-4">
+          <h2 className="text-black text-3xl underline font-bold font-inter text-center">
             {TITLE_CONFIG.TEXT}
           </h2>
+        </div>
 
-          {/* Voice Text */}
+        {/* Voice Text - fills remaining space */}
+        <div className="flex-1 flex items-start justify-center px-6 pb-4 overflow-hidden">
           <p
             className={`
               text-red-500 font-bold font-inter text-center leading-relaxed 
-              px-10 break-words overflow-wrap-anywhere max-w-full
+              break-words w-full
               ${getPreviewTextSize(voiceText.length)}
             `}
+            style={{
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+            }}
           >
             {voiceText}
           </p>
@@ -235,14 +310,20 @@ const VoiceNoteCard = ({ voiceText, model, audioNo }: VoiceNoteCardProps) => {
 
       {/* Download Button */}
       <Button
-        onClick={embedTextToImage}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          embedTextToImage();
+        }}
+        disabled={isDownloading}
         className="
           bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg py-1
+          disabled:opacity-50 disabled:cursor-not-allowed max-w-[300px]
         "
         type="button"
         aria-label="Download voice note card as image"
       >
-        Download Voice Note Card
+        {isDownloading ? "Downloading..." : "Download Voice Note Card"}
       </Button>
     </div>
   );
