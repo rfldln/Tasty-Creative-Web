@@ -74,6 +74,11 @@ interface VaultFolder {
   color?: string;
 }
 
+// Extended interface for display purposes
+interface VaultFolderWithPath extends VaultFolder {
+  fullPath: string;
+}
+
 interface VaultTabProps {
   datasetItems: DatasetItem[];
   setDatasetItems: React.Dispatch<React.SetStateAction<DatasetItem[]>>;
@@ -397,11 +402,6 @@ const VaultTab: React.FC<VaultTabProps> = ({
     ? folders.find((f) => f.id === currentFolderId)?.name || "Unknown"
     : "Vault";
 
-  const allFoldersFlat = folders.map((folder) => ({
-    ...folder,
-    fullPath: getFolderFullPath(folder.id),
-  }));
-
   // Get full path for a folder
   function getFolderFullPath(folderId: string): string {
     const folder = folders.find((f) => f.id === folderId);
@@ -412,6 +412,12 @@ const VaultTab: React.FC<VaultTabProps> = ({
     const parentPath = getFolderFullPath(folder.parentId);
     return parentPath ? `${parentPath} > ${folder.name}` : folder.name;
   }
+
+  // Create folders with full path for sidebar display
+  const allFoldersFlat: VaultFolderWithPath[] = folders.map((folder) => ({
+    ...folder,
+    fullPath: getFolderFullPath(folder.id),
+  }));
 
   return (
     <div className="h-[80vh] flex bg-black/30 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden">
@@ -468,16 +474,20 @@ const VaultTab: React.FC<VaultTabProps> = ({
                     key={folder.id}
                     onClick={() => {
                       // Navigate to folder by building path
-                      const pathToFolder = [];
-                      let current = folder;
+                      const pathToFolder: VaultFolder[] = [];
+                      let currentFolderForPath: VaultFolder | undefined =
+                        folder;
 
-                      while (current.parentId) {
+                      while (
+                        currentFolderForPath &&
+                        currentFolderForPath.parentId
+                      ) {
                         const parent = folders.find(
-                          (f) => f.id === current.parentId
+                          (f) => f.id === currentFolderForPath!.parentId
                         );
                         if (parent) {
                           pathToFolder.unshift(parent);
-                          current = parent;
+                          currentFolderForPath = parent;
                         } else {
                           break;
                         }
