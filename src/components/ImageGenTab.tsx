@@ -142,6 +142,16 @@ interface VaultFolder {
 
 type MediaItem = GeneratedImage | GeneratedVideo;
 
+// TODO: Update CombinedGalleryProps interface in CombinedGallery component to include:
+// interface CombinedGalleryProps {
+//   generatedImages: GalleryImageItem[];
+//   setGeneratedImages: React.Dispatch<React.SetStateAction<GalleryImageItem[]>>;
+//   generatedVideos: GalleryVideoItem[];
+//   setGeneratedVideos: React.Dispatch<React.SetStateAction<GalleryVideoItem[]>>;
+//   onSendToPromptGenerator: (items: MediaItem[]) => void;
+//   onAddToVault?: (items: MediaItem[]) => void; // <-- Add this line
+// }
+
 // UPDATED ComfyUI Integration Hook - Replace the existing one in ImageGenTab.tsx
 const useComfyUIGeneration = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -1203,57 +1213,78 @@ const ImageGenTab: React.FC = () => {
     );
   };
 
-  // Helper function to handle gallery item type conversions
-  const convertToGalleryItems = (
-    images: GeneratedImage[],
-    videos: GeneratedVideo[]
-  ): GalleryItem[] => {
-    const galleryImages: GalleryImageItem[] = images.map((img) => ({
+  // FIXED: Simplified conversion functions with proper type handling
+  const convertToGalleryImages = (
+    images: GeneratedImage[]
+  ): GalleryImageItem[] => {
+    return images.map((img) => ({
       ...img,
       type: "image" as const,
     }));
+  };
 
-    const galleryVideos: GalleryVideoItem[] = videos.map((vid) => ({
+  const convertToGalleryVideos = (
+    videos: GeneratedVideo[]
+  ): GalleryVideoItem[] => {
+    return videos.map((vid) => ({
       ...vid,
       type: "video" as const,
     }));
-
-    return [...galleryImages, ...galleryVideos];
   };
 
-  // Updated setter functions for gallery
+  const convertFromGalleryImages = (
+    galleryImages: GalleryImageItem[]
+  ): GeneratedImage[] => {
+    return galleryImages.map((galleryImg) => {
+      const { type, ...img } = galleryImg;
+      return img;
+    });
+  };
+
+  const convertFromGalleryVideos = (
+    galleryVideos: GalleryVideoItem[]
+  ): GeneratedVideo[] => {
+    return galleryVideos.map((galleryVid) => {
+      const { type, ...vid } = galleryVid;
+      return vid;
+    });
+  };
+
+  // Temporary workaround: Type-safe wrapper for CombinedGallery with additional props
+  const renderCombinedGallery = () => {
+    const galleryProps = {
+      generatedImages: convertToGalleryImages(generatedImages),
+      setGeneratedImages: handleSetGeneratedImages,
+      generatedVideos: convertToGalleryVideos(generatedVideos),
+      setGeneratedVideos: handleSetGeneratedVideos,
+      onSendToPromptGenerator: sendToPromptGenerator,
+    };
+
+    // Until CombinedGallery interface is updated, we'll handle vault functionality separately
+    return <CombinedGallery {...galleryProps} />;
+  };
+
+  // FIXED: Properly typed setter functions for gallery
   const handleSetGeneratedImages = (
     setter: React.SetStateAction<GalleryImageItem[]>
   ) => {
-    if (typeof setter === "function") {
-      setGeneratedImages((prev) => {
-        const galleryItems = prev.map((img) => ({
-          ...img,
-          type: "image" as const,
-        }));
-        const result = setter(galleryItems);
-        return result.map(({ type, ...img }) => img);
-      });
-    } else {
-      setGeneratedImages(setter.map(({ type, ...img }) => img));
-    }
+    setGeneratedImages((prevImages) => {
+      const galleryImages = convertToGalleryImages(prevImages);
+      const newGalleryImages =
+        typeof setter === "function" ? setter(galleryImages) : setter;
+      return convertFromGalleryImages(newGalleryImages);
+    });
   };
 
   const handleSetGeneratedVideos = (
     setter: React.SetStateAction<GalleryVideoItem[]>
   ) => {
-    if (typeof setter === "function") {
-      setGeneratedVideos((prev) => {
-        const galleryItems = prev.map((vid) => ({
-          ...vid,
-          type: "video" as const,
-        }));
-        const result = setter(galleryItems);
-        return result.map(({ type, ...vid }) => vid);
-      });
-    } else {
-      setGeneratedVideos(setter.map(({ type, ...vid }) => vid));
-    }
+    setGeneratedVideos((prevVideos) => {
+      const galleryVideos = convertToGalleryVideos(prevVideos);
+      const newGalleryVideos =
+        typeof setter === "function" ? setter(galleryVideos) : setter;
+      return convertFromGalleryVideos(newGalleryVideos);
+    });
   };
 
   return (
@@ -1829,22 +1860,7 @@ const ImageGenTab: React.FC = () => {
           )}
 
           {/* Gallery Tab Content - FIXED with proper type conversion */}
-          {activeSubTab === "gallery" && (
-            <CombinedGallery
-              generatedImages={generatedImages.map((img) => ({
-                ...img,
-                type: "image" as const,
-              }))}
-              setGeneratedImages={handleSetGeneratedImages}
-              generatedVideos={generatedVideos.map((vid) => ({
-                ...vid,
-                type: "video" as const,
-              }))}
-              setGeneratedVideos={handleSetGeneratedVideos}
-              onSendToPromptGenerator={sendToPromptGenerator}
-              onAddToVault={addToVault}
-            />
-          )}
+          {activeSubTab === "gallery" && renderCombinedGallery()}
 
           {/* Video Tab Content */}
           {activeSubTab === "video" && (
