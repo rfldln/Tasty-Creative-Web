@@ -5,8 +5,6 @@ import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
 import { X } from "lucide-react";
 
-
-
 export default function FlyerTemplates({
   flyer,
   type,
@@ -204,11 +202,12 @@ export default function FlyerTemplates({
                           onClick={() => handleThumbnailClick(file)}
                         >
                           <img
-                            src={file.thumbnailLink}
+                            src={`/api/image-proxy?id=${file.id}`}
                             alt={`Thumbnail of ${file.name}`}
-                            className="absolute inset-0 w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 bg-black"
+                            className="..."
                             loading="lazy"
                           />
+
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
                             <span className="text-xs text-white font-medium bg-black/50 px-2 py-1 rounded">
                               Click to select
