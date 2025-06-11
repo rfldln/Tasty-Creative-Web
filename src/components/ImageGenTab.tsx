@@ -142,7 +142,7 @@ interface VaultFolder {
 
 type MediaItem = GeneratedImage | GeneratedVideo;
 
-// FIXED ComfyUI Integration Hook
+// UPDATED ComfyUI Integration Hook - Replace the existing one in ImageGenTab.tsx
 const useComfyUIGeneration = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [availableLoraModels, setAvailableLoraModels] = useState<string[]>([]);
@@ -151,19 +151,18 @@ const useComfyUIGeneration = () => {
   const [currentNode, setCurrentNode] = useState("");
 
   useEffect(() => {
-    // Test connection to ComfyUI
+    // Test connection to ComfyUI via our API route
     const testConnection = async () => {
       try {
-        const response = await fetch("http://209.53.88.242:12628/object_info", {
+        const response = await fetch("/api/comfyui/object-info", {
           method: "GET",
-          mode: "cors",
         });
 
         if (response.ok) {
           setIsConnected(true);
-
-          // Try to get LoRA models
           const objectInfo = await response.json();
+
+          // Extract LoRA models from the response
           const loraLoader = objectInfo.LoraLoaderModelOnly;
           if (
             loraLoader &&
@@ -175,7 +174,6 @@ const useComfyUIGeneration = () => {
               loraLoader.input.required.lora_name[0] || []
             );
           } else {
-            // Fallback to mock data if structure is different
             setAvailableLoraModels([
               "2\\OF_BRI_V2.safetensors",
               "anime_style.safetensors",
@@ -184,6 +182,7 @@ const useComfyUIGeneration = () => {
           }
         } else {
           setIsConnected(false);
+          console.error("Connection test failed:", response.statusText);
         }
       } catch (error) {
         console.error("Connection test failed:", error);
@@ -306,18 +305,20 @@ const useComfyUIGeneration = () => {
         },
       };
 
-      // Queue the prompt
+      // Queue the prompt via our API route
       const clientId =
         Math.random().toString(36).substring(2) + Date.now().toString(36);
 
+      setCurrentNode("Queuing generation...");
+      setGenerationProgress(20);
+
       console.log("Sending workflow:", JSON.stringify(workflow, null, 2));
 
-      const queueResponse = await fetch("http://209.53.88.242:12628/prompt", {
+      const queueResponse = await fetch("/api/comfyui/prompt", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        mode: "cors",
         body: JSON.stringify({
           prompt: workflow,
           client_id: clientId,
@@ -336,14 +337,13 @@ const useComfyUIGeneration = () => {
       console.log("Queue result:", queueResult);
       const promptId = queueResult.prompt_id;
 
-      // Poll for completion - adaptive timeout based on batch size
+      // Poll for completion via our API route
       let attempts = 0;
-      // Base timeout of 5 minutes + 2 minutes per additional image in batch
       const baseTimeoutMinutes = 5;
       const additionalTimeoutPerImage = 2;
       const timeoutMinutes =
         baseTimeoutMinutes + (params.batchSize - 1) * additionalTimeoutPerImage;
-      const maxAttempts = timeoutMinutes * 60; // Convert to seconds
+      const maxAttempts = timeoutMinutes * 60;
 
       console.log(
         `Setting timeout to ${timeoutMinutes} minutes for batch size ${params.batchSize}`
@@ -351,18 +351,17 @@ const useComfyUIGeneration = () => {
 
       while (attempts < maxAttempts) {
         setCurrentNode(
-          `Checking status... (${Math.floor(attempts / 60)}:${(attempts % 60)
+          `Processing... (${Math.floor(attempts / 60)}:${(attempts % 60)
             .toString()
             .padStart(2, "0")} / ${timeoutMinutes}:00)`
         );
-        setGenerationProgress(Math.min((attempts / maxAttempts) * 90, 90));
+        setGenerationProgress(20 + Math.min((attempts / maxAttempts) * 70, 70));
 
         try {
           const historyResponse = await fetch(
-            `http://209.53.88.242:12628/history/${promptId}`,
+            `/api/comfyui/history/${promptId}`,
             {
               method: "GET",
-              mode: "cors",
             }
           );
 
@@ -384,7 +383,7 @@ const useComfyUIGeneration = () => {
                     const nodeOutput = execution.outputs[nodeId];
                     if (nodeOutput.images) {
                       for (const image of nodeOutput.images) {
-                        const imageUrl = `http://209.53.88.242:12628/view?filename=${image.filename}&subfolder=${image.subfolder}&type=${image.type}`;
+                        const imageUrl = `/api/comfyui/view?filename=${image.filename}&subfolder=${image.subfolder}&type=${image.type}`;
                         imageUrls.push(imageUrl);
                       }
                     }

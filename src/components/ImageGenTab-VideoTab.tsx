@@ -428,7 +428,7 @@ interface VideoGenerationSettings {
   scheduler: string;
 }
 
-// Real ComfyUI WAN 2.1 integration hook
+// UPDATED WAN Video Generation Hook - Replace in ImageGenTab-VideoTab.tsx
 const useWanVideoGeneration = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -437,12 +437,11 @@ const useWanVideoGeneration = () => {
   const [currentStage, setCurrentStage] = useState("");
 
   useEffect(() => {
-    // Test connection to ComfyUI
+    // Test connection to ComfyUI via our API route
     const testConnection = async () => {
       try {
-        const response = await fetch("http://209.53.88.242:12628/object_info", {
+        const response = await fetch("/api/comfyui/object-info", {
           method: "GET",
-          mode: "cors",
         });
 
         if (response.ok) {
@@ -470,21 +469,23 @@ const useWanVideoGeneration = () => {
     testConnection();
   }, []);
 
-  // Upload image to ComfyUI
+  // Update this function in your useWanVideoGeneration hook
   const uploadImage = async (imageFile: File): Promise<string> => {
     const formData = new FormData();
     formData.append("image", imageFile);
     formData.append("type", "input");
     formData.append("subfolder", "");
 
-    const response = await fetch("http://209.53.88.242:12628/upload/image", {
+    const response = await fetch("/api/comfyui/upload", {
       method: "POST",
-      mode: "cors",
       body: formData,
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to upload image: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(
+        `Failed to upload image: ${response.statusText} - ${errorText}`
+      );
     }
 
     const result = await response.json();
@@ -585,8 +586,8 @@ const useWanVideoGeneration = () => {
             height: params.height,
             num_frames: params.frameCount,
             motion_bucket_id: params.motionStrength,
-            length: params.frameCount, // Add missing length parameter
-            batch_size: 1, // Add missing batch_size parameter
+            length: params.frameCount,
+            batch_size: 1,
           },
         },
         "3": {
@@ -628,7 +629,7 @@ const useWanVideoGeneration = () => {
         },
       };
 
-      // Queue the prompt to ComfyUI
+      // Queue the prompt to ComfyUI via API route
       const clientId =
         Math.random().toString(36).substring(2) + Date.now().toString(36);
 
@@ -637,12 +638,11 @@ const useWanVideoGeneration = () => {
 
       console.log("Sending WAN workflow:", JSON.stringify(workflow, null, 2));
 
-      const queueResponse = await fetch("http://209.53.88.242:12628/prompt", {
+      const queueResponse = await fetch("/api/comfyui/prompt", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        mode: "cors",
         body: JSON.stringify({
           prompt: workflow,
           client_id: clientId,
@@ -663,7 +663,7 @@ const useWanVideoGeneration = () => {
 
       // Poll for completion - longer timeout for video generation
       let attempts = 0;
-      const timeoutMinutes = 60; // 15 minutes for video generation
+      const timeoutMinutes = 60; // 60 minutes for video generation
       const maxAttempts = timeoutMinutes * 60; // Convert to seconds
 
       console.log(
@@ -682,10 +682,9 @@ const useWanVideoGeneration = () => {
 
         try {
           const historyResponse = await fetch(
-            `http://209.53.88.242:12628/history/${promptId}`,
+            `/api/comfyui/history/${promptId}`,
             {
               method: "GET",
-              mode: "cors",
             }
           );
 
@@ -723,7 +722,7 @@ const useWanVideoGeneration = () => {
                     if (nodeOutput.images) {
                       console.log("Found 'images' output:", nodeOutput.images);
                       for (const image of nodeOutput.images) {
-                        const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                        const videoUrl = `/api/comfyui/view?filename=${
                           image.filename
                         }&subfolder=${image.subfolder || ""}&type=${
                           image.type || "output"
@@ -742,7 +741,7 @@ const useWanVideoGeneration = () => {
                     if (nodeOutput.videos) {
                       console.log("Found 'videos' output:", nodeOutput.videos);
                       for (const video of nodeOutput.videos) {
-                        const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                        const videoUrl = `/api/comfyui/view?filename=${
                           video.filename
                         }&subfolder=${video.subfolder || ""}&type=${
                           video.type || "output"
@@ -761,7 +760,7 @@ const useWanVideoGeneration = () => {
                     if (nodeOutput.webm) {
                       console.log("Found 'webm' output:", nodeOutput.webm);
                       for (const video of nodeOutput.webm) {
-                        const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                        const videoUrl = `/api/comfyui/view?filename=${
                           video.filename
                         }&subfolder=${video.subfolder || ""}&type=${
                           video.type || "output"
@@ -780,7 +779,7 @@ const useWanVideoGeneration = () => {
                     if (nodeOutput.files) {
                       console.log("Found 'files' output:", nodeOutput.files);
                       for (const file of nodeOutput.files) {
-                        const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                        const videoUrl = `/api/comfyui/view?filename=${
                           file.filename
                         }&subfolder=${file.subfolder || ""}&type=${
                           file.type || "output"
@@ -811,7 +810,7 @@ const useWanVideoGeneration = () => {
                             typeof item === "object" &&
                             item.filename
                           ) {
-                            const videoUrl = `http://209.53.88.242:12628/view?filename=${
+                            const videoUrl = `/api/comfyui/view?filename=${
                               item.filename
                             }&subfolder=${item.subfolder || ""}&type=${
                               item.type || "output"
