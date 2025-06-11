@@ -239,7 +239,7 @@ const EnhancedVideoDisplay: React.FC<{
       <video
         ref={videoRef}
         src={video.videoUrl}
-        className="w-full h-full object-cover"
+        className="w-full h-auto object-contain"
         autoPlay={autoPlay}
         controls={controls}
         muted={muted}
@@ -251,12 +251,6 @@ const EnhancedVideoDisplay: React.FC<{
         playsInline
         crossOrigin="anonymous"
       />
-
-      {loadState === "loaded" && (
-        <div className="absolute top-2 right-2 bg-green-600/80 text-white text-xs px-2 py-1 rounded">
-          ✓ Video
-        </div>
-      )}
     </div>
   );
 };
@@ -374,22 +368,9 @@ const WebPDisplay: React.FC<{
         referrerPolicy="no-referrer"
         style={{
           imageRendering: "auto",
-          objectFit: "cover",
+          objectFit: "contain",
         }}
       />
-
-      {/* Debug overlay for loaded state */}
-      {loadState === "loaded" && (
-        <div className="absolute top-2 right-2 bg-green-600/80 text-white text-xs px-2 py-1 rounded">
-          ✓ WebP
-        </div>
-      )}
-
-      {loadState === "cors-proxy" && (
-        <div className="absolute top-2 right-2 bg-yellow-600/80 text-white text-xs px-2 py-1 rounded">
-          📡 Retry
-        </div>
-      )}
     </>
   );
 };
@@ -927,24 +908,23 @@ const VideoTab: React.FC<VideoTabProps> = ({
     currentStage,
   } = useWanVideoGeneration();
 
-  // Generation states
+  // Generation states - Simplified UI but keep internal state
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState(
     "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
-  );
+  ); // Hidden from UI
   const [selectedModel, setSelectedModel] = useState(
     "wan2.1_i2v_720p_14B_fp16.safetensors"
-  );
+  ); // Hidden from UI
   const [width, setWidth] = useState(832);
   const [height, setHeight] = useState(1216);
   const [fps, setFps] = useState(16);
   const [frameCount, setFrameCount] = useState(65);
-  const [motionStrength, setMotionStrength] = useState(1);
-  const [guidanceScale, setGuidanceScale] = useState(6);
-  const [steps, setSteps] = useState(20);
-  const [sampler, setSampler] = useState("uni_pc");
-  const [scheduler, setScheduler] = useState("simple");
-  const [seed, setSeed] = useState("");
+  const [motionStrength, setMotionStrength] = useState(1); // Hidden from UI
+  const [guidanceScale, setGuidanceScale] = useState(6); // Hidden from UI
+  const [steps, setSteps] = useState(20); // Hidden from UI
+  const [sampler, setSampler] = useState("uni_pc"); // Hidden from UI
+  const [scheduler, setScheduler] = useState("simple"); // Hidden from UI
 
   // Image upload states
   const [sourceImage, setSourceImage] = useState<string>("");
@@ -968,14 +948,11 @@ const VideoTab: React.FC<VideoTabProps> = ({
 
   const frameCountPresets = [25, 49, 65, 81, 97];
   const fpsPresets = [8, 12, 16, 24, 30];
-  const samplerOptions = [
-    "uni_pc",
-    "euler",
-    "euler_ancestral",
-    "dpm_2m",
-    "dpm_2m_karras",
-  ];
-  const schedulerOptions = ["simple", "normal", "karras", "exponential"];
+
+  // Helper function to calculate duration based on frames and fps
+  const calculateDuration = (frames: number, fps: number) => {
+    return Math.round((frames / fps) * 10) / 10; // Round to 1 decimal place
+  };
 
   // Image upload handlers
   const handleImageUpload = (file: File) => {
@@ -1034,7 +1011,7 @@ const VideoTab: React.FC<VideoTabProps> = ({
     }
   };
 
-  // Main generation function
+  // Main generation function with random seed
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError("Please enter a prompt");
@@ -1069,7 +1046,7 @@ const VideoTab: React.FC<VideoTabProps> = ({
         steps,
         sampler,
         scheduler,
-        seed: seed ? parseInt(seed) : undefined,
+        seed: Math.floor(Math.random() * 1000000000), // Always random seed
         sourceImage,
         imageFile, // Pass the actual file for upload
       };
@@ -1176,15 +1153,15 @@ const VideoTab: React.FC<VideoTabProps> = ({
     <div className="space-y-6">
       {/* Generation Tab Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Panel - Generation Controls */}
+        {/* Left Panel - Simplified Generation Controls */}
         <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <Video className="mr-2" />
-              WAN 2.1 Image-to-Animation Generation
+              AI Video Generation
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Transform images into dynamic animations using WAN 2.1 AI model
+              Transform images into dynamic video using AI
             </CardDescription>
           </CardHeader>
 
@@ -1276,64 +1253,26 @@ const VideoTab: React.FC<VideoTabProps> = ({
                   htmlFor="video-prompt"
                   className="text-gray-300 mb-2 block"
                 >
-                  Motion Prompt
+                  Prompt
                 </Label>
                 <Textarea
                   id="video-prompt"
-                  placeholder="Describe the motion or animation you want to see..."
+                  placeholder="The woman is swaying her hips from side to side..."
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   className="bg-black/60 border-white/10 text-white rounded-lg min-h-24"
-                  rows={3}
+                  rows={4}
                 />
                 <p className="text-gray-500 text-xs mt-1">
-                  Example: "The woman is swaying her hips from side to side"
+                  Describe the motion or movement you want to see
                 </p>
               </div>
-
-              <div>
-                <Label
-                  htmlFor="video-negative-prompt"
-                  className="text-gray-300 mb-2 block"
-                >
-                  Negative Prompt
-                </Label>
-                <Textarea
-                  id="video-negative-prompt"
-                  placeholder="What to avoid in the video..."
-                  value={negativePrompt}
-                  onChange={(e) => setNegativePrompt(e.target.value)}
-                  className="bg-black/60 border-white/10 text-white rounded-lg min-h-20"
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            {/* Model Selection */}
-            <div>
-              <Label className="text-gray-300 mb-2 block">WAN Model</Label>
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger className="bg-black/60 border-white/10 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-black/90 border-white/10 text-white">
-                  {availableModels.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model.includes("720p")
-                        ? "WAN 2.1 - 720p (14B)"
-                        : "WAN 2.1 - 1080p (14B)"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Size Presets */}
             <div>
-              <Label className="text-gray-300 mb-2 block">
-                Resolution Presets
-              </Label>
-              <div className="grid grid-cols-3 gap-2">
+              <Label className="text-gray-300 mb-2 block">Animation Size</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {presetSizes.map((preset) => (
                   <Button
                     key={preset.name}
@@ -1360,12 +1299,12 @@ const VideoTab: React.FC<VideoTabProps> = ({
             </div>
 
             {/* Video Settings */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label className="text-gray-300 mb-2 block">
-                  Frame Count: {frameCount}
+                  Length: {frameCount}f ({calculateDuration(frameCount, fps)}s)
                 </Label>
-                <div className="flex space-x-2 mb-2">
+                <div className="flex flex-wrap gap-1 mb-2">
                   {frameCountPresets.map((count) => (
                     <Button
                       key={count}
@@ -1378,7 +1317,7 @@ const VideoTab: React.FC<VideoTabProps> = ({
                       } text-white hover:bg-white/10`}
                       onClick={() => setFrameCount(count)}
                     >
-                      {count}f
+                      {count}f ({calculateDuration(count, fps)}s)
                     </Button>
                   ))}
                 </div>
@@ -1393,8 +1332,10 @@ const VideoTab: React.FC<VideoTabProps> = ({
               </div>
 
               <div>
-                <Label className="text-gray-300 mb-2 block">FPS: {fps}</Label>
-                <div className="flex space-x-2 mb-2">
+                <Label className="text-gray-300 mb-2 block">
+                  Frame Rate: {fps} FPS
+                </Label>
+                <div className="flex flex-wrap gap-1 mb-2">
                   {fpsPresets.map((f) => (
                     <Button
                       key={f}
@@ -1407,7 +1348,7 @@ const VideoTab: React.FC<VideoTabProps> = ({
                       } text-white hover:bg-white/10`}
                       onClick={() => setFps(f)}
                     >
-                      {f}
+                      {f}fps
                     </Button>
                   ))}
                 </div>
@@ -1422,117 +1363,14 @@ const VideoTab: React.FC<VideoTabProps> = ({
               </div>
             </div>
 
-            {/* Advanced Settings */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-300 mb-2 block">
-                    Motion Strength: {motionStrength}
-                  </Label>
-                  <Slider
-                    value={[motionStrength]}
-                    min={1}
-                    max={10}
-                    step={1}
-                    onValueChange={(value) => setMotionStrength(value[0])}
-                    className="py-2"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-300 mb-2 block">
-                    Guidance Scale: {guidanceScale}
-                  </Label>
-                  <Slider
-                    value={[guidanceScale]}
-                    min={1}
-                    max={20}
-                    step={0.5}
-                    onValueChange={(value) => setGuidanceScale(value[0])}
-                    className="py-2"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <Label className="text-gray-300 mb-2 block">
-                    Steps: {steps}
-                  </Label>
-                  <Slider
-                    value={[steps]}
-                    min={10}
-                    max={50}
-                    step={1}
-                    onValueChange={(value) => setSteps(value[0])}
-                    className="py-2"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-300 mb-2 block">Sampler</Label>
-                  <Select value={sampler} onValueChange={setSampler}>
-                    <SelectTrigger className="bg-black/60 border-white/10 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black/90 border-white/10 text-white">
-                      {samplerOptions.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-gray-300 mb-2 block">Scheduler</Label>
-                  <Select value={scheduler} onValueChange={setScheduler}>
-                    <SelectTrigger className="bg-black/60 border-white/10 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black/90 border-white/10 text-white">
-                      {schedulerOptions.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-gray-300 mb-2 block">Seed</Label>
-                  <div className="flex space-x-1">
-                    <Input
-                      placeholder="Random"
-                      value={seed}
-                      onChange={(e) => setSeed(e.target.value)}
-                      className="bg-black/60 border-white/10 text-white flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-black/60 border-white/10 text-white hover:bg-white/10"
-                      onClick={() =>
-                        setSeed(Math.floor(Math.random() * 1000000).toString())
-                      }
-                    >
-                      <RefreshCw size={14} />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Connection Status Alert */}
             {!isConnected && (
               <Alert className="bg-red-900/20 border-red-500/30 text-red-200">
                 <WifiOff className="h-4 w-4" />
                 <AlertTitle>Connection Issue</AlertTitle>
                 <AlertDescription>
-                  Cannot connect to ComfyUI for animation generation. Please
-                  check your instance is running and accessible.
+                  Cannot connect to AI service for animation generation. Please
+                  check your connection and try again.
                 </AlertDescription>
               </Alert>
             )}
@@ -1551,7 +1389,7 @@ const VideoTab: React.FC<VideoTabProps> = ({
 
           <CardFooter>
             <Button
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg"
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg py-3 text-lg font-medium"
               onClick={handleGenerate}
               disabled={
                 videoGenerating || !prompt.trim() || !imageFile || !isConnected
@@ -1559,17 +1397,16 @@ const VideoTab: React.FC<VideoTabProps> = ({
             >
               {videoGenerating ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating Animation... {videoProgress}%
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Creating Animation... {videoProgress}%
                   {currentStage && (
-                    <span className="ml-1">({currentStage})</span>
+                    <span className="ml-1 text-sm">({currentStage})</span>
                   )}
                 </>
               ) : (
                 <>
-                  <Video className="w-4 h-4 mr-2" />
-                  Generate Animation ({Math.round((frameCount / fps) * 10) / 10}
-                  s)
+                  <Video className="w-5 h-5 mr-2" />
+                  Create Animation ({calculateDuration(frameCount, fps)}s)
                 </>
               )}
             </Button>
@@ -1579,18 +1416,18 @@ const VideoTab: React.FC<VideoTabProps> = ({
         {/* Right Panel - Latest Generation Preview */}
         <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
           <CardHeader>
-            <CardTitle className="text-white">Latest Generation</CardTitle>
+            <CardTitle className="text-white">Latest Output</CardTitle>
             <CardDescription className="text-gray-400">
-              Preview your most recent animation
+              Preview your most recent output
             </CardDescription>
           </CardHeader>
 
           <CardContent>
             {videoGenerating ? (
-              <div className="aspect-video bg-black/50 rounded-lg border border-white/10 flex items-center justify-center">
+              <div className="bg-black/50 rounded-lg border border-white/10 flex items-center justify-center py-32">
                 <div className="text-center">
                   <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-purple-400" />
-                  <p className="text-gray-300">Generating animation...</p>
+                  <p className="text-gray-300">Creating animation...</p>
                   <p className="text-sm text-gray-400">{videoProgress}%</p>
                   {currentStage && (
                     <p className="text-xs text-gray-500 mt-1">{currentStage}</p>
@@ -1605,10 +1442,10 @@ const VideoTab: React.FC<VideoTabProps> = ({
               </div>
             ) : generatedVideos.length > 0 ? (
               <div className="space-y-4">
-                <div className="aspect-video bg-black/50 rounded-lg border border-white/10 overflow-hidden relative group">
+                <div className="bg-black/50 rounded-lg border border-white/10 overflow-hidden relative group">
                   <EnhancedVideoDisplay
                     video={generatedVideos[0]}
-                    className="w-full h-full object-cover"
+                    className="w-full h-auto object-contain"
                     autoPlay={true}
                     muted={true}
                     loop={true}
@@ -1618,11 +1455,6 @@ const VideoTab: React.FC<VideoTabProps> = ({
                       )
                     }
                   />
-
-                  {/* Debug Info */}
-                  <div className="absolute bottom-2 left-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                    {generatedVideos[0].filename}
-                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1684,32 +1516,20 @@ const VideoTab: React.FC<VideoTabProps> = ({
                             : ""
                         }`}
                       />
-                      Bookmark
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="bg-gray-900/50 border-gray-500/30 hover:bg-gray-800/50"
-                      onClick={() =>
-                        window.open(generatedVideos[0].videoUrl, "_blank")
-                      }
-                    >
-                      <Eye size={14} className="mr-1" />
-                      Test URL
+                      Favorite
                     </Button>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="aspect-video bg-black/50 rounded-lg border border-white/10 flex items-center justify-center">
+              <div className="bg-black/50 rounded-lg border border-white/10 flex items-center justify-center py-32">
                 <div className="text-center">
                   <Video className="w-12 h-12 mx-auto mb-4 text-gray-500 opacity-50" />
-                  <p className="text-gray-300">No animations generated yet</p>
+                  <p className="text-gray-300">No animations created yet</p>
                   <p className="text-sm text-gray-400">
                     {isConnected
                       ? "Upload an image and create your first animation"
-                      : "Connect to ComfyUI to start generating"}
+                      : "Connect to AI service to start creating"}
                   </p>
                 </div>
               </div>

@@ -459,18 +459,17 @@ const ImageGenTab: React.FC = () => {
     currentNode,
   } = useComfyUIGeneration();
 
-  // Generation states
+  // Generation states - Simplified UI but keep internal state
   const [prompt, setPrompt] = useState("");
-  const [negativePrompt, setNegativePrompt] = useState("");
-  const [selectedModel, setSelectedModel] = useState("flux-dev");
-  const [selectedSampler, setSelectedSampler] = useState("euler");
+  const [negativePrompt, setNegativePrompt] = useState(""); // Hidden from UI
+  const [selectedModel, setSelectedModel] = useState("flux-dev"); // Hidden from UI
+  const [selectedSampler, setSelectedSampler] = useState("euler"); // Hidden from UI
   const [selectedLoraModel, setSelectedLoraModel] = useState("");
-  const [loraStrength, setLoraStrength] = useState(0.95);
-  const [steps, setSteps] = useState(40);
-  const [cfgScale, setCfgScale] = useState(3.5);
+  const [loraStrength, setLoraStrength] = useState(0.95); // Hidden from UI
+  const [steps, setSteps] = useState(40); // Hidden from UI
+  const [cfgScale, setCfgScale] = useState(3.5); // Hidden from UI
   const [width, setWidth] = useState(832);
   const [height, setHeight] = useState(1216);
-  const [seed, setSeed] = useState("");
   const [batchSize, setBatchSize] = useState(1);
 
   // UI states
@@ -697,7 +696,7 @@ const ImageGenTab: React.FC = () => {
     }
   }, [folders]);
 
-  // Available models for Flux
+  // Available models for Flux (hidden from UI but used internally)
   const availableModels = ["flux-dev", "flux-schnell"];
 
   const availableSamplers = [
@@ -820,7 +819,7 @@ const ImageGenTab: React.FC = () => {
     return processedImages;
   };
 
-  // Updated generation function using ComfyUI
+  // Updated generation function using ComfyUI with auto-random seed
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError("Please enter a prompt");
@@ -842,15 +841,15 @@ const ImageGenTab: React.FC = () => {
     try {
       const generationParams = {
         prompt,
-        negativePrompt,
+        negativePrompt, // Always empty but kept for compatibility
         batchSize,
         selectedLoraModel,
-        loraStrength,
-        steps,
-        cfgScale,
+        loraStrength, // Fixed at 0.95
+        steps, // Fixed at 40
+        cfgScale, // Fixed at 3.5
         width,
         height,
-        seed: seed ? parseInt(seed) : undefined,
+        seed: Math.floor(Math.random() * 1000000000), // Always random seed
       };
 
       const newImages = await comfyUIGenerate(generationParams);
@@ -1561,18 +1560,17 @@ const ImageGenTab: React.FC = () => {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto p-6">
-          {/* Generate Tab Content */}
+          {/* Generate Tab Content - SIMPLIFIED UI */}
           {activeSubTab === "generate" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Panel - Generation Controls */}
+              {/* Left Panel - Simplified Generation Controls */}
               <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 <CardHeader>
                   <CardTitle className="text-white">
-                    Flux Dev + LoRA Generation
+                    AI Image Generation
                   </CardTitle>
                   <CardDescription className="text-gray-400">
-                    Create high-quality images using Flux Dev with custom LoRA
-                    models
+                    Create high-quality images using AI with simple controls
                   </CardDescription>
                 </CardHeader>
 
@@ -1584,32 +1582,15 @@ const ImageGenTab: React.FC = () => {
                         htmlFor="prompt"
                         className="text-gray-300 mb-2 block"
                       >
-                        Prompt
+                        Describe what you want to create
                       </Label>
                       <Textarea
                         id="prompt"
-                        placeholder="Describe the image you want to generate..."
+                        placeholder="A beautiful landscape with mountains and a lake at sunset..."
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         className="bg-black/60 border-white/10 text-white rounded-lg min-h-24"
-                        rows={3}
-                      />
-                    </div>
-
-                    <div>
-                      <Label
-                        htmlFor="negative-prompt"
-                        className="text-gray-300 mb-2 block"
-                      >
-                        Negative Prompt (Optional)
-                      </Label>
-                      <Textarea
-                        id="negative-prompt"
-                        placeholder="What to avoid in the image..."
-                        value={negativePrompt}
-                        onChange={(e) => setNegativePrompt(e.target.value)}
-                        className="bg-black/60 border-white/10 text-white rounded-lg min-h-20"
-                        rows={2}
+                        rows={4}
                       />
                     </div>
                   </div>
@@ -1617,7 +1598,7 @@ const ImageGenTab: React.FC = () => {
                   {/* LoRA Model Selection */}
                   <div>
                     <Label className="text-gray-300 mb-2 block">
-                      LoRA Model
+                      LoRa Model
                     </Label>
                     <Select
                       value={selectedLoraModel}
@@ -1631,9 +1612,9 @@ const ImageGenTab: React.FC = () => {
                           placeholder={
                             isConnected
                               ? availableLoraModels.length === 0
-                                ? "No LoRA models found"
-                                : "Select a LoRA model"
-                              : "Not connected to ComfyUI"
+                                ? "No art styles available"
+                                : "Select an art style"
+                              : "Not connected to AI service"
                           }
                         />
                       </SelectTrigger>
@@ -1647,72 +1628,12 @@ const ImageGenTab: React.FC = () => {
                     </Select>
                   </div>
 
-                  {/* LoRA Strength */}
-                  <div>
-                    <Label className="text-gray-300 mb-2 block">
-                      LoRA Strength: {loraStrength}
-                    </Label>
-                    <Slider
-                      value={[loraStrength]}
-                      min={0}
-                      max={2}
-                      step={0.05}
-                      onValueChange={(value) => setLoraStrength(value[0])}
-                      className="py-2"
-                    />
-                  </div>
-
-                  {/* Model & Sampler */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-300 mb-2 block">Model</Label>
-                      <Select
-                        value={selectedModel}
-                        onValueChange={setSelectedModel}
-                      >
-                        <SelectTrigger className="bg-black/60 border-white/10 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-black/90 border-white/10 text-white">
-                          {availableModels.map((model) => (
-                            <SelectItem key={model} value={model}>
-                              {model
-                                .replace(/-/g, " ")
-                                .replace(/\b\w/g, (l) => l.toUpperCase())}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label className="text-gray-300 mb-2 block">
-                        Sampler
-                      </Label>
-                      <Select
-                        value={selectedSampler}
-                        onValueChange={setSelectedSampler}
-                      >
-                        <SelectTrigger className="bg-black/60 border-white/10 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-black/90 border-white/10 text-white">
-                          {availableSamplers.map((sampler) => (
-                            <SelectItem key={sampler} value={sampler}>
-                              {sampler.replace(/_/g, " ").toUpperCase()}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
                   {/* Size Presets */}
                   <div>
                     <Label className="text-gray-300 mb-2 block">
-                      Size Presets
+                      Image Size
                     </Label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {presetSizes.map((preset) => (
                         <Button
                           key={preset.name}
@@ -1738,91 +1659,28 @@ const ImageGenTab: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Advanced Settings */}
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-300 mb-2 block">
-                          Steps: {steps}
-                        </Label>
-                        <Slider
-                          value={[steps]}
-                          min={20}
-                          max={100}
-                          step={1}
-                          onValueChange={(value) => setSteps(value[0])}
-                          className="py-2"
-                        />
-                      </div>
-
-                      <div>
-                        <Label className="text-gray-300 mb-2 block">
-                          CFG Scale: {cfgScale}
-                        </Label>
-                        <Slider
-                          value={[cfgScale]}
-                          min={1}
-                          max={10}
-                          step={0.1}
-                          onValueChange={(value) => setCfgScale(value[0])}
-                          className="py-2"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <Label className="text-gray-300 mb-2 block">
-                          Seed (Optional)
-                        </Label>
-                        <Input
-                          placeholder="Random"
-                          value={seed}
-                          onChange={(e) => setSeed(e.target.value)}
-                          className="bg-black/60 border-white/10 text-white"
-                        />
-                      </div>
-
-                      <div>
-                        <Label className="text-gray-300 mb-2 block">
-                          Batch Size
-                        </Label>
-                        <Select
-                          value={batchSize.toString()}
-                          onValueChange={(value) =>
-                            setBatchSize(parseInt(value))
-                          }
-                        >
-                          <SelectTrigger className="bg-black/60 border-white/10 text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-black/90 border-white/10 text-white">
-                            {Array.from({ length: 15 }, (_, i) => i + 1).map(
-                              (size) => (
-                                <SelectItem key={size} value={size.toString()}>
-                                  {size} {size === 1 ? "image" : "images"}
-                                </SelectItem>
-                              )
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-end">
-                        <Button
-                          variant="outline"
-                          className="w-full bg-black/60 border-white/10 text-white hover:bg-white/10"
-                          onClick={() =>
-                            setSeed(
-                              Math.floor(Math.random() * 1000000).toString()
-                            )
-                          }
-                        >
-                          <RefreshCw size={16} className="mr-2" />
-                          Random
-                        </Button>
-                      </div>
-                    </div>
+                  {/* Batch Size */}
+                  <div>
+                    <Label className="text-gray-300 mb-2 block">
+                      Number of Images
+                    </Label>
+                    <Select
+                      value={batchSize.toString()}
+                      onValueChange={(value) => setBatchSize(parseInt(value))}
+                    >
+                      <SelectTrigger className="bg-black/60 border-white/10 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black/90 border-white/10 text-white">
+                        {Array.from({ length: 8 }, (_, i) => i + 1).map(
+                          (size) => (
+                            <SelectItem key={size} value={size.toString()}>
+                              {size} {size === 1 ? "image" : "images"}
+                            </SelectItem>
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Connection Status Alert */}
@@ -1831,8 +1689,8 @@ const ImageGenTab: React.FC = () => {
                       <WifiOff className="h-4 w-4" />
                       <AlertTitle>Connection Issue</AlertTitle>
                       <AlertDescription>
-                        Cannot connect to ComfyUI. Please check your RunPod
-                        instance is running and accessible.
+                        Cannot connect to AI service. Please check your
+                        connection and try again.
                       </AlertDescription>
                     </Alert>
                   )}
@@ -1851,7 +1709,7 @@ const ImageGenTab: React.FC = () => {
 
                 <CardFooter>
                   <Button
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg py-3 text-lg font-medium"
                     onClick={handleGenerate}
                     disabled={
                       actuallyGenerating ||
@@ -1862,17 +1720,16 @@ const ImageGenTab: React.FC = () => {
                   >
                     {actuallyGenerating ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Generating... {actualProgress}%
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Creating... {actualProgress}%
                         {currentNode && (
-                          <span className="ml-1">({currentNode})</span>
+                          <span className="ml-1 text-sm">({currentNode})</span>
                         )}
                       </>
                     ) : (
                       <>
-                        <Image className="w-4 h-4 mr-2" />
-                        Generate{" "}
-                        {batchSize > 1 ? `${batchSize} Images` : "Image"}
+                        <Image className="w-5 h-5 mr-2" />
+                        Create {batchSize > 1 ? `${batchSize} Images` : "Image"}
                       </>
                     )}
                   </Button>
@@ -1882,11 +1739,9 @@ const ImageGenTab: React.FC = () => {
               {/* Right Panel - Quick Preview */}
               <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
                 <CardHeader>
-                  <CardTitle className="text-white">
-                    Latest Generation
-                  </CardTitle>
+                  <CardTitle className="text-white">Latest Creation</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Preview and manage your most recent images
+                    Preview your most recent image
                   </CardDescription>
                 </CardHeader>
 
@@ -1895,7 +1750,7 @@ const ImageGenTab: React.FC = () => {
                     <div className="aspect-square bg-black/50 rounded-lg border border-white/10 flex items-center justify-center">
                       <div className="text-center">
                         <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-purple-400" />
-                        <p className="text-gray-300">Generating...</p>
+                        <p className="text-gray-300">Creating your image...</p>
                         <p className="text-sm text-gray-400">
                           {actualProgress}%
                         </p>
@@ -1911,7 +1766,7 @@ const ImageGenTab: React.FC = () => {
                       <div className="aspect-square bg-black/50 rounded-lg border border-white/10 overflow-hidden">
                         <ComfyUIImage
                           image={generatedImages[0]}
-                          alt="Latest generation"
+                          alt="Latest creation"
                           className="aspect-square"
                         />
                       </div>
@@ -1950,7 +1805,7 @@ const ImageGenTab: React.FC = () => {
                                   : ""
                               }`}
                             />
-                            Bookmark
+                            Favorite
                           </Button>
                         </div>
                       </div>
@@ -1959,11 +1814,11 @@ const ImageGenTab: React.FC = () => {
                     <div className="aspect-square bg-black/50 rounded-lg border border-white/10 flex items-center justify-center">
                       <div className="text-center">
                         <Image className="w-12 h-12 mx-auto mb-4 text-gray-500 opacity-50" />
-                        <p className="text-gray-300">No images generated yet</p>
+                        <p className="text-gray-300">No images created yet</p>
                         <p className="text-sm text-gray-400">
                           {isConnected
                             ? "Create your first image above"
-                            : "Connect to ComfyUI to start generating"}
+                            : "Connect to AI service to start creating"}
                         </p>
                       </div>
                     </div>

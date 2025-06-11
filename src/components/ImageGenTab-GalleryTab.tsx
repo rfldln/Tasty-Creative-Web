@@ -42,6 +42,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Wand2,
+  Heart,
+  Eraser,
 } from "lucide-react";
 
 // Types
@@ -87,10 +89,9 @@ interface CombinedGalleryProps {
   generatedVideos: GeneratedVideo[];
   setGeneratedVideos: React.Dispatch<React.SetStateAction<GeneratedVideo[]>>;
   onSendToPromptGenerator?: (items: MediaItem[]) => void;
-  onAddToVault?: (items: MediaItem[]) => void;
 }
 
-// Enhanced Video Display Component with hover controls
+// Enhanced Video Display Component (simplified)
 const EnhancedVideoDisplay: React.FC<{
   video: GeneratedVideo;
   className?: string;
@@ -113,7 +114,6 @@ const EnhancedVideoDisplay: React.FC<{
   );
   const [errorDetails, setErrorDetails] = useState<string>("");
   const [retryCount, setRetryCount] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const maxRetries = 2;
@@ -189,18 +189,6 @@ const EnhancedVideoDisplay: React.FC<{
     }
   };
 
-  const togglePlayPause = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
   // For WebP files, display as image
   if (video.filename.toLowerCase().endsWith(".webp")) {
     return (
@@ -238,7 +226,7 @@ const EnhancedVideoDisplay: React.FC<{
   }
 
   return (
-    <div className={`relative ${className} group`}>
+    <div className={`relative ${className}`}>
       {loadState === "loading" && (
         <div className="absolute inset-0 bg-gray-800/50 flex items-center justify-center z-10">
           <div className="text-center">
@@ -262,31 +250,7 @@ const EnhancedVideoDisplay: React.FC<{
         preload="metadata"
         playsInline
         crossOrigin="anonymous"
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
       />
-
-      {/* Hover Play/Pause Control for gallery */}
-      {!controls && loadState === "loaded" && (
-        <div
-          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-black/20"
-          onClick={togglePlayPause}
-        >
-          <div className="bg-black/60 rounded-full p-2">
-            {isPlaying ? (
-              <Pause size={20} className="text-white" />
-            ) : (
-              <Play size={20} className="text-white" />
-            )}
-          </div>
-        </div>
-      )}
-
-      {loadState === "loaded" && (
-        <div className="absolute top-2 right-2 bg-green-600/80 text-white text-xs px-2 py-1 rounded">
-          ✓ Video
-        </div>
-      )}
     </div>
   );
 };
@@ -355,13 +319,12 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
   generatedVideos,
   setGeneratedVideos,
   onSendToPromptGenerator,
-  onAddToVault,
 }) => {
   // UI states
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedContentType, setSelectedContentType] = useState("all");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<"date" | "name" | "type">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -384,20 +347,6 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
     ...generatedVideos.map((vid) => ({ ...vid, type: "video" as const })),
   ];
 
-  // Categories
-  const categories = [
-    "all",
-    "portraits",
-    "landscapes",
-    "objects",
-    "anime",
-    "realistic",
-    "abstract",
-    "concept-art",
-    "animation",
-    "cinematic",
-  ];
-
   // Content type options
   const contentTypes = [
     { value: "all", label: "All Media", icon: Grid },
@@ -412,24 +361,6 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
     { value: "type", label: "Media Type" },
   ];
 
-  // Detect category from prompt
-  const detectCategory = (prompt: string): string => {
-    const promptLower = prompt.toLowerCase();
-    if (promptLower.includes("portrait") || promptLower.includes("face"))
-      return "portraits";
-    if (promptLower.includes("landscape") || promptLower.includes("scenery"))
-      return "landscapes";
-    if (promptLower.includes("anime") || promptLower.includes("manga"))
-      return "anime";
-    if (promptLower.includes("realistic") || promptLower.includes("photo"))
-      return "realistic";
-    if (promptLower.includes("animation") || promptLower.includes("moving"))
-      return "animation";
-    if (promptLower.includes("cinematic") || promptLower.includes("movie"))
-      return "cinematic";
-    return "objects";
-  };
-
   // Filter and sort items
   const filteredAndSortedItems = allMediaItems
     .filter((item) => {
@@ -437,16 +368,14 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
         item.prompt.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.filename.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesCategory =
-        selectedCategory === "all" ||
-        detectCategory(item.prompt) === selectedCategory;
-
       const matchesContentType =
         selectedContentType === "all" ||
         (selectedContentType === "images" && item.type === "image") ||
         (selectedContentType === "videos" && item.type === "video");
 
-      return matchesSearch && matchesCategory && matchesContentType;
+      const matchesFavorites = !showFavoritesOnly || item.isBookmarked;
+
+      return matchesSearch && matchesContentType && matchesFavorites;
     })
     .sort((a, b) => {
       let comparison = 0;
@@ -573,6 +502,36 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
     }
   };
 
+  // Clear selections
+  const clearSelections = () => {
+    setSelectedItems(new Set());
+  };
+
+  // Bulk favorite toggle
+  const toggleBulkFavorite = () => {
+    const selectedItemsArray = getSelectedItems();
+    const allFavorited = selectedItemsArray.every((item) => item.isBookmarked);
+
+    // If all selected items are favorited, unfavorite them. Otherwise, favorite all.
+    const shouldFavorite = !allFavorited;
+
+    selectedItemsArray.forEach((item) => {
+      if (item.type === "image") {
+        setGeneratedImages((prev) =>
+          prev.map((img) =>
+            img.id === item.id ? { ...img, isBookmarked: shouldFavorite } : img
+          )
+        );
+      } else {
+        setGeneratedVideos((prev) =>
+          prev.map((vid) =>
+            vid.id === item.id ? { ...vid, isBookmarked: shouldFavorite } : vid
+          )
+        );
+      }
+    });
+  };
+
   // Handle item click for modal
   const handleItemClick = (item: MediaItem) => {
     setSelectedItemForModal(item);
@@ -636,12 +595,16 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
     );
   };
 
-  // Modal Component with improved UI
+  // Modal Component with separated info panel
   const MediaModal: React.FC = () => {
     if (!showModal || !selectedItemForModal) return null;
 
-    const currentItem = selectedItemForModal;
+    // Get the current state of the item (important for bookmark updates)
+    const currentItem =
+      allMediaItems.find((item) => item.id === selectedItemForModal.id) ||
+      selectedItemForModal;
     const isVideo = currentItem.type === "video";
+    const [showInfo, setShowInfo] = useState(false);
 
     useEffect(() => {
       const handleKeyPress = (e: KeyboardEvent) => {
@@ -654,6 +617,9 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
         ) {
           e.preventDefault();
           togglePlayPause();
+        } else if (e.key === "i" || e.key === "I") {
+          e.preventDefault();
+          setShowInfo(!showInfo);
         }
       };
 
@@ -666,59 +632,52 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
         document.removeEventListener("keydown", handleKeyPress);
         document.body.style.overflow = "unset";
       };
-    }, [showModal, isPlaying, isVideo]);
+    }, [showModal, isPlaying, isVideo, showInfo]);
 
     return (
-      <div
-        className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4"
-        onClick={closeModal}
-      >
-        {/* Modal Container */}
-        <div
-          className="relative w-full h-full max-w-7xl max-h-[95vh] flex flex-col bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    isVideo
-                      ? "bg-purple-600/20 text-purple-300 border border-purple-500/30"
-                      : "bg-blue-600/20 text-blue-300 border border-blue-500/30"
-                  }`}
-                >
-                  {isVideo ? "VIDEO" : "IMAGE"}
-                </div>
-                <h3 className="text-white text-lg font-semibold truncate max-w-md">
-                  {currentItem.filename}
-                </h3>
-              </div>
+      <div className="fixed inset-0 bg-black/95 z-50" onClick={closeModal}>
+        {/* Main Modal - Full Screen */}
+        <div className="relative w-full h-full flex items-center justify-center p-4">
+          {/* Close Button */}
+          <button
+            onClick={closeModal}
+            className="absolute top-6 right-6 z-30 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-all duration-200 hover:scale-105"
+          >
+            <X size={20} />
+          </button>
 
-              <button
-                onClick={closeModal}
-                className="bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-all duration-200 hover:scale-105"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          </div>
+          {/* Info Toggle Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowInfo(!showInfo);
+            }}
+            className="absolute top-6 left-6 z-30 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-all duration-200 hover:scale-105"
+          >
+            <Eye size={20} />
+          </button>
 
-          {/* Media Content */}
-          <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+          {/* Media Content - Natural Size */}
+          <div
+            className="relative max-w-full max-h-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
             {isVideo ? (
-              <div className="relative w-full h-full flex items-center justify-center">
-                <EnhancedVideoDisplay
-                  video={currentItem as GeneratedVideo}
-                  className="max-w-full max-h-full object-contain"
-                  controls={false}
+              <div className="relative">
+                <video
+                  src={currentItem.videoUrl}
+                  className="block max-w-[85vw] max-h-[85vh]"
                   autoPlay={true}
                   muted={isMuted}
                   loop={true}
-                  onLoadedData={() =>
-                    console.log(`Modal video loaded: ${currentItem.filename}`)
-                  }
+                  crossOrigin="anonymous"
+                  style={{
+                    width: "auto",
+                    height: "auto",
+                    maxWidth: "85vw",
+                    maxHeight: "85vh",
+                    objectFit: "contain",
+                  }}
                 />
 
                 {/* Custom video element for controls */}
@@ -803,154 +762,256 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
                 {/* Video Type Indicator */}
                 {!isVideoFile(currentItem.filename) && (
                   <div className="absolute bottom-6 left-6 bg-black/80 text-white text-sm px-4 py-2 rounded-lg backdrop-blur-sm">
-                    Animated WebP - Auto-playing
+                    Animated WebP
                   </div>
                 )}
               </div>
             ) : (
-              <div className="w-full h-full flex items-center justify-center p-8">
-                <ComfyUIImage
-                  image={currentItem as GeneratedImage}
-                  alt={currentItem.filename}
-                  className="max-w-full max-h-full object-contain rounded-lg"
-                />
-              </div>
+              <img
+                src={currentItem.blobUrl || currentItem.imageUrl}
+                alt={currentItem.filename}
+                className="block max-w-[95vw] max-h-[95vh]"
+                style={{
+                  width: "auto",
+                  height: "auto",
+                  maxWidth: "95vw",
+                  maxHeight: "95vh",
+                  objectFit: "contain",
+                }}
+              />
             )}
           </div>
 
-          {/* Footer Info Panel */}
-          <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/90 to-transparent p-6">
-            <div className="bg-black/60 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              {/* Media Info */}
-              <div className="mb-4">
-                <p className="text-gray-300 text-sm mb-3 line-clamp-2">
+          {/* Action Buttons - Bottom Center */}
+          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-30">
+            <div className="flex items-center space-x-3 bg-black/90 backdrop-blur-sm rounded-full px-8 py-4 border border-white/20 shadow-2xl">
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 py-3 font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadItem(currentItem);
+                }}
+              >
+                <Download size={18} className="mr-2" />
+                Download
+              </Button>
+
+              <Button
+                size="sm"
+                className={`rounded-full px-6 py-3 font-medium transition-all duration-200 shadow-lg ${
+                  currentItem.isBookmarked
+                    ? "bg-yellow-500 hover:bg-yellow-600 text-black shadow-yellow-500/25"
+                    : "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 hover:border-gray-500"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleBookmark(currentItem.id);
+                }}
+              >
+                <Star
+                  size={18}
+                  className={`mr-2 transition-all duration-200 ${
+                    currentItem.isBookmarked ? "fill-current" : ""
+                  }`}
+                />
+                Favorite
+              </Button>
+
+              <Button
+                size="sm"
+                className={`rounded-full px-6 py-3 font-medium transition-all duration-200 shadow-lg ${
+                  showInfo
+                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/25"
+                    : "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 hover:border-gray-500"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowInfo(!showInfo);
+                }}
+              >
+                <Eye size={18} className="mr-2" />
+                {showInfo ? "Hide Info" : "Show Info"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Keyboard Shortcuts Hint - Bottom Right */}
+          <div className="absolute bottom-6 right-6 z-30 hidden md:flex items-center space-x-4 text-xs text-gray-400">
+            <span className="flex items-center space-x-1 bg-black/50 rounded px-2 py-1">
+              <kbd className="px-1 py-0.5 bg-black/50 rounded border border-white/20">
+                ESC
+              </kbd>
+              <span>Close</span>
+            </span>
+            <span className="flex items-center space-x-1 bg-black/50 rounded px-2 py-1">
+              <kbd className="px-1 py-0.5 bg-black/50 rounded border border-white/20">
+                I
+              </kbd>
+              <span>Info</span>
+            </span>
+            {isVideo && (
+              <span className="flex items-center space-x-1 bg-black/50 rounded px-2 py-1">
+                <kbd className="px-1 py-0.5 bg-black/50 rounded border border-white/20">
+                  SPACE
+                </kbd>
+                <span>Play/Pause</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Info Side Panel - Slide from right */}
+        <div
+          className={`absolute top-0 right-0 h-full w-96 bg-black/95 backdrop-blur-xl border-l border-white/10 transform transition-transform duration-300 ease-in-out z-40 ${
+            showInfo ? "translate-x-0" : "translate-x-full"
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-6 h-full overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white text-lg font-semibold">
+                Media Details
+              </h3>
+              <button
+                onClick={() => setShowInfo(false)}
+                className="bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all duration-200"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-6">
+              {/* Type Badge */}
+              <div
+                className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                  isVideo
+                    ? "bg-purple-600/20 text-purple-300 border border-purple-500/30"
+                    : "bg-blue-600/20 text-blue-300 border border-blue-500/30"
+                }`}
+              >
+                {isVideo ? "VIDEO" : "IMAGE"}
+              </div>
+
+              {/* Filename */}
+              <div>
+                <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-1">
+                  Filename
+                </h4>
+                <p className="text-white text-sm font-medium break-all">
+                  {currentItem.filename}
+                </p>
+              </div>
+
+              {/* Prompt */}
+              <div>
+                <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-1">
+                  Prompt
+                </h4>
+                <p className="text-gray-300 text-sm leading-relaxed">
                   {currentItem.prompt}
                 </p>
+              </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="space-y-1">
-                    <span className="text-gray-400 text-xs uppercase tracking-wide">
-                      Type
-                    </span>
-                    <div className="text-white capitalize font-medium">
-                      {currentItem.type}
-                    </div>
+              {/* Technical Details */}
+              <div className="grid grid-cols-1 gap-4">
+                {currentItem.settings && (
+                  <div>
+                    <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-1">
+                      Resolution
+                    </h4>
+                    <p className="text-white font-medium">
+                      {currentItem.settings.width} ×{" "}
+                      {currentItem.settings.height}
+                    </p>
                   </div>
+                )}
 
-                  {currentItem.settings && (
-                    <div className="space-y-1">
-                      <span className="text-gray-400 text-xs uppercase tracking-wide">
-                        Resolution
-                      </span>
-                      <div className="text-white font-medium">
-                        {currentItem.settings.width}×
-                        {currentItem.settings.height}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-1">
-                    <span className="text-gray-400 text-xs uppercase tracking-wide">
-                      Created
-                    </span>
-                    <div className="text-white font-medium">
-                      {formatDate(currentItem.timestamp)}
-                    </div>
-                  </div>
-
-                  {currentItem.type === "video" && (
-                    <div className="space-y-1">
-                      <span className="text-gray-400 text-xs uppercase tracking-wide">
-                        Duration
-                      </span>
-                      <div className="text-white font-medium">
-                        {formatDuration(
-                          (currentItem as GeneratedVideo).duration
-                        )}
-                      </div>
-                    </div>
-                  )}
+                <div>
+                  <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-1">
+                    Created
+                  </h4>
+                  <p className="text-white font-medium">
+                    {formatDate(currentItem.timestamp)}
+                  </p>
                 </div>
+
+                {currentItem.type === "video" && (
+                  <div>
+                    <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-1">
+                      Duration
+                    </h4>
+                    <p className="text-white font-medium">
+                      {formatDuration((currentItem as GeneratedVideo).duration)}
+                    </p>
+                  </div>
+                )}
 
                 {/* Source Image for Videos */}
                 {currentItem.type === "video" &&
                   "sourceImage" in currentItem &&
                   currentItem.sourceImage && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
-                      <span className="text-gray-400 text-xs uppercase tracking-wide">
+                    <div>
+                      <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-1">
                         Source Image
-                      </span>
-                      <div className="text-gray-300 text-sm mt-1">
+                      </h4>
+                      <p className="text-gray-300 text-sm break-all">
                         {currentItem.sourceImage}
-                      </div>
+                      </p>
                     </div>
                   )}
+
+                {/* Additional Settings */}
+                {currentItem.settings && (
+                  <div>
+                    <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-2">
+                      Generation Settings
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      {currentItem.type === "video" &&
+                        currentItem.settings.fps && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Frame Rate:</span>
+                            <span className="text-white">
+                              {currentItem.settings.fps} fps
+                            </span>
+                          </div>
+                        )}
+                      {currentItem.type === "video" &&
+                        currentItem.settings.frameCount && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Frame Count:</span>
+                            <span className="text-white">
+                              {currentItem.settings.frameCount}
+                            </span>
+                          </div>
+                        )}
+                      {currentItem.settings.model && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Model:</span>
+                          <span
+                            className="text-white text-xs truncate max-w-32"
+                            title={currentItem.settings.model}
+                          >
+                            {currentItem.settings.model}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-between">
+              {/* Status */}
+              <div className="pt-4 border-t border-white/10">
                 <div className="flex items-center space-x-3">
-                  <Button
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2"
-                    onClick={() => downloadItem(currentItem)}
-                  >
-                    <Download size={16} className="mr-2" />
-                    Download
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className={`rounded-lg px-4 py-2 border transition-all ${
-                      currentItem.isBookmarked
-                        ? "bg-yellow-600/20 border-yellow-500/50 text-yellow-300 hover:bg-yellow-600/30"
-                        : "bg-white/5 border-white/20 text-white hover:bg-white/10"
-                    }`}
-                    onClick={() => toggleBookmark(currentItem.id)}
-                  >
-                    <Star
-                      size={16}
-                      className={`mr-2 ${
-                        currentItem.isBookmarked ? "fill-current" : ""
-                      }`}
-                    />
-                    {currentItem.isBookmarked ? "Bookmarked" : "Bookmark"}
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="bg-white/5 border-white/20 text-white hover:bg-white/10 rounded-lg px-4 py-2"
-                    onClick={() =>
-                      window.open(
-                        currentItem.type === "image"
-                          ? currentItem.imageUrl
-                          : currentItem.videoUrl,
-                        "_blank"
-                      )
-                    }
-                  >
-                    <Eye size={16} className="mr-2" />
-                    View Original
-                  </Button>
-                </div>
-
-                {/* Keyboard Shortcuts Hint */}
-                <div className="hidden md:flex items-center space-x-4 text-xs text-gray-400">
-                  <span className="flex items-center space-x-1">
-                    <kbd className="px-2 py-1 bg-black/50 rounded border border-white/20">
-                      ESC
-                    </kbd>
-                    <span>Close</span>
-                  </span>
-                  {isVideo && (
-                    <span className="flex items-center space-x-1">
-                      <kbd className="px-2 py-1 bg-black/50 rounded border border-white/20">
-                        SPACE
-                      </kbd>
-                      <span>Play/Pause</span>
-                    </span>
+                  {currentItem.isBookmarked && (
+                    <div className="flex items-center space-x-1 text-yellow-400 text-sm">
+                      <Star size={14} className="fill-current" />
+                      <span>Favorited</span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -967,12 +1028,9 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-white">
-                Combined Media Gallery
-              </CardTitle>
+              <CardTitle className="text-white">Media Gallery</CardTitle>
               <CardDescription className="text-gray-400">
-                View and manage all your generated images and videos in one
-                place
+                View and manage all your generated images and videos
               </CardDescription>
             </div>
 
@@ -1010,6 +1068,20 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
                 </Button>
               )}
 
+              {/* Clear Selections Button */}
+              {selectedItems.size > 0 &&
+                selectedItems.size < filteredAndSortedItems.length && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-gray-600/20 border-gray-500/30 text-gray-300"
+                    onClick={clearSelections}
+                  >
+                    <Eraser size={16} className="mr-1" />
+                    Clear ({selectedItems.size})
+                  </Button>
+                )}
+
               {/* Bulk Actions */}
               {selectedItems.size > 0 && (
                 <>
@@ -1031,6 +1103,29 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
                     Download ({selectedItems.size})
                   </Button>
 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`${
+                      getSelectedItems().every((item) => item.isBookmarked)
+                        ? "bg-yellow-600/30 border-yellow-500/50 text-yellow-300"
+                        : "bg-yellow-600/20 border-yellow-500/30 text-yellow-300"
+                    }`}
+                    onClick={toggleBulkFavorite}
+                  >
+                    <Star
+                      size={16}
+                      className={`mr-1 ${
+                        getSelectedItems().every((item) => item.isBookmarked)
+                          ? "fill-current"
+                          : ""
+                      }`}
+                    />
+                    {getSelectedItems().every((item) => item.isBookmarked)
+                      ? `Unfavorite (${selectedItems.size})`
+                      : `Favorite (${selectedItems.size})`}
+                  </Button>
+
                   {onSendToPromptGenerator && (
                     <Button
                       variant="outline"
@@ -1043,21 +1138,6 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
                     >
                       <Wand2 size={16} className="mr-1" />
                       Prompt Gen ({selectedItems.size})
-                    </Button>
-                  )}
-
-                  {onAddToVault && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-green-900/30 border-green-500/30 text-green-300"
-                      onClick={() => {
-                        onAddToVault(getSelectedItems());
-                        setSelectedItems(new Set());
-                      }}
-                    >
-                      <FileImage size={16} className="mr-1" />
-                      Add to Vault ({selectedItems.size})
                     </Button>
                   )}
 
@@ -1137,24 +1217,22 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
               </SelectContent>
             </Select>
 
-            <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
+            <Button
+              variant="outline"
+              size="sm"
+              className={`px-4 ${
+                showFavoritesOnly
+                  ? "bg-yellow-600/30 border-yellow-500/50 text-yellow-300"
+                  : "bg-black/60 border-white/10 text-white"
+              }`}
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
             >
-              <SelectTrigger className="w-48 bg-black/60 border-white/10 text-white">
-                <Filter size={16} className="mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-black/90 border-white/10 text-white">
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category
-                      .replace(/-/g, " ")
-                      .replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Heart
+                size={16}
+                className={`mr-2 ${showFavoritesOnly ? "fill-current" : ""}`}
+              />
+              Favorites Only
+            </Button>
 
             <Select
               value={sortBy}
@@ -1193,6 +1271,12 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
             {selectedItems.size > 0 && (
               <span className="text-purple-400">
                 Selected: {selectedItems.size}
+              </span>
+            )}
+            {showFavoritesOnly && (
+              <span className="text-yellow-400">
+                Favorites:{" "}
+                {allMediaItems.filter((item) => item.isBookmarked).length}
               </span>
             )}
           </div>
@@ -1282,11 +1366,6 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
                           <Star size={12} className="text-white fill-current" />
                         </div>
                       )}
-                      {item.isInVault && (
-                        <div className="w-6 h-6 bg-purple-600/80 rounded flex items-center justify-center">
-                          <FileImage size={12} className="text-white" />
-                        </div>
-                      )}
                     </div>
 
                     {/* Overlay Actions */}
@@ -1354,8 +1433,8 @@ const CombinedGallery: React.FC<CombinedGalleryProps> = ({
               <p className="text-gray-400 text-lg mb-2">No media found</p>
               <p className="text-gray-500 text-sm">
                 {searchQuery ||
-                selectedCategory !== "all" ||
-                selectedContentType !== "all"
+                selectedContentType !== "all" ||
+                showFavoritesOnly
                   ? "Try adjusting your search or filter criteria"
                   : "Generate some images or videos to get started"}
               </p>

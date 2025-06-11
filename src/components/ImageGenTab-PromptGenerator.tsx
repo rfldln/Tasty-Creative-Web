@@ -28,6 +28,14 @@ import {
   AlertCircle,
   Eye,
   Clock,
+  Sparkles,
+  Brain,
+  Target,
+  Activity,
+  Trash2,
+  FileDown,
+  Plus,
+  Wand2,
 } from "lucide-react";
 
 interface GeneratedImage {
@@ -554,124 +562,103 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Configuration Section */}
-      <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <Zap className="mr-2" size={20} />
-            N8N Workflow Configuration
-          </CardTitle>
-          <CardDescription className="text-gray-400">
-            Configure your n8n webhook endpoint for image analysis
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="webhook-url" className="text-gray-300 mb-2 block">
-              Webhook URL
-            </Label>
-            <Input
-              id="webhook-url"
-              type="url"
-              placeholder="https://n8n.tastycreative.xyz/webhook/80fb6fdb-95b6-400d-b3a6-ea6d87a30a5e"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              className="bg-black/60 border-white/10 text-white"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Your n8n webhook endpoint that will receive the image data
-            </p>
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-xl p-6 border border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-purple-600/20 rounded-lg">
+              <Brain className="text-purple-400" size={28} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white mb-2">
+                AI Prompt Generator
+              </h1>
+              <p className="text-gray-300">
+                Analyze images and generate detailed prompts using AI
+              </p>
+            </div>
           </div>
 
-          {/* Connection Test */}
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-black/60 border-white/10 text-white hover:bg-white/10"
-              onClick={async () => {
-                if (!webhookUrl.trim()) {
-                  setError("Please enter a webhook URL first");
-                  return;
-                }
-
-                try {
-                  const response = await fetch(webhookUrl, {
-                    method: "HEAD",
-                  });
-
-                  if (response.ok) {
-                    setSuccess("Webhook endpoint is reachable!");
-                    setTimeout(() => setSuccess(""), 3000);
-                  } else {
-                    setError("Webhook endpoint returned an error");
-                  }
-                } catch (error) {
-                  setError("Cannot reach webhook endpoint");
-                }
-              }}
-              disabled={!webhookUrl.trim()}
-            >
-              <RefreshCw size={16} className="mr-1" />
-              Test Connection
-            </Button>
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-purple-400">
+                {results.length}
+              </p>
+              <p className="text-xs text-gray-400">Analyzed</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-400">
+                {pendingRequests.length}
+              </p>
+              <p className="text-xs text-gray-400">Processing</p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Pending Requests Status */}
       {pendingRequests.length > 0 && (
-        <Card className="bg-yellow-900/20 backdrop-blur-md border-yellow-500/30 rounded-xl">
+        <Card className="bg-gradient-to-r from-amber-900/20 to-orange-900/20 backdrop-blur-md border-amber-500/30 rounded-xl">
           <CardHeader>
-            <CardTitle className="text-yellow-300 flex items-center">
-              <Clock className="mr-2" size={20} />
-              Pending Requests ({pendingRequests.length})
-            </CardTitle>
-            <CardDescription className="text-yellow-200/70">
-              Waiting for analysis results...
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {pendingRequests.map((req) => (
-                <div
-                  key={req.requestId}
-                  className="flex items-center justify-between bg-black/40 p-2 rounded"
-                >
-                  <span className="text-yellow-200 text-sm">
-                    {req.filename}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-yellow-300" />
-                    <span className="text-yellow-300 text-xs">
-                      {Math.round(
-                        (Date.now() - req.startTime.getTime()) / 1000
-                      )}
-                      s
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removePendingRequest(req.requestId)}
-                      className="text-red-400 hover:text-red-300 h-6 w-6 p-0"
-                    >
-                      <X size={12} />
-                    </Button>
-                  </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Activity className="text-amber-400" size={20} />
+                <div>
+                  <CardTitle className="text-amber-300">
+                    Processing Queue ({pendingRequests.length})
+                  </CardTitle>
+                  <CardDescription className="text-amber-200/70">
+                    AI is analyzing your images...
+                  </CardDescription>
                 </div>
-              ))}
-            </div>
+              </div>
 
-            <div className="mt-4 flex justify-end">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={stopAllChecking}
-                className="bg-red-900/30 border-red-500/30 text-red-300 hover:bg-red-900/40"
+                className="bg-red-900/30 border-red-500/30 text-red-300 hover:bg-red-900/50"
               >
                 <X size={16} className="mr-1" />
                 Cancel All
               </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {pendingRequests.map((req) => (
+                <div
+                  key={req.requestId}
+                  className="flex items-center justify-between bg-black/30 p-3 rounded-lg border border-white/10"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-amber-600/20 rounded">
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-amber-200 font-medium">
+                        {req.filename}
+                      </p>
+                      <p className="text-amber-300/70 text-xs">
+                        {Math.round(
+                          (Date.now() - req.startTime.getTime()) / 1000
+                        )}
+                        s elapsed
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removePendingRequest(req.requestId)}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -679,57 +666,71 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
 
       {/* Image Input Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Received Images from Gallery */}
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+        {/* Gallery Images */}
+        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-white flex items-center justify-between">
-              <div className="flex items-center">
-                <ImageIcon className="mr-2" size={20} />
-                Images from Gallery
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-purple-600/20 rounded">
+                  <ImageIcon className="text-purple-400" size={20} />
+                </div>
+                <div>
+                  <CardTitle className="text-white">Gallery Images</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Images sent from your gallery
+                  </CardDescription>
+                </div>
               </div>
               {receivedImages.length > 0 && (
-                <span className="bg-purple-600/20 text-purple-300 px-2 py-1 rounded-full text-sm">
-                  {receivedImages.length}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="bg-purple-600/30 text-purple-300 px-3 py-1 rounded-full text-sm font-medium">
+                    {receivedImages.length} images
+                  </span>
+                </div>
               )}
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Images sent from the gallery for prompt analysis
-            </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             {receivedImages.length > 0 ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                {/* Image Grid */}
+                <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto bg-black/20 rounded-lg p-3">
                   {receivedImages.map((image, index) => (
                     <div key={image.id} className="relative group">
                       <img
                         src={image.blobUrl || image.imageUrl}
                         alt={image.filename}
-                        className="w-full h-20 object-cover rounded-lg border border-white/10"
+                        className="w-full aspect-square object-cover rounded-lg border border-white/10 transition-transform group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                        <Eye size={16} className="text-white" />
+                        <Eye size={20} className="text-white" />
+                      </div>
+                      {/* File name overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 rounded-b-lg">
+                        <p className="text-white text-xs truncate">
+                          {image.filename}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex space-x-2">
+                {/* Action Buttons */}
+                <div className="flex space-x-3">
                   <Button
                     onClick={processReceivedImages}
                     disabled={isProcessing || !webhookUrl.trim()}
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white"
                   >
                     {isProcessing ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
+                        Analyzing...
                       </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Analyze Images
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        Analyze All
                       </>
                     )}
                   </Button>
@@ -738,16 +739,20 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
                     onClick={onClearReceivedImages}
                     className="bg-black/60 border-white/10 text-white hover:bg-white/10"
                   >
-                    <X className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <ImageIcon className="w-12 h-12 mx-auto mb-4 text-gray-500 opacity-50" />
-                <p className="text-gray-400">No images from gallery</p>
+              <div className="text-center py-12">
+                <div className="p-4 bg-purple-600/10 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                  <ImageIcon className="w-10 h-10 text-purple-400/50" />
+                </div>
+                <p className="text-gray-400 font-medium mb-2">
+                  No gallery images
+                </p>
                 <p className="text-gray-500 text-sm">
-                  Select images in the gallery and send them here
+                  Select images in the gallery and send them here for analysis
                 </p>
               </div>
             )}
@@ -755,18 +760,23 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
         </Card>
 
         {/* File Upload */}
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Upload className="mr-2" size={20} />
-              Upload Images
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Upload images directly for prompt analysis
-            </CardDescription>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-600/20 rounded">
+                <Upload className="text-blue-400" size={20} />
+              </div>
+              <div>
+                <CardTitle className="text-white">Upload Images</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Upload local images for analysis
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Upload Area */}
               <div>
                 <input
                   type="file"
@@ -778,35 +788,56 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
                 />
                 <label
                   htmlFor="file-upload"
-                  className="block w-full p-4 border-2 border-dashed border-white/20 rounded-lg text-center cursor-pointer hover:border-white/40 transition-colors"
+                  className="group block w-full p-8 border-2 border-dashed border-white/20 rounded-lg text-center cursor-pointer hover:border-blue-400/50 hover:bg-blue-600/5 transition-all duration-200"
                 >
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-gray-300">Click to upload images</p>
+                  <div className="p-3 bg-blue-600/20 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center group-hover:bg-blue-600/30 transition-colors">
+                    <Plus className="w-8 h-8 text-blue-400" />
+                  </div>
+                  <p className="text-gray-300 font-medium mb-1">
+                    Click to upload images
+                  </p>
                   <p className="text-gray-500 text-sm">
-                    Support for JPG, PNG, WebP formats
+                    Supports JPG, PNG, WebP formats
                   </p>
                 </label>
               </div>
 
+              {/* Selected Files */}
               {selectedFiles.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-gray-300 text-sm">
-                    Selected files ({selectedFiles.length}):
-                  </p>
-                  <div className="max-h-32 overflow-y-auto space-y-2">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-gray-300 font-medium">
+                      Selected files ({selectedFiles.length})
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedFiles([])}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+
+                  <div className="max-h-32 overflow-y-auto space-y-2 bg-black/20 rounded-lg p-3">
                     {selectedFiles.map((file, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between bg-black/40 p-2 rounded border border-white/10"
                       >
-                        <span className="text-gray-300 text-sm truncate">
-                          {file.name}
-                        </span>
+                        <div className="flex items-center space-x-3">
+                          <div className="p-1 bg-blue-600/20 rounded">
+                            <ImageIcon size={14} className="text-blue-400" />
+                          </div>
+                          <span className="text-gray-300 text-sm truncate">
+                            {file.name}
+                          </span>
+                        </div>
                         <button
                           onClick={() => removeFile(index)}
-                          className="text-red-400 hover:text-red-300"
+                          className="text-red-400 hover:text-red-300 p-1 hover:bg-red-900/20 rounded transition-colors"
                         >
-                          <X size={16} />
+                          <X size={14} />
                         </button>
                       </div>
                     ))}
@@ -815,17 +846,17 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
                   <Button
                     onClick={processUploadedFiles}
                     disabled={isProcessing || !webhookUrl.trim()}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
                   >
                     {isProcessing ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
+                        Analyzing...
                       </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Analyze Uploaded Images
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Analyze {selectedFiles.length} Images
                       </>
                     )}
                   </Button>
@@ -838,26 +869,34 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
 
       {/* Processing Status */}
       {isProcessing && (
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+        <Card className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 backdrop-blur-md border-purple-500/30 rounded-xl">
           <CardContent className="pt-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-white">Submitting Images...</span>
-                <span className="text-purple-300">
+                <div className="flex items-center space-x-3">
+                  <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                  <span className="text-white font-medium">
+                    Submitting Images for Analysis...
+                  </span>
+                </div>
+                <span className="bg-purple-600/30 text-purple-300 px-3 py-1 rounded-full text-sm font-medium">
                   {Math.round(processingProgress)}%
                 </span>
               </div>
 
-              <div className="w-full bg-black/60 rounded-full h-2">
+              <div className="w-full bg-black/60 rounded-full h-3">
                 <div
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 h-3 rounded-full transition-all duration-500"
                   style={{ width: `${processingProgress}%` }}
                 ></div>
               </div>
 
               {currentProcessingImage && (
                 <p className="text-gray-400 text-sm">
-                  Currently submitting: {currentProcessingImage}
+                  Currently processing:{" "}
+                  <span className="text-purple-300">
+                    {currentProcessingImage}
+                  </span>
                 </p>
               )}
             </div>
@@ -886,14 +925,16 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
       <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="text-white flex items-center">
-                <FileText className="mr-2" size={20} />
-                Analysis Results
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Generated prompts and analysis from your images
-              </CardDescription>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-green-600/20 rounded">
+                <Target className="text-green-400" size={20} />
+              </div>
+              <div>
+                <CardTitle className="text-white">Analysis Results</CardTitle>
+                <CardDescription className="text-gray-400">
+                  AI-generated prompts and insights from your images
+                </CardDescription>
+              </div>
             </div>
 
             {results.length > 0 && (
@@ -904,16 +945,16 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
                   onClick={exportResults}
                   className="bg-black/60 border-white/10 text-white hover:bg-white/10"
                 >
-                  <Download size={16} className="mr-1" />
+                  <FileDown size={16} className="mr-1" />
                   Export
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={clearAllResults}
-                  className="bg-red-900/30 border-red-500/30 text-red-300 hover:bg-red-900/40"
+                  className="bg-red-900/30 border-red-500/30 text-red-300 hover:bg-red-900/50"
                 >
-                  <X size={16} className="mr-1" />
+                  <Trash2 size={16} className="mr-1" />
                   Clear All
                 </Button>
               </div>
@@ -923,63 +964,74 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
 
         <CardContent>
           {results.length > 0 ? (
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-4 max-h-[500px] overflow-y-auto">
               {results.map((result) => (
                 <div
                   key={result.id}
-                  className="bg-black/40 rounded-lg p-4 border border-white/10"
+                  className="bg-gradient-to-r from-black/40 to-black/60 rounded-lg p-6 border border-white/10 hover:border-purple-400/30 transition-colors"
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-gray-300 text-sm">
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-purple-600/20 rounded">
+                        <Sparkles className="text-purple-400" size={16} />
+                      </div>
+                      <div>
+                        <p className="text-gray-300 text-sm">
                           {result.timestamp.toLocaleString()}
-                        </span>
-                        <span className="bg-purple-600/20 text-purple-300 px-2 py-1 rounded text-xs">
-                          {result.confidence}% confidence
-                        </span>
-                        <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs">
-                          {result.style}
-                        </span>
-                        {result.requestId && (
-                          <span className="bg-gray-600/20 text-gray-300 px-2 py-1 rounded text-xs font-mono">
-                            {result.requestId.slice(0, 8)}...
+                        </p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <span className="bg-purple-600/30 text-purple-300 px-2 py-1 rounded text-xs font-medium">
+                            {result.confidence}% confidence
                           </span>
-                        )}
+                          <span className="bg-blue-600/30 text-blue-300 px-2 py-1 rounded text-xs font-medium">
+                            {result.style}
+                          </span>
+                          <span className="bg-green-600/30 text-green-300 px-2 py-1 rounded text-xs font-medium">
+                            {result.mood}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* Original Prompt */}
                   {result.originalPrompt && (
-                    <div className="mb-3">
-                      <Label className="text-gray-400 text-xs">
-                        Original Prompt:
+                    <div className="mb-4">
+                      <Label className="text-gray-400 text-xs uppercase tracking-wide">
+                        Original Prompt
                       </Label>
-                      <p className="text-gray-300 text-sm bg-black/60 p-2 rounded mt-1">
-                        {result.originalPrompt}
-                      </p>
+                      <div className="bg-black/60 border border-white/10 rounded-lg p-3 mt-2">
+                        <p className="text-gray-300 text-sm">
+                          {result.originalPrompt}
+                        </p>
+                      </div>
                     </div>
                   )}
 
-                  <div className="mb-3">
-                    <Label className="text-gray-400 text-xs">
-                      Generated Prompt:
+                  {/* Generated Prompt */}
+                  <div className="mb-4">
+                    <Label className="text-gray-400 text-xs uppercase tracking-wide">
+                      AI Generated Prompt
                     </Label>
-                    <div className="bg-black/60 p-3 rounded mt-1 border border-white/10">
-                      <p className="text-white text-sm whitespace-pre-wrap">
+                    <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-lg p-4 mt-2">
+                      <p className="text-white whitespace-pre-wrap leading-relaxed">
                         {result.generatedPrompt}
                       </p>
                     </div>
                   </div>
 
+                  {/* Tags */}
                   {result.tags.length > 0 && (
-                    <div className="mb-3">
-                      <Label className="text-gray-400 text-xs">Tags:</Label>
-                      <div className="flex flex-wrap gap-1 mt-1">
+                    <div className="mb-4">
+                      <Label className="text-gray-400 text-xs uppercase tracking-wide">
+                        Detected Tags
+                      </Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {result.tags.map((tag, index) => (
                           <span
                             key={index}
-                            className="bg-gray-700/50 text-gray-300 px-2 py-1 rounded text-xs"
+                            className="bg-gray-700/50 text-gray-300 px-3 py-1 rounded-full text-xs border border-white/10"
                           >
                             {tag}
                           </span>
@@ -988,14 +1040,14 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
                     </div>
                   )}
 
-                  <div className="flex justify-end space-x-2">
+                  {/* Actions */}
+                  <div className="flex justify-end">
                     <Button
-                      variant="outline"
-                      size="sm"
                       onClick={() => copyToClipboard(result.generatedPrompt)}
-                      className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                      size="sm"
                     >
-                      <Copy size={14} className="mr-1" />
+                      <Copy size={14} className="mr-2" />
                       Copy Prompt
                     </Button>
                   </div>
@@ -1003,11 +1055,16 @@ const PromptGeneratorTab: React.FC<PromptGeneratorProps> = ({
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 mx-auto mb-4 text-gray-500 opacity-50" />
-              <p className="text-gray-400">No analysis results yet</p>
+            <div className="text-center py-12">
+              <div className="p-4 bg-green-600/10 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                <Target className="w-10 h-10 text-green-400/50" />
+              </div>
+              <p className="text-gray-400 font-medium mb-2">
+                No analysis results yet
+              </p>
               <p className="text-gray-500 text-sm">
-                Upload images or send them from the gallery to get started
+                Upload images or send them from the gallery to start generating
+                prompts
               </p>
             </div>
           )}

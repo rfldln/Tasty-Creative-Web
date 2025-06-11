@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Search,
-  Filter,
   Grid,
   List,
   FolderOpen,
@@ -24,15 +23,16 @@ import {
   ChevronRight,
   ChevronLeft,
   Folder,
-  Image,
   ExternalLink,
   LogIn,
   LogOut,
-  User,
   AlertCircle,
   Download,
   Eye,
   X,
+  Plus,
+  Home,
+  LayoutGrid,
 } from "lucide-react";
 
 // Google OAuth Configuration
@@ -157,7 +157,6 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
     const userInfo = localStorage.getItem("google_user_info");
 
     if (token) {
-      console.log("Found stored token, length:", token.length);
       setAuthState({
         isAuthenticated: true,
         accessToken: token,
@@ -170,7 +169,6 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
     const code = urlParams.get("code");
 
     if (code) {
-      console.log("Found auth code in URL, processing...");
       handleAuthCallback(code);
     }
   }, []);
@@ -195,15 +193,12 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       }
     )}`;
 
-    console.log("Redirecting to Google OAuth...");
     window.location.href = authUrl;
   };
 
   // Handle OAuth callback
   const handleAuthCallback = async (code: string) => {
     try {
-      console.log("Exchanging auth code for token...");
-
       // Exchange code for token
       const tokenResponse = await fetch("/api/auth/google/token", {
         method: "POST",
@@ -213,12 +208,10 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
-        console.error("Token exchange failed:", errorData);
         throw new Error(errorData.error || "Failed to exchange code for token");
       }
 
       const tokenData = await tokenResponse.json();
-      console.log("Token exchange successful");
 
       // Get user info
       const userResponse = await fetch(
@@ -231,7 +224,6 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       if (!userResponse.ok) throw new Error("Failed to get user info");
 
       const userInfo = await userResponse.json();
-      console.log("User info retrieved:", userInfo.email);
 
       // Store auth data
       localStorage.setItem("google_access_token", tokenData.access_token);
@@ -249,7 +241,6 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       // Clear URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
     } catch (err: any) {
-      console.error("Auth callback error:", err);
       setError(err.message || "Failed to authenticate. Please try again.");
     }
   };
@@ -275,13 +266,10 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
     const refreshToken = localStorage.getItem("google_refresh_token");
 
     if (!refreshToken) {
-      console.log("No refresh token available");
       return null;
     }
 
     try {
-      console.log("Refreshing access token...");
-
       const response = await fetch("/api/auth/google/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -303,10 +291,8 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
         accessToken: tokenData.access_token,
       }));
 
-      console.log("Token refreshed successfully");
       return tokenData.access_token;
     } catch (error) {
-      console.error("Token refresh failed:", error);
       // If refresh fails, logout user
       handleLogout();
       return null;
@@ -330,14 +316,11 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       );
 
       if (response.ok) {
-        console.log("Current token is valid");
         return token;
       } else {
-        console.log("Token is invalid, attempting refresh...");
         return await refreshAccessToken();
       }
     } catch (error) {
-      console.error("Token validation error:", error);
       return await refreshAccessToken();
     }
   };
@@ -373,14 +356,6 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
     folderId: string = RESTRICTED_FOLDER_ID,
     pageToken?: string
   ) => {
-    console.log("=== LOAD FOLDER CONTENTS ===");
-    console.log("Folder ID:", folderId);
-    console.log("Auth state:", {
-      isAuthenticated: authState.isAuthenticated,
-      hasToken: !!authState.accessToken,
-      tokenLength: authState.accessToken?.length || 0,
-    });
-
     if (!authState.isAuthenticated || !authState.accessToken) {
       setError("Please sign in to access Google Drive files");
       return;
@@ -394,7 +369,7 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
         q: `'${folderId}' in parents and trashed=false`,
         fields:
           "nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,webContentLink,size,modifiedTime)",
-        pageSize: "100",
+        pageSize: "50",
         orderBy: "name",
       });
 
@@ -403,7 +378,6 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       }
 
       const url = `https://www.googleapis.com/drive/v3/files?${params.toString()}`;
-      console.log("Fetching URL:", url);
 
       const response = await fetch(url, {
         headers: {
@@ -412,80 +386,30 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
         },
       });
 
-      console.log("Drive API Response:", {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries()),
-      });
-
       if (!response.ok) {
-        let errorData: any = {};
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
 
-        try {
-          // Try to parse JSON error response
-          const responseText = await response.text();
-          console.log("Raw response text:", responseText);
-
-          if (responseText) {
-            try {
-              errorData = JSON.parse(responseText);
-              console.log("Parsed error data:", errorData);
-            } catch (parseError) {
-              console.log("Failed to parse JSON, using raw text");
-              errorData = { message: responseText };
-            }
-          }
-        } catch (readError) {
-          console.error("Error reading response:", readError);
-        }
-
-        // Handle specific error cases
         if (response.status === 401) {
-          // Token expired or invalid
-          console.log("Token expired, logging out");
           handleLogout();
           throw new Error("Session expired. Please sign in again.");
         } else if (response.status === 403) {
-          // Permission denied
-          const message =
-            errorData?.error?.message ||
-            errorData?.message ||
-            "You don't have permission to access this folder. Please check that the folder ID is correct and you have access.";
-          throw new Error(message);
+          throw new Error(
+            "You don't have permission to access this folder. Please check that the folder ID is correct and you have access."
+          );
         } else if (response.status === 404) {
-          // Not found
           throw new Error("Folder not found. Please check the folder ID.");
         } else if (response.status === 429) {
-          // Rate limited
           throw new Error(
             "Too many requests. Please wait a moment and try again."
           );
         } else {
-          // Generic error
-          const message =
-            errorData?.error?.message || errorData?.message || errorMessage;
-          throw new Error(message);
+          throw new Error(errorMessage);
         }
       }
 
-      // Try to parse successful response
-      let data: any;
-      try {
-        const responseText = await response.text();
-        console.log("Success response length:", responseText.length);
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error("Error parsing successful response:", parseError);
-        throw new Error("Invalid response format from Google Drive API");
-      }
+      const data = await response.json();
 
-      console.log("Drive API Success - Files found:", data.files?.length || 0);
-
-      // Validate response structure
       if (!data.files || !Array.isArray(data.files)) {
-        console.error("Invalid response structure:", data);
         throw new Error("Invalid response structure from Google Drive API");
       }
 
@@ -512,13 +436,7 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
 
       setNextPageToken(data.nextPageToken || null);
       setCurrentFolder(folderId);
-
-      console.log("Folder loaded successfully:", {
-        filesCount: transformedFiles.length,
-        hasNextPage: !!data.nextPageToken,
-      });
     } catch (err: any) {
-      console.error("Error loading folder:", err);
       setError(err.message || "Failed to load folder contents");
     } finally {
       setIsLoading(false);
@@ -552,7 +470,6 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
   // Load folder when authenticated
   useEffect(() => {
     if (authState.isAuthenticated && authState.accessToken) {
-      console.log("Auth state changed, loading folder...");
       loadFolderContentsWithAuth(RESTRICTED_FOLDER_ID);
     }
   }, [authState.isAuthenticated, authState.accessToken]);
@@ -581,172 +498,140 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
     await loadFolderContentsWithAuth(RESTRICTED_FOLDER_ID);
   };
 
-  // Navigate to specific folder in breadcrumb
-  const navigateToBreadcrumbFolder = async (targetIndex: number) => {
-    const targetFolder = folderPath[targetIndex];
-    if (targetFolder) {
-      // Update folder path to only include folders up to the clicked one
-      const newPath = folderPath.slice(0, targetIndex);
-      setFolderPath(newPath);
-      await loadFolderContentsWithAuth(targetFolder.id);
-    }
-  };
-
-  // Enhanced image URL getter with token refresh
-  const getImageUrl = (file: GoogleDriveFile): string => {
-    // For supported image types, use our proxy endpoint
-    if (
-      !file.isFolder &&
-      supportedImageTypes.includes(file.mimeType) &&
-      authState.accessToken
-    ) {
-      // Add a timestamp to prevent caching issues
-      const timestamp = Date.now();
-      return `/api/drive/image/${file.id}?token=${encodeURIComponent(
+  // Enhanced image URL getter - Fixed to prevent reloading
+  const getImageUrl = useCallback(
+    (file: GoogleDriveFile): string => {
+      // For supported image types, use our proxy endpoint
+      if (
+        !file.isFolder &&
+        supportedImageTypes.includes(file.mimeType) &&
         authState.accessToken
-      )}&t=${timestamp}`;
-    }
+      ) {
+        return `/api/drive/image/${file.id}?token=${encodeURIComponent(
+          authState.accessToken
+        )}`;
+      }
 
-    // For folders or non-images, return the web view link
-    return file.webViewLink;
-  };
+      // For folders or non-images, return the web view link
+      return file.webViewLink;
+    },
+    [authState.accessToken]
+  );
 
   // Check if file is already in dataset
   const isFileInDataset = (fileId: string): boolean => {
     return datasetItems.some((item) => item.id === `drive_${fileId}`);
   };
 
-  // Enhanced Drive Image Component with retry logic
-  const DriveImageComponent = ({ file }: { file: GoogleDriveFile }) => {
-    const [imageError, setImageError] = useState(false);
-    const [imageLoading, setImageLoading] = useState(true);
-    const [retryCount, setRetryCount] = useState(0);
-    const [currentImageUrl, setCurrentImageUrl] = useState(getImageUrl(file));
+  // Enhanced Drive Image Component - Fixed to prevent reloading on selection
+  const DriveImageComponent = React.memo(
+    ({ file }: { file: GoogleDriveFile }) => {
+      const [imageError, setImageError] = useState(false);
+      const [imageLoading, setImageLoading] = useState(true);
+      const [retryCount, setRetryCount] = useState(0);
 
-    const handleImageError = async () => {
-      console.log(
-        `Image load failed for ${file.name}, retry count: ${retryCount}`
-      );
+      // Use the memoized image URL to prevent unnecessary changes
+      const imageUrl = getImageUrl(file);
 
-      if (retryCount < 2 && authState.accessToken) {
-        // Try to refresh token and retry
-        const newToken = await checkAndRefreshToken(authState.accessToken);
+      const handleImageError = async () => {
+        if (retryCount < 2 && authState.accessToken) {
+          // Try to refresh token and retry
+          const newToken = await checkAndRefreshToken(authState.accessToken);
 
-        if (newToken) {
-          setRetryCount((prev) => prev + 1);
-          // Update the image URL with new token
-          const timestamp = Date.now();
-          setCurrentImageUrl(
-            `/api/drive/image/${file.id}?token=${encodeURIComponent(
-              newToken
-            )}&t=${timestamp}`
-          );
-          setImageLoading(true);
-          setImageError(false);
-          return;
+          if (newToken) {
+            setRetryCount((prev) => prev + 1);
+            setImageLoading(true);
+            setImageError(false);
+            return;
+          }
         }
-      }
 
-      setImageError(true);
-      setImageLoading(false);
-    };
+        setImageError(true);
+        setImageLoading(false);
+      };
 
-    const handleImageLoad = () => {
-      setImageLoading(false);
-      setImageError(false);
-      setRetryCount(0); // Reset retry count on successful load
-    };
+      const handleImageLoad = () => {
+        setImageLoading(false);
+        setImageError(false);
+        setRetryCount(0);
+      };
 
-    const handleImageClick = () => {
-      if (
-        !file.isFolder &&
-        supportedImageTypes.includes(file.mimeType) &&
-        !imageError
-      ) {
-        const imageFiles = filteredFiles.filter(
-          (f) => !f.isFolder && supportedImageTypes.includes(f.mimeType)
+      const handleImageClick = () => {
+        if (
+          !file.isFolder &&
+          supportedImageTypes.includes(file.mimeType) &&
+          !imageError
+        ) {
+          const imageFiles = filteredFiles.filter(
+            (f) => !f.isFolder && supportedImageTypes.includes(f.mimeType)
+          );
+          const imageIndex = imageFiles.findIndex((f) => f.id === file.id);
+          setCurrentImageIndex(imageIndex);
+          setSelectedImage(file);
+        }
+      };
+
+      if (file.isFolder) {
+        return (
+          <div
+            className="w-full h-full bg-gradient-to-br from-blue-500/20 to-blue-700/20 flex items-center justify-center cursor-pointer hover:from-blue-500/30 hover:to-blue-700/30 transition-all duration-200 rounded-lg border border-blue-400/20"
+            onClick={() => navigateToFolder(file.id, file.name)}
+          >
+            <Folder
+              className="text-blue-400"
+              size={viewMode === "grid" ? 48 : 24}
+            />
+          </div>
         );
-        const imageIndex = imageFiles.findIndex((f) => f.id === file.id);
-        setCurrentImageIndex(imageIndex);
-        setSelectedImage(file);
       }
-    };
 
-    // Update image URL when auth token changes
-    useEffect(() => {
-      if (authState.accessToken && !imageError) {
-        setCurrentImageUrl(getImageUrl(file));
+      if (!supportedImageTypes.includes(file.mimeType) || imageError) {
+        return (
+          <div className="w-full h-full bg-gray-600/20 flex items-center justify-center rounded-lg border border-gray-400/20">
+            <FileImage
+              className="text-gray-400"
+              size={viewMode === "grid" ? 32 : 20}
+            />
+            {imageError && retryCount > 0 && (
+              <div className="absolute bottom-1 right-1 text-xs text-red-400">
+                ⚠️
+              </div>
+            )}
+          </div>
+        );
       }
-    }, [authState.accessToken, file]);
 
-    if (file.isFolder) {
       return (
-        <div
-          className="w-full h-full bg-blue-600/20 flex items-center justify-center cursor-pointer hover:bg-blue-600/30 transition-colors"
-          onClick={() => navigateToFolder(file.id, file.name)}
-        >
-          <Folder
-            className="text-blue-400"
-            size={viewMode === "grid" ? 48 : 24}
+        <div className="relative w-full h-full rounded-lg overflow-hidden">
+          {imageLoading && (
+            <div className="absolute inset-0 bg-gray-600/20 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          )}
+          <img
+            src={imageUrl}
+            alt={file.name}
+            className={`w-full h-full object-cover transition-all duration-300 cursor-pointer hover:scale-105 ${
+              imageLoading ? "opacity-0" : "opacity-100"
+            }`}
+            loading="lazy"
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+            onClick={handleImageClick}
           />
-        </div>
-      );
-    }
 
-    if (!supportedImageTypes.includes(file.mimeType) || imageError) {
-      return (
-        <div className="w-full h-full bg-gray-600/20 flex items-center justify-center">
-          <FileImage
-            className="text-gray-400"
-            size={viewMode === "grid" ? 32 : 20}
-          />
-          {imageError && retryCount > 0 && (
-            <div className="absolute bottom-1 right-1 text-xs text-red-400">
-              ⚠️
+          {/* Already in dataset indicator */}
+          {isFileInDataset(file.id) && (
+            <div className="absolute top-2 right-2">
+              <div className="bg-green-500/90 rounded-full p-1 shadow-lg">
+                <Check size={12} className="text-white" />
+              </div>
             </div>
           )}
         </div>
       );
     }
-
-    return (
-      <div className="relative w-full h-full">
-        {imageLoading && (
-          <div className="absolute inset-0 bg-gray-600/20 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-          </div>
-        )}
-        <img
-          key={currentImageUrl} // Force re-render when URL changes
-          src={currentImageUrl}
-          alt={file.name}
-          className={`w-full h-full object-cover transition-opacity cursor-pointer hover:opacity-80 ${
-            imageLoading ? "opacity-0" : "opacity-100"
-          }`}
-          loading="lazy"
-          onError={handleImageError}
-          onLoad={handleImageLoad}
-          onClick={handleImageClick}
-        />
-
-        {/* Already in dataset indicator */}
-        {isFileInDataset(file.id) && (
-          <div className="absolute bottom-2 right-2">
-            <div className="bg-green-600/80 rounded-full p-1">
-              <Check size={12} className="text-white" />
-            </div>
-          </div>
-        )}
-
-        {/* Retry indicator */}
-        {retryCount > 0 && !imageError && (
-          <div className="absolute bottom-1 left-1 text-xs text-yellow-400">
-            🔄 {retryCount}
-          </div>
-        )}
-      </div>
-    );
-  };
+  );
 
   // Image Modal Component
   const ImageModal = () => {
@@ -794,22 +679,9 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
     }, [selectedImage, currentImageIndex]);
 
     const modalContent = (
-      <div
-        className="fixed inset-0 bg-black/95 z-[9999] flex flex-col"
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          margin: 0,
-          padding: 0,
-          zIndex: 9999,
-        }}
-        onClick={() => setSelectedImage(null)}
-      >
-        {/* Top bar with close button */}
-        <div className="absolute top-0 right-0 p-6 z-10">
+      <div className="fixed inset-0 bg-black/95 z-[9999] flex flex-col">
+        {/* Close button */}
+        <div className="absolute top-6 right-6 z-10">
           <button
             onClick={() => setSelectedImage(null)}
             className="text-white hover:text-gray-300 bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors"
@@ -819,19 +691,13 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
         </div>
 
         {/* Full screen image area */}
-        <div
-          className="w-full h-full flex items-center justify-center relative"
-          onClick={() => setSelectedImage(null)}
-        >
+        <div className="w-full h-full flex items-center justify-center relative">
           {/* Navigation buttons */}
           {imageFiles.length > 1 && (
             <>
               {currentImageIndex > 0 && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    goToPrevious();
-                  }}
+                  onClick={goToPrevious}
                   className="absolute left-6 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10 bg-black/50 rounded-full p-3 hover:bg-black/70 transition-colors"
                 >
                   <ChevronLeft size={32} />
@@ -840,10 +706,7 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
 
               {currentImageIndex < imageFiles.length - 1 && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    goToNext();
-                  }}
+                  onClick={goToNext}
                   className="absolute right-6 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10 bg-black/50 rounded-full p-3 hover:bg-black/70 transition-colors"
                 >
                   <ChevronRight size={32} />
@@ -852,16 +715,11 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
             </>
           )}
 
-          {/* Image - perfectly centered in full viewport */}
+          {/* Image */}
           <img
             src={getImageUrl(selectedImage)}
             alt={selectedImage.name}
             className="max-w-[calc(100vw-8rem)] max-h-[calc(100vh-8rem)] object-contain"
-            style={{
-              maxWidth: "calc(100vw - 8rem)",
-              maxHeight: "calc(100vh - 8rem)",
-            }}
-            onClick={(e) => e.stopPropagation()}
           />
         </div>
 
@@ -883,7 +741,6 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       </div>
     );
 
-    // Use portal to render outside of the component tree
     return typeof window !== "undefined"
       ? createPortal(modalContent, document.body)
       : null;
@@ -923,9 +780,9 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       setSelectedFiles(new Set());
       setNotification({
         type: "success",
-        message: `${vaultItems.length} files ready to add to vault. Choose a folder to organize them.`,
+        message: `${vaultItems.length} files ready to add to vault.`,
       });
-      setTimeout(() => setNotification(null), 5000);
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
@@ -951,7 +808,7 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       onAddToVault([vaultItem]);
       setNotification({
         type: "success",
-        message: `"${file.name}" ready to add to vault. Choose a folder to organize it.`,
+        message: `"${file.name}" ready to add to vault.`,
       });
       setTimeout(() => setNotification(null), 3000);
     }
@@ -1014,39 +871,48 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
     }
   };
 
-  // Handle individual file selection
-  const handleFileSelection = (fileId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Handle individual file selection - Fixed to prevent reloading
+  const handleFileSelection = useCallback(
+    (fileId: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    setSelectedFiles((prev) => {
-      const newSelected = new Set(prev);
-      if (newSelected.has(fileId)) {
-        newSelected.delete(fileId);
-      } else {
-        newSelected.add(fileId);
-      }
-      return newSelected;
-    });
-  };
+      setSelectedFiles((prev) => {
+        const newSelected = new Set(prev);
+        if (newSelected.has(fileId)) {
+          newSelected.delete(fileId);
+        } else {
+          newSelected.add(fileId);
+        }
+        return newSelected;
+      });
+    },
+    []
+  );
 
   return (
     <div className="space-y-6">
       {/* Header with Auth */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-white mb-4">
-          Google Drive Browser
-        </h2>
+      <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-xl p-6 border border-white/10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2 flex items-center">
+              <FolderOpen className="mr-3 text-blue-400" size={28} />
+              Google Drive Browser
+            </h2>
+            <p className="text-gray-300">
+              Access and import images from your Google Drive
+            </p>
+          </div>
 
-        {/* Auth Status */}
-        <div className="flex items-center justify-center space-x-4 mb-4">
+          {/* Auth Status */}
           {authState.isAuthenticated && authState.userInfo ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 bg-black/30 rounded-lg p-3">
               {authState.userInfo.picture && (
                 <img
                   src={authState.userInfo.picture}
                   alt={authState.userInfo.name}
-                  className="w-8 h-8 rounded-full"
+                  className="w-10 h-10 rounded-full ring-2 ring-blue-400/30"
                 />
               )}
               <div className="text-left">
@@ -1061,7 +927,7 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="bg-black/60 border-white/10 text-white"
+                className="bg-red-900/30 border-red-500/30 text-red-300 hover:bg-red-900/50"
               >
                 <LogOut size={16} className="mr-2" />
                 Sign Out
@@ -1070,7 +936,7 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
           ) : (
             <Button
               onClick={handleLogin}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
               disabled={!GOOGLE_CLIENT_ID}
             >
               <LogIn size={16} className="mr-2" />
@@ -1078,12 +944,6 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
             </Button>
           )}
         </div>
-
-        {!authState.isAuthenticated && (
-          <p className="text-gray-400 text-sm">
-            Sign in to access restricted folders
-          </p>
-        )}
 
         {!GOOGLE_CLIENT_ID && (
           <Alert className="mt-4 bg-yellow-900/20 border-yellow-500/30 text-yellow-200">
@@ -1100,7 +960,7 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       {/* Notification */}
       {notification && (
         <Alert
-          className={`mb-4 ${
+          className={`${
             notification.type === "success"
               ? "bg-green-900/20 border-green-500/30 text-green-200"
               : notification.type === "warning"
@@ -1117,61 +977,70 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
       {authState.isAuthenticated && (
         <>
           {/* Folder Navigation */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              {folderPath.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={navigateBack}
-                  disabled={isLoading}
-                  className="bg-black/60 border-white/10 text-white"
-                >
-                  <ChevronLeft size={16} />
-                </Button>
-              )}
+          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                {folderPath.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={navigateBack}
+                    disabled={isLoading}
+                    className="text-gray-400 hover:text-white hover:bg-white/10"
+                  >
+                    <ChevronLeft size={16} />
+                  </Button>
+                )}
 
-              <div className="flex items-center space-x-1 text-gray-300">
-                <FolderOpen size={16} />
-                <button
-                  onClick={navigateToRoot}
-                  disabled={isLoading}
-                  className="text-gray-300 hover:text-white transition-colors cursor-pointer underline-offset-2 hover:underline"
-                >
-                  Root
-                </button>
-                {folderPath.map((folder, index) => (
-                  <React.Fragment key={index}>
-                    <ChevronRight size={14} className="text-gray-500" />
-                    <button
-                      onClick={() => navigateToBreadcrumbFolder(index)}
-                      disabled={isLoading}
-                      className="text-gray-300 hover:text-white transition-colors cursor-pointer underline-offset-2 hover:underline"
-                    >
-                      {folder.name}
-                    </button>
-                  </React.Fragment>
-                ))}
+                <div className="flex items-center space-x-2 text-gray-300">
+                  <button
+                    onClick={navigateToRoot}
+                    disabled={isLoading}
+                    className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors bg-black/40 rounded px-3 py-1"
+                  >
+                    <Home size={16} />
+                    <span>Root</span>
+                  </button>
+                  {folderPath.map((folder, index) => (
+                    <React.Fragment key={index}>
+                      <ChevronRight size={14} className="text-gray-500" />
+                      <button
+                        onClick={() => {
+                          const targetFolder = folderPath[index];
+                          const newPath = folderPath.slice(0, index);
+                          setFolderPath(newPath);
+                          setCurrentFolder(targetFolder.id);
+                          loadFolderContentsWithAuth(targetFolder.id);
+                        }}
+                        disabled={isLoading}
+                        className="text-gray-300 hover:text-white transition-colors bg-black/40 rounded px-3 py-1"
+                      >
+                        {folder.name}
+                      </button>
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadFolderContentsWithAuth(currentFolder)}
-              disabled={isLoading}
-              className="bg-black/60 border-white/10 text-white"
-            >
-              <RefreshCw
-                size={16}
-                className={`mr-2 ${isLoading ? "animate-spin" : ""}`}
-              />
-              Refresh
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadFolderContentsWithAuth(currentFolder)}
+                disabled={isLoading}
+                className="bg-black/60 border-white/10 text-white"
+              >
+                <RefreshCw
+                  size={16}
+                  className={`mr-2 ${isLoading ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </Button>
+            </div>
           </div>
 
-          {/* Search and Filter Bar */}
-          <div className="flex space-x-4">
+          {/* Controls Bar */}
+          <div className="flex items-center space-x-4 bg-black/30 rounded-lg p-4 border border-white/10">
+            {/* Search */}
             <div className="flex-1">
               <div className="relative">
                 <Search
@@ -1187,76 +1056,72 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
               </div>
             </div>
 
+            {/* Filter */}
             <Select
               value={selectedFileType}
               onValueChange={setSelectedFileType}
             >
-              <SelectTrigger className="w-40 bg-black/60 border-white/10 text-white">
-                <Filter size={16} className="mr-2" />
+              <SelectTrigger className="w-32 bg-black/60 border-white/10 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-black/90 border-white/10 text-white">
-                {fileTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="images">Images</SelectItem>
+                <SelectItem value="folders">Folders</SelectItem>
               </SelectContent>
             </Select>
 
+            {/* View Mode */}
             <Button
               variant="outline"
               size="sm"
               className="bg-black/60 border-white/10 text-white"
               onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
             >
-              {viewMode === "grid" ? <List size={16} /> : <Grid size={16} />}
+              {viewMode === "grid" ? (
+                <List size={16} />
+              ) : (
+                <LayoutGrid size={16} />
+              )}
             </Button>
-          </div>
 
-          {/* Bulk Actions Bar */}
-          {selectedFiles.size > 0 && (
-            <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-purple-300 font-medium">
-                  {selectedFiles.size} files selected
+            {/* Selection Actions */}
+            {selectedFiles.size > 0 && (
+              <div className="flex items-center space-x-2">
+                <span className="text-purple-300 text-sm font-medium">
+                  {selectedFiles.size} selected
                 </span>
-
-                <div className="flex space-x-2">
-                  {onAddToVault && (
-                    <Button
-                      onClick={() => addFilesToVault(Array.from(selectedFiles))}
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
-                    >
-                      <FolderOpen size={16} className="mr-2" />
-                      Add to Vault ({selectedFiles.size})
-                    </Button>
-                  )}
-
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedFiles(new Set())}
-                    className="bg-black/60 border-white/10 text-white"
-                  >
-                    <X size={16} className="mr-2" />
-                    Clear Selection
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => addFilesToVault(Array.from(selectedFiles))}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  size="sm"
+                >
+                  <Plus size={16} className="mr-1" />
+                  Add to Vault
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedFiles(new Set())}
+                  className="bg-black/60 border-white/10 text-white"
+                  size="sm"
+                >
+                  <X size={16} />
+                </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Bulk Selection */}
           {filteredFiles.some(
             (file) =>
               !file.isFolder && supportedImageTypes.includes(file.mimeType)
           ) && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between text-sm">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={handleSelectAll}
-                className="bg-black/60 border-white/10 text-white"
+                className="text-gray-400 hover:text-white"
               >
                 {selectedFiles.size ===
                 filteredFiles.filter(
@@ -1266,14 +1131,15 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
                   : "Select All Images"}
               </Button>
 
-              <span className="text-gray-400 text-sm">
+              <span className="text-gray-400">
+                {filteredFiles.length} items •{" "}
                 {
                   filteredFiles.filter(
                     (f) =>
                       !f.isFolder && supportedImageTypes.includes(f.mimeType)
                   ).length
                 }{" "}
-                images available
+                images
               </span>
             </div>
           )}
@@ -1301,15 +1167,17 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
             <div
               className={
                 viewMode === "grid"
-                  ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+                  ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
                   : "space-y-2"
               }
             >
               {filteredFiles.map((file) => (
                 <div
                   key={file.id}
-                  className={`group relative bg-black/40 rounded-lg overflow-hidden border border-white/10 hover:border-purple-400/30 transition-all ${
-                    selectedFiles.has(file.id) ? "ring-2 ring-purple-400" : ""
+                  className={`group relative bg-black/40 rounded-lg overflow-hidden border border-white/10 hover:border-purple-400/50 transition-all duration-200 ${
+                    selectedFiles.has(file.id)
+                      ? "ring-2 ring-purple-400 shadow-lg shadow-purple-400/20"
+                      : ""
                   } ${
                     viewMode === "list" ? "flex items-center space-x-4 p-3" : ""
                   }`}
@@ -1319,7 +1187,7 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
                     className={`relative ${
                       viewMode === "grid"
                         ? "aspect-square"
-                        : "w-12 h-12 flex-shrink-0"
+                        : "w-16 h-16 flex-shrink-0"
                     }`}
                   >
                     <DriveImageComponent file={file} />
@@ -1331,11 +1199,10 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
                           <button
                             className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
                               selectedFiles.has(file.id)
-                                ? "bg-purple-600 border-purple-600"
-                                : "bg-black/50 border-white/30 hover:border-white/60"
+                                ? "bg-purple-600 border-purple-600 shadow-lg"
+                                : "bg-black/70 border-white/40 hover:border-white/80"
                             }`}
                             onClick={(e) => handleFileSelection(file.id, e)}
-                            onMouseDown={(e) => e.stopPropagation()}
                           >
                             {selectedFiles.has(file.id) && (
                               <Check size={14} className="text-white" />
@@ -1344,64 +1211,25 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
                         </div>
                       )}
 
-                    {/* External Link */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      <a
-                        href={file.webViewLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-6 h-6 bg-black/70 rounded flex items-center justify-center text-white hover:bg-black/90"
-                      >
-                        <ExternalLink size={12} />
-                      </a>
-                    </div>
-
-                    {/* Individual Action Buttons */}
+                    {/* Quick Actions */}
                     {!file.isFolder &&
                       supportedImageTypes.includes(file.mimeType) && (
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2 z-10">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(file.webViewLink, "_blank");
-                            }}
-                          >
-                            <Eye size={14} />
-                          </Button>
-
-                          {onAddToVault && !isFileInDataset(file.id) && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addSingleFileToVault(file);
-                              }}
-                            >
-                              <FolderOpen size={14} />
-                            </Button>
-                          )}
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const link = document.createElement("a");
-                              link.href = getImageUrl(file);
-                              link.download = file.name;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                            }}
-                          >
-                            <Download size={14} />
-                          </Button>
+                        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <div className="flex space-x-1">
+                            {onAddToVault && !isFileInDataset(file.id) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-white/20 border-white/30 text-white hover:bg-white/30 h-8 w-8 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addSingleFileToVault(file);
+                                }}
+                              >
+                                <Plus size={12} />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       )}
                   </div>
@@ -1420,12 +1248,14 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
                       <span className="capitalize">
                         {file.isFolder ? "Folder" : file.mimeType.split("/")[1]}
                       </span>
-                      {!file.isFolder && <span>{file.size}</span>}
+                      {!file.isFolder && file.size && <span>{file.size}</span>}
                     </div>
 
-                    <div className="text-xs text-gray-500 mt-1">
-                      {formatDate(file.modifiedTime)}
-                    </div>
+                    {viewMode === "list" && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {formatDate(file.modifiedTime)}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1455,7 +1285,7 @@ const BrowseTab: React.FC<BrowseTabProps> = ({
               <p className="text-gray-500 text-sm">
                 {searchQuery || selectedFileType !== "all"
                   ? "Try adjusting your search or filter criteria"
-                  : "This folder appears to be empty or you don't have permission to view it"}
+                  : "This folder appears to be empty"}
               </p>
             </div>
           )}
