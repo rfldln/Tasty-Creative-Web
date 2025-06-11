@@ -3,12 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const COMFYUI_BASE_URL = process.env.COMFYUI_BASE_URL || 'http://209.53.88.242:12628';
 
+interface RouteParams {
+  params: Promise<{ promptId: string }>;
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { promptId: string } }
+  { params }: RouteParams
 ) {
   try {
-    const { promptId } = params;
+    const { promptId } = await params;
     
     console.log('Fetching history for prompt:', promptId);
     
