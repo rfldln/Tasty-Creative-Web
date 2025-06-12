@@ -27,6 +27,7 @@ import VaultTab from "./ImageGenTab-VaultTab";
 import VideoTab from "./ImageGenTab-VideoTab";
 import PromptGeneratorTab from "./ImageGenTab-PromptGenerator";
 import CombinedGallery from "./ImageGenTab-GalleryTab";
+import Image2ImageTab from "./ImageGenTab-Image2Image";
 import {
   Image,
   Download,
@@ -62,6 +63,7 @@ import {
   WifiOff,
   Video,
   Wand2,
+  Palette,
 } from "lucide-react";
 
 // TypeScript interfaces
@@ -742,6 +744,12 @@ const ImageGenTab: React.FC = () => {
       label: "Image Generation",
       icon: Image,
       description: "Generate AI images",
+    },
+    {
+      id: "image2image", // Add this new item
+      label: "Image to Image",
+      icon: Palette, // You can use any icon you prefer
+      description: "Transform existing images",
     },
     {
       id: "video",
@@ -1867,6 +1875,31 @@ const ImageGenTab: React.FC = () => {
             <VideoTab
               generatedVideos={generatedVideos}
               setGeneratedVideos={setGeneratedVideos}
+            />
+          )}
+
+          {/* Image2Image Tab Content - ADD THIS */}
+          {activeSubTab === "image2image" && (
+            <Image2ImageTab
+              onImageGenerated={(images) => {
+                // Process the images and add them to your gallery
+                const processedImages = images.map((img) => ({
+                  ...img,
+                  type: "image" as const,
+                }));
+
+                // Add to generated images with blob URL processing
+                processGeneratedImages(images).then(
+                  (processedImagesWithBlobs) => {
+                    setGeneratedImages((prev) => [
+                      ...processedImagesWithBlobs,
+                      ...prev,
+                    ]);
+                  }
+                );
+              }}
+              availableLoraModels={availableLoraModels}
+              isConnected={isConnected}
             />
           )}
 
