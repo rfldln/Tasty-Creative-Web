@@ -584,7 +584,7 @@ const Image2ImageTab: React.FC<Image2ImageProps> = ({
       setGenerationProgress(20);
 
       // Step 2: Build workflow with separate image and mask handling
-      const workflow = {
+      const workflow: Record<string, any> = {
         "6": {
           class_type: "CLIPTextEncode",
           inputs: {
