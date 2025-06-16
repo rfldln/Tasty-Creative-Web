@@ -24,14 +24,19 @@ export async function GET(): Promise<NextResponse> {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      "https://legacy.tastycreative.xyz/api/callback/google"
     );
 
     oauth2Client.setCredentials(tokens);
 
-    const sheets: sheets_v4.Sheets = google.sheets({ version: "v4", auth: oauth2Client });
+    const sheets: sheets_v4.Sheets = google.sheets({
+      version: "v4",
+      auth: oauth2Client,
+    });
 
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+    });
     const firstSheetTitle = spreadsheet.data.sheets?.[0]?.properties?.title;
 
     if (!firstSheetTitle) {
@@ -53,10 +58,14 @@ export async function GET(): Promise<NextResponse> {
     const modelIndex = headers.indexOf("Model");
 
     if (modelIndex === -1) {
-      return NextResponse.json({ error: "Model column not found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Model column not found" },
+        { status: 400 }
+      );
     }
 
-    const rows = values.slice(1)
+    const rows = values
+      .slice(1)
       .filter((row) => row[modelIndex]?.trim()) // filter rows with non-empty "Model"
       .map((row) => {
         const rowObj: Record<string, string> = {};
@@ -69,6 +78,9 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json(rows, { status: 200 });
   } catch (error) {
     console.error("❌ Error fetching filtered model data:", error);
-    return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch data" },
+      { status: 500 }
+    );
   }
 }

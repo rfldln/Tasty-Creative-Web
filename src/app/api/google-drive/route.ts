@@ -15,19 +15,27 @@ export async function GET() {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    "https://legacy.tastycreative.xyz/api/callback/google"
   );
 
-  oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
+  oauth2Client.setCredentials({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
 
   try {
     // **Check if access token is expired and refresh if needed**
     const now = Date.now();
-    const tokenInfo = await oauth2Client.getTokenInfo(accessToken).catch(() => null);
-    
+    const tokenInfo = await oauth2Client
+      .getTokenInfo(accessToken)
+      .catch(() => null);
+
     if (!tokenInfo || (tokenInfo.expiry_date && now > tokenInfo.expiry_date)) {
       if (!refreshToken) {
-        return NextResponse.json({ error: "Session expired. Please re-authenticate." }, { status: 401 });
+        return NextResponse.json(
+          { error: "Session expired. Please re-authenticate." },
+          { status: 401 }
+        );
       }
 
       const { credentials } = await oauth2Client.refreshAccessToken();
@@ -38,7 +46,9 @@ export async function GET() {
         cookieStore.set("google_access_token", credentials.access_token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          maxAge: credentials.expiry_date ? (credentials.expiry_date - now) / 1000 : 3600, // 1 hour
+          maxAge: credentials.expiry_date
+            ? (credentials.expiry_date - now) / 1000
+            : 3600, // 1 hour
           path: "/",
         });
       }

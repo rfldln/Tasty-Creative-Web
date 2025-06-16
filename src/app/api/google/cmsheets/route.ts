@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      "https://legacy.tastycreative.xyz/api/callback/google"
     );
     oauth2Client.setCredentials({ access_token, refresh_token });
 
@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
       ranges: [`${tab}!A2:A`, `${tab}!H2:H`, `${tab}!J2:J`],
     });
 
-    const [clientsCol, managersCol, chattersCol] = response.data.valueRanges ?? [];
+    const [clientsCol, managersCol, chattersCol] =
+      response.data.valueRanges ?? [];
 
     const rowCount = Math.max(
       clientsCol.values?.length || 0,
@@ -109,7 +110,7 @@ export async function GET(request: NextRequest) {
 //     const oauth2Client = new google.auth.OAuth2(
 //       process.env.GOOGLE_CLIENT_ID,
 //       process.env.GOOGLE_CLIENT_SECRET,
-//       process.env.GOOGLE_REDIRECT_URI
+//       "https://legacy.tastycreative.xyz/api/callback/google"
 //     );
 //     oauth2Client.setCredentials({ access_token, refresh_token });
 
