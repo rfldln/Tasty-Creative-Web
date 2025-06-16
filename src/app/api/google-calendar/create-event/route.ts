@@ -298,7 +298,7 @@ export async function POST(request: NextRequest) {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    "https://legacy.tastycreative.xyz"
+    "https://legacy.tastycreative.xyz/api/google/callback"
   );
   oauth2Client.setCredentials(tokens);
 
