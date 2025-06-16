@@ -2727,7 +2727,7 @@ const TastyCreative = () => {
               <h3 className="font-medium mb-2">Game Tab Content</h3>
               <p>
                 Switch to the Voice tab to access the enhanced ElevenLabs voice
-                generation
+                generationa
               </p>
             </div>
           </TabsContent>
