@@ -2,7 +2,10 @@ import { google } from "googleapis";
 import { NextApiRequest, NextApiResponse } from "next";
 import { parseCookies } from "nookies";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -44,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      "https://legacy.tastycreative.xyz/api/callback/google"
     );
     oauth2Client.setCredentials({ access_token, refresh_token });
 
@@ -70,7 +73,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!approvalFolder.data.files?.length) {
-      return res.status(404).json({ error: "'For Approval✅' folder not found" });
+      return res
+        .status(404)
+        .json({ error: "'For Approval✅' folder not found" });
     }
 
     const approvalFolderId = approvalFolder.data.files[0].id;
@@ -86,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Create the file first (this creates a placeholder)
     const file = await drive.files.create({
       requestBody: fileMetadata,
-      fields: 'id'
+      fields: "id",
     });
 
     const fileId = file.data.id;
@@ -94,50 +99,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Create a resumable upload URL
     const res2 = await drive.files.get({
       fileId: fileId as string,
-      fields: 'id,name,webViewLink'
+      fields: "id,name,webViewLink",
     });
 
     // Generate a resumable upload URL
     const uploadUrl = await new Promise((resolve, reject) => {
-      oauth2Client.getRequestHeaders()
-        .then(headers => {
+      oauth2Client
+        .getRequestHeaders()
+        .then((headers) => {
           // Prepare the URL for creating a resumable upload session
           const url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`;
-          
+
           // Set up the HTTP request to create a resumable upload session
           fetch(url, {
-            method: 'PATCH',
+            method: "PATCH",
             headers: {
-              'Authorization': headers.Authorization,
-              'Content-Type': 'application/json',
-              'X-Upload-Content-Type': mimeType,
+              Authorization: headers.Authorization,
+              "Content-Type": "application/json",
+              "X-Upload-Content-Type": mimeType,
             },
-            body: JSON.stringify({ name: fileName })
+            body: JSON.stringify({ name: fileName }),
           })
-          .then(response => {
-            if (response.status === 200) {
-              // The 'Location' header contains the resumable upload URL
-              const location = response.headers.get('Location');
-              if (location) {
-                resolve(location);
+            .then((response) => {
+              if (response.status === 200) {
+                // The 'Location' header contains the resumable upload URL
+                const location = response.headers.get("Location");
+                if (location) {
+                  resolve(location);
+                } else {
+                  reject(new Error("No upload URL in response"));
+                }
               } else {
-                reject(new Error('No upload URL in response'));
+                reject(
+                  new Error(
+                    `Failed to create resumable upload session: ${response.status}`
+                  )
+                );
               }
-            } else {
-              reject(new Error(`Failed to create resumable upload session: ${response.status}`));
-            }
-          })
-          .catch(err => reject(err));
+            })
+            .catch((err) => reject(err));
         })
-        .catch(err => reject(err));
+        .catch((err) => reject(err));
     });
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       fileId: fileId,
       uploadUrl: uploadUrl,
       webViewLink: res2.data.webViewLink,
-      fileName: fileName
+      fileName: fileName,
     });
   } catch (err) {
     console.error("Error:", err);

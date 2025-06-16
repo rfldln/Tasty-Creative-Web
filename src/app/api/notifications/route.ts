@@ -20,7 +20,7 @@ export async function GET() {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      "https://legacy.tastycreative.xyz/api/callback/google"
     );
 
     oauth2Client.setCredentials({
@@ -33,7 +33,9 @@ export async function GET() {
 
     const spreadsheetId = "1Ad_I-Eq11NWKT1jqPB9Bw6L1jVKBHHLqR4ZBLBT9XtU";
     const range = "Notifications!A2:G";
-    console.log(`Fetching data from spreadsheetId: ${spreadsheetId}, range: ${range}`);
+    console.log(
+      `Fetching data from spreadsheetId: ${spreadsheetId}, range: ${range}`
+    );
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -65,7 +67,10 @@ export async function GET() {
         const notifDate = new Date(notif.timestamp);
         const isValid = !isNaN(notifDate.getTime()) && notifDate >= oneWeekAgo;
         if (!isValid) {
-          console.log(`Filtered out (too old or invalid date):`, notif.timestamp);
+          console.log(
+            `Filtered out (too old or invalid date):`,
+            notif.timestamp
+          );
         }
         return isValid;
       });
@@ -75,6 +80,9 @@ export async function GET() {
     return NextResponse.json({ notifications });
   } catch (error) {
     console.error("Error fetching notifications:", error);
-    return NextResponse.json({ message: "Error fetching notifications" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Error fetching notifications" },
+      { status: 500 }
+    );
   }
 }

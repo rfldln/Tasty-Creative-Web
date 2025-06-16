@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { google, sheets_v4 } from 'googleapis';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from "next/server";
+import { google, sheets_v4 } from "googleapis";
+import { cookies } from "next/headers";
 
 interface GoogleAuthTokens {
   access_token: string;
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      "https://legacy.tastycreative.xyz/api/callback/google"
     );
 
     oauth2Client.setCredentials({
@@ -50,10 +50,12 @@ export async function POST(request: NextRequest) {
       spreadsheetId: id,
     });
 
-    const sheetNames = spreadsheet.data.sheets?.map((sheet: any) => sheet.properties.title) || [];
-    
+    const sheetNames =
+      spreadsheet.data.sheets?.map((sheet: any) => sheet.properties.title) ||
+      [];
+
     // Find sheet that contains the code (case insensitive)
-    const targetSheetName = sheetNames.find((name: string) => 
+    const targetSheetName = sheetNames.find((name: string) =>
       name.toLowerCase().includes(code.toLowerCase())
     );
 
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
     });
 
     const rows = response.data.values || [];
-    
+
     if (rows.length < 2) {
       return NextResponse.json(
         { error: "Sheet does not contain enough data" },
@@ -83,8 +85,8 @@ export async function POST(request: NextRequest) {
     const dataRows = rows.slice(1); // Skip header row
 
     // Find the Caption column (header row index)
-    const captionColumnIndex = headers.findIndex((header: string) => 
-      header.toLowerCase().includes('caption')
+    const captionColumnIndex = headers.findIndex((header: string) =>
+      header.toLowerCase().includes("caption")
     );
 
     if (captionColumnIndex === -1) {
@@ -96,8 +98,8 @@ export async function POST(request: NextRequest) {
 
     // Find columns that contain "MM" in header (these should have "Unlock" values)
     const mmColumnIndices = headers
-      .map((header: string, index: number) => 
-        header.toLowerCase().includes('mm') ? index : -1
+      .map((header: string, index: number) =>
+        header.toLowerCase().includes("mm") ? index : -1
       )
       .filter((index: number) => index !== -1);
 
@@ -115,7 +117,7 @@ export async function POST(request: NextRequest) {
       // Check if any MM column in this row has "Unlock" value
       const hasUnlock = mmColumnIndices.some((colIndex: number) => {
         const cellValue = row[colIndex];
-        return cellValue && cellValue.toLowerCase().includes('unlock');
+        return cellValue && cellValue.toLowerCase().includes("unlock");
       });
 
       if (hasUnlock && row[captionColumnIndex]) {
@@ -128,12 +130,11 @@ export async function POST(request: NextRequest) {
       sheetName: targetSheetName,
       code: code,
       unlockedCaptions: unlockedCaptions,
-      totalFound: unlockedCaptions.length
+      totalFound: unlockedCaptions.length,
     });
-
   } catch (error: any) {
-    console.error('Error fetching Google Sheets data:', error);
-    
+    console.error("Error fetching Google Sheets data:", error);
+
     // Handle token refresh if needed
     if (error.code === 401) {
       return NextResponse.json(
@@ -143,7 +144,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: "Failed to fetch data from Google Sheets", details: error.message },
+      {
+        error: "Failed to fetch data from Google Sheets",
+        details: error.message,
+      },
       { status: 500 }
     );
   }
